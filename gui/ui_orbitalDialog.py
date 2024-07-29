@@ -28,7 +28,7 @@ class Ui_orbitalDialog(object):
         # dodanie okna ze zdjęciem 
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/icon.png"),
+            QtGui.QPixmap(plugin_dir + "/images/nowa_ikona.svg"),
             QtGui.QIcon.Normal,
             QtGui.QIcon.Off,
         )

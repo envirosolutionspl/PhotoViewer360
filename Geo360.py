@@ -52,6 +52,8 @@ except ImportError:
     None
 
 
+QGIS_PROJECT=QgsProject.instance()
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
@@ -196,7 +198,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/icon.png"),
+            icon_path=QIcon(plugin_dir + "/images/nowa_ikona.svg"),
             text=u"PhotoViewer360",
             callback=self.run,
             parent=self.iface.mainWindow(),
@@ -235,10 +237,10 @@ class Geo360:
                                            self.dlg.mQgsFileWidget_search_photo.filePath()))
         self.dlg.mQgsFileWidget_save_gpkg.setFilter("geoPackage(*.gpkg)")
         self.dlg.mQgsFileWidget_save_gpkg.setFilePath(
-            self.settings.value(QgsProject.instance().homePath(),
-                                QgsProject.instance().homePath() + "/plik_geopackage"))
+            self.settings.value(QGIS_PROJECT.homePath(),
+                                QGIS_PROJECT.homePath() + "/plik_geopackage"))
         self.dlg.mQgsFileWidget_save_gpkg.fileChanged.connect(
-            lambda: self.settings.setValue(QgsProject.instance().homePath(),
+            lambda: self.settings.setValue(QGIS_PROJECT.homePath(),
                                            self.dlg.mQgsFileWidget_save_gpkg.filePath()))
 
         self.dlg.mQgsFileWidget_search_gpkg.setFilePath(
@@ -252,7 +254,7 @@ class Geo360:
         self.dlg.mapLayerComboBox.setShowCrs(True)
 
         # obsługa usunięcia warstwy w oknie PhotoViewer360
-        QgsProject.instance().layerRemoved.connect(self.layerRemoved)
+        QGIS_PROJECT.layerRemoved.connect(self.layerRemoved)
 
     def unload(self):
         """Załadowanie narzędzi PhotoViewer360"""
@@ -327,7 +329,7 @@ class Geo360:
     def click_feature(self):
         """Obsługa wybrania punktu na mapie"""
 
-        lys = QgsProject.instance().mapLayers().values()
+        lys = QGIS_PROJECT.mapLayers().values()
 
         for layer in lys:
             if layer.name() == self.useLayer:
@@ -348,7 +350,7 @@ class Geo360:
         """Obsługa narzędzia PhotoViewer360 aktywacja (powrót do wybrania punktu na mapie)"""
 
         layer = self.dlg.mapLayerComboBox.currentText()
-        layer = QgsProject.instance().mapLayersByName(layer.split(" ")[0])[0]
+        layer = QGIS_PROJECT.mapLayersByName(layer.split(" ")[0])[0]
         self.iface.messageBar().pushMessage("Informacja", "Korzystasz z warstwy: " + self.useLayer, level=Qgis.Info, duration=-1)
         self.layer = layer
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
@@ -365,7 +367,7 @@ class Geo360:
         self.useLayer = layerName
 
         try:
-            self.layer = QgsProject.instance().mapLayersByName(layerName.split(" ")[0])[0]
+            self.layer = QGIS_PROJECT.mapLayersByName(layerName.split(" ")[0])[0]
 
             # zdiagnozowanie czy wybrana wartwa została utworzona przez wtyczkę PhotoViewer360 (poprzez znalezienie kolumny "sciezka_zdjecie")
             for field in self.layer.fields():
@@ -557,7 +559,7 @@ class Geo360:
     def usuniecie_wartosci_gpkg(self, gpkg_path):
         """Usunięcie wszystkich obiektów w warstwie"""
 
-        lys = QgsProject.instance().mapLayers().values()
+        lys = QGIS_PROJECT.mapLayers().values()
 
         for layer in lys:
             if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
@@ -575,7 +577,7 @@ class Geo360:
     def polaczenie_warstw(self, gpkg_path, overwrite):
         """Połączenie dwóch Geopaczek (starego gpkg i gpkg z nowymi obiektami)"""
 
-        lys = QgsProject.instance().mapLayers().values()
+        lys = QGIS_PROJECT.mapLayers().values()
         for layer in lys:
             if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
                 layer.startEditing()
@@ -671,14 +673,15 @@ class Geo360:
         photo_path = self.dlg.mQgsFileWidget_search_photo.filePath()
         if not self.checkSavePath(photo_path):
             return False
-
-        # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
+        
+                # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
         files = os.listdir(photo_path)
         rozszerzenia = []
 
         for file in files:
             rozszerzenie = file.split(".")
             rozszerzenia.append(rozszerzenie[-1])
+            
 
         if ("jpg" not in rozszerzenia):
             QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
@@ -742,14 +745,14 @@ class Geo360:
                 pass
 
             # dodanie zmodyfikawanej warstwy gpkg do projektu
-            lys = QgsProject.instance().mapLayers().values()
+            lys = QGIS_PROJECT.mapLayers().values()
 
             for layer in lys:
                 if (layer.name() == Path(gpkg_path).stem):
-                    QgsProject.instance().removeMapLayers([layer.id()])
+                    QGIS_PROJECT.removeMapLayers([layer.id()])
 
             layer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
-            QgsProject.instance().addMapLayer(layer)
+            QGIS_PROJECT.addMapLayer(layer)
             self.useLayer = str(layer.name())
 
             try:
@@ -766,7 +769,7 @@ class Geo360:
             self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
             self.progress.setValue(0)
             vlayer = self.create_gpkg(photo_path, gpkg_path)
-            QgsProject.instance().addMapLayer(vlayer)
+            QGIS_PROJECT.addMapLayer(vlayer)
             self.useLayer = str(vlayer.name())
 
             try:
@@ -794,7 +797,7 @@ class Geo360:
             print("Layer failed to load!")
             return False
 
-        QgsProject.instance().addMapLayer(vlayer)
+        QGIS_PROJECT.addMapLayer(vlayer)
 
         self.useLayer = vlayer.name()
         self.dlg.hide()
@@ -827,7 +830,7 @@ class Geo360:
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
 
-        lys = QgsProject.instance().mapLayers().values()
+        lys = QGIS_PROJECT.mapLayers().values()
         layers_name = []
 
         for one_layer in lys:

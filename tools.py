@@ -2,7 +2,9 @@ from . import plugin_dir
 from qgis.gui import QgsMapToolIdentify
 from PyQt5.QtGui import QCursor, QPixmap
 from .utils.qgsutils import qgsutils
-from PIL import Image, ImageQt
+#from PIL import Image, ImageQt
+#from PIL import Image
+
 
 class SelectTool(QgsMapToolIdentify):
     """Obsługa wybrania zdjęcia z mapy projektu (wybór punktu)"""
@@ -16,13 +18,16 @@ class SelectTool(QgsMapToolIdentify):
         self.parent = parent
 
         # stworzenie kursora/celownika do wybierania obiektu na mapie
-        image = Image.open(plugin_dir + "/images/celownik.png")
-        size = 28, 28
-        image.thumbnail(size)
-        image_qt = ImageQt.ImageQt(image)
+        ############### Nowy QGIS na nowego PIL który działa poprawnie tylko na PYQT6 stąd ominięcie edycji cursora
+        #image = Image.open(plugin_dir + "/images/celownik.png")
+        #size = 28, 28
+        #image.thumbnail(size)
+        #image_qt = ImageQt.ImageQt(image)
+        small_image=plugin_dir + "/images/small_celownik.png"
 
         self.cursor = QCursor(
-            QPixmap.fromImage(image_qt)
+            QPixmap(small_image)
+            #QPixmap.fromImage(image_qt)
         )
 
     def activate(self):
