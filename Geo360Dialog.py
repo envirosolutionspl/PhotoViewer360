@@ -61,10 +61,10 @@ try:
 except ImportError:
     None
 
-try:
-    from PIL import Image
-except ImportError:
-    None
+#try:
+#    from .external_libs.PIL import Image
+#except ImportError:
+#    None
 
 
 class _ViewerPage(QWebPage):
@@ -170,7 +170,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         # otrzymanie ściezki do zdjęcia
         self.current_image = self.GetImage()
-        # print("self.current_image: ", self.current_image)
+        
 
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
@@ -408,7 +408,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
             return
 
         qgsutils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
-        # print("path: ", path)
+        
         return path
         
     def distance_function(self, lat1, lat2, lon1, lon2):
@@ -528,8 +528,8 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         pixmap = self.cef_widget.grab()
         pixmap.save(image_path)
-        image = Image.open(image_path)
-        image.show()
+        os.startfile(image_path)
+        #image.show()
 
     def UpdateOrientation(self, yaw=None):
         """Zaktualizowanie kierunku/orinetacji zdjęcia"""

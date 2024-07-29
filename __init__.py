@@ -21,6 +21,9 @@
  ***************************************************************************/
 """
 import sys, os
+#from PIL import Image
+
+
 
 try:
     sys.path.append("C:\eclipse\plugins\org.python.pydev.core_8.3.0.202104101217\pysrc")
