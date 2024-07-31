@@ -61,11 +61,6 @@ try:
 except ImportError:
     None
 
-#try:
-#    from .external_libs.PIL import Image
-#except ImportError:
-#    None
-
 
 class _ViewerPage(QWebPage):
     obj = []  # synchronous

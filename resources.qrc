@@ -1,15 +1,10 @@
 <RCC>
   <qresource prefix="/plugins/PhotoViewer360">
 <file>images/icon.png</file>
-<file>images/nowa_ikona.svg</file>
+<file>images/ikona_wtyczki.svg</file>
 <file>images/small_celownik.png</file>
-<file>images/Next_Arrow.png</file>
-<file>images/Previous_Arrow.png</file>
 <file>images/target.png</file>
-<file>images/camera.png</file>
 <file>images/camera.svg</file>
-<file>images/celownik.png</file>
-<file>images/full_screen.png</file>
 <file>images/full_screen.svg</file>
   </qresource>
 </RCC>

@@ -36,7 +36,9 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
 
-# PhotoViewer360 - english version
+# PhotoViewer360
+
+# ENG
 QGIS Plugin for importing and visualising local panoramic images. Based on EquirectangularViewer.
 
 ## Plugin functionality

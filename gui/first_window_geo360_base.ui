@@ -670,7 +670,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>../images/nowa_ikona.svg</pixmap>
+         <pixmap>../images/ikona_wtyczki.svg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>

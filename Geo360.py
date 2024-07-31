@@ -37,13 +37,12 @@ import PhotoViewer360.config as config
 from PhotoViewer360.utils.log import log
 from PhotoViewer360.utils.qgsutils import qgsutils
 from functools import partial
+from collections import defaultdict
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import time, os
 from pathlib import Path
-
 import exifread
-
 from .tools import SelectTool
 
 try:
@@ -51,8 +50,6 @@ try:
 except ImportError:
     None
 
-
-QGIS_PROJECT=QgsProject.instance()
 
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -67,8 +64,10 @@ class Geo360:
         self.config = None
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
+        self.project=QgsProject.instance()
         threadcount = QThread.idealThreadCount()
 
+    
         # use all available cores and parallel rendering
         QgsApplication.setMaxThreads(threadcount)
         QSettings().setValue("/qgis/parallel_rendering", True)
@@ -198,7 +197,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/nowa_ikona.svg"),
+            icon_path=QIcon(plugin_dir + config.ikona_wtyczki),
             text=u"PhotoViewer360",
             callback=self.run,
             parent=self.iface.mainWindow(),
@@ -206,7 +205,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/target.png"),
+            icon_path=QIcon(plugin_dir + config.ikona_aktywacji),
             text=u"PhotoViewer360 aktywacja",
             callback=self.activate,
             parent=self.iface.mainWindow(),
@@ -230,31 +229,16 @@ class Geo360:
         self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_search_photo.setFilePath(
-            self.settings.value("", ""))
-        self.dlg.mQgsFileWidget_search_photo.fileChanged.connect(
-            lambda: self.settings.setValue("",
-                                           self.dlg.mQgsFileWidget_search_photo.filePath()))
-        self.dlg.mQgsFileWidget_save_gpkg.setFilter("geoPackage(*.gpkg)")
-        self.dlg.mQgsFileWidget_save_gpkg.setFilePath(
-            self.settings.value(QGIS_PROJECT.homePath(),
-                                QGIS_PROJECT.homePath() + "/plik_geopackage"))
-        self.dlg.mQgsFileWidget_save_gpkg.fileChanged.connect(
-            lambda: self.settings.setValue(QGIS_PROJECT.homePath(),
-                                           self.dlg.mQgsFileWidget_save_gpkg.filePath()))
+        self.dlg.mQgsFileWidget_search_photo.fileChanged.connect(lambda: print ('ssss'))
+        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSTION)
 
-        self.dlg.mQgsFileWidget_search_gpkg.setFilePath(
-            self.settings.value("", ""))
-        self.dlg.mQgsFileWidget_search_gpkg.fileChanged.connect(
-            lambda: self.settings.setValue("",
-                                           self.dlg.mQgsFileWidget_search_gpkg.filePath()))
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
         self.dlg.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
         self.dlg.mapLayerComboBox.setShowCrs(True)
 
         # obsługa usunięcia warstwy w oknie PhotoViewer360
-        QGIS_PROJECT.layerRemoved.connect(self.layerRemoved)
+        self.project.layerRemoved.connect(self.layerRemoved)
 
     def unload(self):
         """Załadowanie narzędzi PhotoViewer360"""
@@ -301,7 +285,7 @@ class Geo360:
         # Create Server
         directory = (
                 QgsApplication.qgisSettingsDirPath().replace("\\", "/")
-                + "python/plugins/PhotoViewer360/viewer"
+                + config.server_directory
         )
 
         try:
@@ -329,7 +313,7 @@ class Geo360:
     def click_feature(self):
         """Obsługa wybrania punktu na mapie"""
 
-        lys = QGIS_PROJECT.mapLayers().values()
+        lys = self.project.mapLayers().values()
 
         for layer in lys:
             if layer.name() == self.useLayer:
@@ -339,18 +323,11 @@ class Geo360:
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
         self.iface.mapCanvas().setMapTool(self.mapTool)
 
-        # # zoom do wybranej warstwy
-        # xform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(layer.crs()),
-        #                                QgsCoordinateReferenceSystem(self.canvas.mapSettings().destinationCrs()),
-        #                                QgsProject.instance())
-        # self.canvas.setExtent(xform.transform(layer.extent()))
-        # self.canvas.refresh()
-
     def activate(self):
         """Obsługa narzędzia PhotoViewer360 aktywacja (powrót do wybrania punktu na mapie)"""
 
         layer = self.dlg.mapLayerComboBox.currentText()
-        layer = QGIS_PROJECT.mapLayersByName(layer.split(" ")[0])[0]
+        layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
         self.iface.messageBar().pushMessage("Informacja", "Korzystasz z warstwy: " + self.useLayer, level=Qgis.Info, duration=-1)
         self.layer = layer
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
@@ -367,7 +344,7 @@ class Geo360:
         self.useLayer = layerName
 
         try:
-            self.layer = QGIS_PROJECT.mapLayersByName(layerName.split(" ")[0])[0]
+            self.layer = self.project.mapLayersByName(layerName.split(" ")[0])[0]
 
             # zdiagnozowanie czy wybrana wartwa została utworzona przez wtyczkę PhotoViewer360 (poprzez znalezienie kolumny "sciezka_zdjecie")
             for field in self.layer.fields():
@@ -377,14 +354,6 @@ class Geo360:
             if good_layer == True:
                 self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
                 self.iface.mapCanvas().setMapTool(self.mapTool)
-
-                # # zoom do wybranej warstwy
-                # xform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(layer.crs()),
-                #                                QgsCoordinateReferenceSystem(self.canvas.mapSettings().destinationCrs()),
-                #                                QgsProject.instance())
-                # self.canvas.setExtent(xform.transform(layer.extent()))
-                # self.canvas.refresh()
-
                 self.dlg.hide()
                 self.click_feature()
             else:
@@ -413,7 +382,7 @@ class Geo360:
             self.progress.setValue(5)
         except RuntimeError:
             pass
-
+                
         gpkg_path = os.path.join(gpkg_path)
 
         try:
@@ -452,39 +421,22 @@ class Geo360:
             vlayer.startEditing()
 
             # dodanie nowych kolumn do warstwy
-            vlayer.dataProvider().addAttributes(
-                [
-                    QgsField("nr_drogi", QVariant.String),
-                    QgsField("nazwa_ulicy", QVariant.String),
-                    QgsField("numer_odcinka", QVariant.String),
-                    QgsField("kilometraz", QVariant.String)
-                ]
-            )
-
+        
+            field_type=QVariant.String
+            generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
+            vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
 
             # modyfikacja już utworzonych kolumn (zmiana nazwy lub całkowite usunięcie atrybutu)
-            for field in vlayer.fields():
-                if field.name() == "photo":
-                    self.rename_name_field(vlayer, "photo", "sciezka_zdjecie")
-                elif field.name() == "filename":
-                    self.rename_name_field(vlayer, "filename", "nazwa_zdjecia")
-                elif field.name() == "directory":
-                    self.rename_name_field(vlayer, "directory", "nazwa_folderu")
-                elif field.name() == "altitude":
-                    vlayer.dataProvider().deleteAttributes([4])
+            for field_idx,field in enumerate(vlayer.fields()):
+                GPKP_COLUMNS_CHANGE_DICT=defaultdict(str,config.GPKP_COLUMNS_CHANGE_DICT)
+                if GPKP_COLUMNS_CHANGE_DICT[field.name()]:
+                    new_value=GPKP_COLUMNS_CHANGE_DICT[field.name()]
+                    old_value=field.name()
+                    self.rename_name_field(vlayer, old_value, new_value)
+                if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
+                    vlayer.dataProvider().deleteAttributes([field_idx])
                     vlayer.updateFields()
-                elif field.name() == "direction":
-                    self.rename_name_field(vlayer, "direction", "azymut")
-                elif field.name() == "rotation":
-                    vlayer.dataProvider().deleteAttributes([5])
-                    vlayer.updateFields()
-                elif field.name() == "longitude":
-                    self.rename_name_field(vlayer, "longitude", "długosc geog")
-                elif field.name() == "latitude":
-                    self.rename_name_field(vlayer, "latitude", "szerokosc geog")
-                elif field.name() == "timestamp":
-                    self.rename_name_field(vlayer, "timestamp", "data_wykonania")
 
             features = vlayer.getFeatures()
             number_of_features = vlayer.featureCount()
@@ -497,7 +449,6 @@ class Geo360:
                 try:
                     self.progress.setValue(45+int(int(50*time_progress)/number_of_features))
                     QApplication.processEvents()
-
                 except RuntimeError:
                     pass
                 
@@ -515,7 +466,7 @@ class Geo360:
                     nazwa_ulicy = None
                     numer_odcinka = None
                     kilometraz = None
-
+                                                               
                 vlayer.dataProvider().changeAttributeValues(
                     {feature.id(): {vlayer.dataProvider().fieldNameMap()["nr_drogi"]: nr_drogi}})
                 vlayer.dataProvider().changeAttributeValues(
@@ -559,7 +510,7 @@ class Geo360:
     def usuniecie_wartosci_gpkg(self, gpkg_path):
         """Usunięcie wszystkich obiektów w warstwie"""
 
-        lys = QGIS_PROJECT.mapLayers().values()
+        lys = self.project.mapLayers().values()
 
         for layer in lys:
             if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
@@ -577,7 +528,7 @@ class Geo360:
     def polaczenie_warstw(self, gpkg_path, overwrite):
         """Połączenie dwóch Geopaczek (starego gpkg i gpkg z nowymi obiektami)"""
 
-        lys = QGIS_PROJECT.mapLayers().values()
+        lys = self.project.mapLayers().values()
         for layer in lys:
             if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
                 layer.startEditing()
@@ -745,14 +696,14 @@ class Geo360:
                 pass
 
             # dodanie zmodyfikawanej warstwy gpkg do projektu
-            lys = QGIS_PROJECT.mapLayers().values()
+            lys = self.project.mapLayers().values()
 
             for layer in lys:
                 if (layer.name() == Path(gpkg_path).stem):
-                    QGIS_PROJECT.removeMapLayers([layer.id()])
+                    self.project.removeMapLayers([layer.id()])
 
             layer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
-            QGIS_PROJECT.addMapLayer(layer)
+            self.project.addMapLayer(layer)
             self.useLayer = str(layer.name())
 
             try:
@@ -769,7 +720,7 @@ class Geo360:
             self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
             self.progress.setValue(0)
             vlayer = self.create_gpkg(photo_path, gpkg_path)
-            QGIS_PROJECT.addMapLayer(vlayer)
+            self.project.addMapLayer(vlayer)
             self.useLayer = str(vlayer.name())
 
             try:
@@ -797,7 +748,7 @@ class Geo360:
             print("Layer failed to load!")
             return False
 
-        QGIS_PROJECT.addMapLayer(vlayer)
+        self.project.addMapLayer(vlayer)
 
         self.useLayer = vlayer.name()
         self.dlg.hide()
@@ -830,7 +781,7 @@ class Geo360:
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
 
-        lys = QGIS_PROJECT.mapLayers().values()
+        lys = self.project.mapLayers().values()
         layers_name = []
 
         for one_layer in lys:

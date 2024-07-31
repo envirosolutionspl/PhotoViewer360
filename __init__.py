@@ -35,6 +35,7 @@ except ImportError:
     None
 
 plugin_dir = os.path.dirname(__file__)
+print (plugin_dir)
 
 def classFactory(iface):
     from .Geo360 import Geo360
