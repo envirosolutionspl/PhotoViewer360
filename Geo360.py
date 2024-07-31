@@ -229,7 +229,6 @@ class Geo360:
         self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_search_photo.fileChanged.connect(lambda: print ('ssss'))
         self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSTION)
 
 
