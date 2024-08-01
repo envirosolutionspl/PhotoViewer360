@@ -313,7 +313,7 @@ class Ui_main(object):
         self.label_12 = QtWidgets.QLabel(self.gridLayoutWidget)
         self.label_12.setMaximumSize(QtCore.QSize(122, 122))
         self.label_12.setText("")
-        self.label_12.setPixmap(QtGui.QPixmap("../images/logo2.png"))
+        self.label_12.setPixmap(QtGui.QPixmap("../images/ikona_wtyczki.svg"))
         self.label_12.setScaledContents(True)
         self.label_12.setObjectName("label_12")
         self.gridLayout_2.addWidget(self.label_12, 0, 0, 1, 1)

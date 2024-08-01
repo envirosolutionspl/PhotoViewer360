@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>280</height>
+    <height>300</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -22,13 +22,13 @@
   <property name="minimumSize">
    <size>
     <width>600</width>
-    <height>280</height>
+    <height>300</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>600</width>
-    <height>280</height>
+    <height>300</height>
    </size>
   </property>
   <property name="focusPolicy">
@@ -39,7 +39,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../images/icon.png</normaloff>../images/icon.png</iconset>
+    <normaloff>../images/icon.svg</normaloff>../images/icon.svg</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -91,7 +91,7 @@
      <x>10</x>
      <y>50</y>
      <width>581</width>
-     <height>211</height>
+     <height>241</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -137,7 +137,7 @@
        <x>10</x>
        <y>10</y>
        <width>561</width>
-       <height>161</height>
+       <height>162</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -384,7 +384,7 @@
        <x>160</x>
        <y>0</y>
        <width>411</width>
-       <height>181</height>
+       <height>201</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -417,7 +417,7 @@
            <x>10</x>
            <y>20</y>
            <width>371</width>
-           <height>87</height>
+           <height>99</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout">
@@ -653,8 +653,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>171</width>
-       <height>181</height>
+       <width>161</width>
+       <height>201</height>
       </rect>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
@@ -670,7 +670,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>../images/logo2.png</pixmap>
+         <pixmap>../images/ikona_wtyczki.svg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
