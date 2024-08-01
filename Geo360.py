@@ -50,6 +50,9 @@ try:
 except ImportError:
     None
 
+"""Wersja wtyczki"""
+plugin_version = '1.1.0'
+plugin_name = 'PhotoViewer360'
 
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -85,17 +88,17 @@ class Geo360:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u"&PhotoViewer360")
+        self.menu = self.tr(u"&EnviroSolutions")
         self.layer = None
         self.mapTool = None
 
 
         # toolbar
-        self.toolbar = self.iface.mainWindow().findChild(QToolBar, "PhotoViewer360")
+        self.toolbar = self.iface.mainWindow().findChild(QToolBar, "EnviroSolutions")
 
         if not self.toolbar:
-            self.toolbar = self.iface.addToolBar(u"PhotoViewer360")
-            self.toolbar.setObjectName(u"PhotoViewer360")
+            self.toolbar = self.iface.addToolBar(u"EnviroSolutions")
+            self.toolbar.setObjectName(u"EnviroSolutions")
 
         # noinspection PyMethodMayBeStatic
 
@@ -214,12 +217,12 @@ class Geo360:
 
         # will be set False in run()
         self.first_start = True
-
-        # self.action.triggered.connect(self.run)
-        self.iface.addPluginToMenu(u"&PhotoViewer360", self.action)
-
-        #self.action_activate.triggered.connect(self.activate)
-        self.iface.addPluginToMenu(u"&PhotoViewer360", self.action_activate)
+        
+        # informacje o wersji
+        self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
+        self.dlg.label_8.setText('%s' % (plugin_version))
+        ##TODO docelowo ma być wsparcie dla poniższeko komponentu i dolny pasek wtyczki
+        # self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
 
         # eventy
 
@@ -255,7 +258,7 @@ class Geo360:
         # ponowne załadowanie narzędzi
         for action in self.actions:
             self.iface.removePluginMenu(
-                u"&PhotoViewer360",
+                self.tr(u'&EnviroSolutions'),
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
