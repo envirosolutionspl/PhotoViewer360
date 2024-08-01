@@ -1,21 +1,33 @@
 [general]
 name= PhotoViewer360
-internal_name = PhotoViewer360
-qgisMinimumVersion=3.16
-qgisMaximumVersion=3.99
+internal_name= PhotoViewer360
+qgisMinimumVersion= 3.16
+qgisMaximumVersion= 3.99
 description= PL: Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych. 
     ENG: Plugin for for importing and visualising local panoramic images. 
+version= 1.1.0
+author= EnviroSolutions Sp. z o.o.
+email= office@envirosolutions.pl
+based on= EquirectangularViewer
+
 about= PL: Wtyczka pozwala na import zdjęć posiadających georeferencję i utworzenie z nich pliku GeoPackage, przeglądanie zdjęć panoramicznych i przechodzenie pomiędzy nimi poprzez kliknięcie na zdjęciu hotspota lub wskazanie punktu na mapie. Dodatkowo umożliwia śledzenie zwrotu kamery za pomocą radaru umieszczonego w punkcie na mapie, dla którego przeglądane jest zdjęcie oraz wygenerowanie raportu graficznego z aktualnym widokiem zdjęcia w formacie JPG/PNG. 
     
     ENG: Plugin allows to import geotagged panoramic photos and to create GeoPackage file with them. It has an ability to view panoramic photos and to switch between them by selecting a point on the map or clicking on the hotspot while viewing the photo. In addition, it allows you to track the return of the camera using the radar located at the point for which the photo is viewed and to generate a graphic report with the current view in JPG/PNG format.
-version= 1.0
-author= EnviroSolutions Sp. z o.o. - Patrycja Tatar, Natalia Grudzińska
-email= office@envirosolutions.pl
-based on = EquirectangularViewer
-icon=images/icon.png
-tags=images, local, cefpython, marzipano, EquirectangularViewer, equirectangular, Street View, 360, PhotoViewer360, panoramic photos 
-homepage=https://github.com/envirosolutionspl/PhotoViewer360
-tracker=https://github.com/envirosolutionspl/PhotoViewer360/issues
-repository=https://github.com/envirosolutionspl/PhotoViewer360
-experimental=False
-deprecated=False
+
+tracker= https://github.com/envirosolutionspl/PhotoViewer360/issues
+repository= https://github.com/envirosolutionspl/PhotoViewer360
+
+changelog=
+  Wersja 1.1.0
+    * Ustawienie nowej ikony dla wtyczki
+    * Modyfikacja UI
+    * Przyporządkowanie ikon i przycisków wtyczki do grupy EnviroSolutions
+    * Porządki kodu źródłowego
+
+tags= images, local, cefpython, marzipano, EquirectangularViewer, equirectangular, Street View, 360, PhotoViewer360, panoramic photos
+
+homepage= https://github.com/envirosolutionspl/PhotoViewer360
+category= Plugins
+icon= images/ikona_wtyczki.svg
+experimental= False
+deprecated= False

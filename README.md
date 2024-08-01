@@ -1,4 +1,6 @@
-# PhotoViewer360 - wersja polska
+# PhotoViewer360
+
+## PL
 Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programie QGIS. Oparta na wtyczce EquirectangularViewer.
 
 ## Funkcjonalność wtyczki
@@ -33,7 +35,10 @@ Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programi
 Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.16 lub wyższej.
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
-# PhotoViewer360 - english version
+
+# PhotoViewer360
+
+# ENG
 QGIS Plugin for importing and visualising local panoramic images. Based on EquirectangularViewer.
 
 ## Plugin functionality
