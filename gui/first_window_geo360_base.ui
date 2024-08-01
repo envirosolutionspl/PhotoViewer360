@@ -116,7 +116,7 @@
     <enum>Qt::TabFocus</enum>
    </property>
    <property name="currentIndex">
-    <number>3</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab2">
     <property name="enabled">
