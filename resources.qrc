@@ -1,6 +1,6 @@
 <RCC>
   <qresource prefix="/plugins/PhotoViewer360">
-<file>images/icon.png</file>
+<file>images/icon.svg</file>
 <file>images/ikona_wtyczki.svg</file>
 <file>images/small_celownik.png</file>
 <file>images/target.png</file>

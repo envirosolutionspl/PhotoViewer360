@@ -197,7 +197,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + config.ikona_wtyczki),
+            icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
             text=u"PhotoViewer360",
             callback=self.run,
             parent=self.iface.mainWindow(),
@@ -205,7 +205,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.add_action(
-            icon_path=QIcon(plugin_dir + config.ikona_aktywacji),
+            icon_path=QIcon(plugin_dir + "/images/target.png"),
             text=u"PhotoViewer360 aktywacja",
             callback=self.activate,
             parent=self.iface.mainWindow(),

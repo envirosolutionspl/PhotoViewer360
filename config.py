@@ -11,10 +11,6 @@ IP = "127.0.0.1"
 PORT = 1520
 
 
-ikona_wtyczki="/images/ikona_wtyczki.svg"
-ikona_aktywacji="/images/target.png"
-
-
 
 GPKP_COLUMNS_DELETE_LIST=('altitude',
                           'rotation')

@@ -39,7 +39,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../images/icon.png</normaloff>../images/icon.png</iconset>
+    <normaloff>../images/icon.svg</normaloff>../images/icon.svg</iconset>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>

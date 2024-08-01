@@ -21,9 +21,6 @@
  ***************************************************************************/
 """
 import sys, os
-#from PIL import Image
-
-
 
 try:
     sys.path.append("C:\eclipse\plugins\org.python.pydev.core_8.3.0.202104101217\pysrc")
@@ -35,7 +32,6 @@ except ImportError:
     None
 
 plugin_dir = os.path.dirname(__file__)
-print (plugin_dir)
 
 def classFactory(iface):
     from .Geo360 import Geo360
