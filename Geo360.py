@@ -54,7 +54,7 @@ except ImportError:
     None
 
 """Wersja wtyczki"""
-plugin_version = '1.1.0'
+plugin_version = '1.1.1'
 plugin_name = 'PhotoViewer360'
 
 class QuietHandler(SimpleHTTPRequestHandler):
