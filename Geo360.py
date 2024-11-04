@@ -28,7 +28,6 @@ from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
 from qgis.core import *
 from PyQt5 import QtWidgets, QtCore
-from PyQt5 import uic
 import processing
 
 from . import plugin_dir
@@ -45,8 +44,6 @@ import time, os
 from pathlib import Path
 import exifread
 from .tools import SelectTool
-from .qgis_feed import QgisFeedDialog
-from PyQt5.QtWidgets import QDialog, QComboBox
 
 try:
     from pydevd import *
@@ -72,24 +69,7 @@ class Geo360:
         self.canvas = self.iface.mapCanvas()
         self.project=QgsProject.instance()
         threadcount = QThread.idealThreadCount()
-        self.settings = QgsSettings() 
 
-        if Qgis.QGIS_VERSION_INT >= 31000:
-            from .qgis_feed import QgisFeed
-
-            # self.feed_db = QgisFeedDB()
-
-            #qgis feed
-            self.selected_industry = self.settings.value("selected_industry", None)
-            show_dialog = self.settings.value("showDialog", True, type=bool)
-            
-            if self.selected_industry is None and show_dialog:
-                self.showBranchSelectionDialog()
-        
-            select_indust_session = self.settings.value('selected_industry')
-            
-            self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
-            self.feed.initFeed()
     
         # use all available cores and parallel rendering
         QgsApplication.setMaxThreads(threadcount)
@@ -331,16 +311,6 @@ class Geo360:
 
         # wywołanie okna "PhotoViewer360" po wciśnięciu ikony aparatu
         self.dlg.show()
-
-    def showBranchSelectionDialog(self):
-        self.qgisfeed_dialog = QgisFeedDialog()
-
-        if self.qgisfeed_dialog.exec_() == QDialog.Accepted:
-            self.selected_branch = self.qgisfeed_dialog.comboBox.currentText()
-            
-            #Zapis w QGIS3.ini
-            self.settings.setValue("selected_industry", self.selected_branch)  
-            self.settings.setValue("showDialog", False) 
 
     def click_feature(self):
         """Obsługa wybrania punktu na mapie"""
