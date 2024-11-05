@@ -32,7 +32,7 @@ Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programi
 8. Aby przeglądać zdjęcie w trybie pełnoekranowym należy wybrać drugie narzędzie z dolnej części wtyczki. W celu powrócenia do poprzedniego widoku należy ponownie kliknąć na ikonę narzędzia lub kliknąć przycisk ESC na klawiaturze.
 
 ## Uwaga
-Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.16 lub wyższej.
+Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.22 lub wyższej.
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
 
@@ -70,5 +70,5 @@ QGIS Plugin for importing and visualising local panoramic images. Based on Equir
 8. To view a photo in full screen mode, select the second tool from the bottom of the plugin. To return to the previous view, click the tool icon again or click the ESC button on the keyboard.
 
 ## Attention
-The necessary condition for the correct operation of the plugin is to have the QGIS 3.16 version or higher.
+The necessary condition for the correct operation of the plugin is to have the QGIS 3.22 version or higher.
 If the EquirectangularViewer plugin is installed, please uninstall it in order to the PhotoViewer360 plugin work properly.
