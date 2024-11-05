@@ -76,18 +76,14 @@ class Geo360:
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
-
-            # self.feed_db = QgisFeedDB()
-
-            #qgis feed
             self.selected_industry = self.settings.value("selected_industry", None)
             show_dialog = self.settings.value("showDialog", True, type=bool)
-            
+
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
-        
+
             select_indust_session = self.settings.value('selected_industry')
-            
+
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
             self.feed.initFeed()
     
