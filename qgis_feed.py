@@ -8,7 +8,7 @@ import re
 import os
 import unicodedata
 
-from .constants import INDUSTRIES, FEED_URL
+from .config import INDUSTRIES, FEED_URL
 
 
 class QgisFeed:
