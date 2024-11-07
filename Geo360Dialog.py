@@ -385,14 +385,14 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def GetImage(self):
         """Funkcja odpowiedzialna za znalezienie ścieżki do zdjęcia"""
 
-        self.new_bering = self.selected_features.attribute(config.column_yaw)
+        self.new_bering = self.selected_features.attribute(config.COLUMN_YAW)
 
         self.GetPointsToHotspot()
 
         try:
             path = qgsutils.getAttributeFromFeature(
                 self.selected_features,
-                config.column_name,
+                config.COLUMN_NAME,
             )
             if not os.path.isabs(path):  # Relative Path to Project
                 path_project = QgsProject.instance().readPath("./")
@@ -534,7 +534,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         if self.current_direction is not None: # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
             self.bearing = str(self.bearing_current * -180 / math.pi)
         else: # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
-            self.bearing = self.selected_features.attribute(config.column_yaw)
+            self.bearing = self.selected_features.attribute(config.COLUMN_YAW)
 
         originalPoint = self.selected_features.geometry().asPoint()
 

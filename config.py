@@ -1,7 +1,6 @@
 # Properties
 COLUMN_NAME = "sciezka_zdjecie"
 COLUMN_YAW = "azymut"
-COLUMN_ORDER = "fid"
 
 # Server
 SERVER_DIRECTORY = "python/plugins/PhotoViewer360/viewer"

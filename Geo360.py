@@ -303,7 +303,7 @@ class Geo360:
         # Create Server
         directory = (
                 QgsApplication.qgisSettingsDirPath().replace("\\", "/")
-                + config.server_directory
+                + config.SERVER_DIRECTORY
         )
 
         try:
