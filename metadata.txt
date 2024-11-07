@@ -1,7 +1,7 @@
 [general]
 name= PhotoViewer360
 internal_name= PhotoViewer360
-qgisMinimumVersion= 3.16
+qgisMinimumVersion= 3.22
 qgisMaximumVersion= 3.99
 description= PL: Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych. 
     ENG: Plugin for for importing and visualising local panoramic images. 
@@ -18,8 +18,9 @@ tracker= https://github.com/envirosolutionspl/PhotoViewer360/issues
 repository= https://github.com/envirosolutionspl/PhotoViewer360
 
 changelog=
-  Wersja 1.1.11
+  Wersja 1.1.1
     * Ustawienie nowej ikony dla wtyczki
+    * Zmiana minimalnej wersji QGIS na 3.22
 #  Wersja 1.1.0
 #    * Ustawienie nowej ikony dla wtyczki
 #    * Modyfikacja UI
