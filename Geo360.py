@@ -249,7 +249,7 @@ class Geo360:
         self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSTION)
+        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSION)
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
