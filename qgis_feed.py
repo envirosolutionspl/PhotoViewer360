@@ -134,3 +134,4 @@ class QgisFeedDialog(QDialog):
         settings = QgsSettings()
         settings.setValue("selected_industry", selected_industry)
         self.accept()
+

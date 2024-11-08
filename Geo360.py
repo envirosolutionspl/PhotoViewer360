@@ -76,6 +76,7 @@ class Geo360:
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
+
             self.selected_industry = self.settings.value("selected_industry", None)
             show_dialog = self.settings.value("showDialog", True, type=bool)
 

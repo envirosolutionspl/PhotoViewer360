@@ -36,6 +36,8 @@ GPKG_FILTER_EXTENSION = "geoPackage(*.gpkg)"
 
 FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
 
+FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
+
 INDUSTRIES = {
     "999": "Nie wybrano",
     "e": "Energetyka/OZE",
