@@ -36,6 +36,7 @@ class QgisFeed:
         Funkcja przetwarza zapisany adres qgisfeed'a
         na forme zapisana w qgis settingsach
         """
+
         return re.sub(r'://|\.|:|/\?|=|&|-|:', '', url)
 
     def create_slug(self, text):
@@ -133,3 +134,4 @@ class QgisFeedDialog(QDialog):
         settings = QgsSettings()
         settings.setValue("selected_industry", selected_industry)
         self.accept()
+

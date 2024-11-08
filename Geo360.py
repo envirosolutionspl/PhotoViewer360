@@ -54,7 +54,7 @@ except ImportError:
     None
 
 """Wersja wtyczki"""
-plugin_version = '1.1.1'
+plugin_version = '1.1.2'
 plugin_name = 'PhotoViewer360'
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -76,14 +76,15 @@ class Geo360:
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
-            
+
             self.selected_industry = self.settings.value("selected_industry", None)
             show_dialog = self.settings.value("showDialog", True, type=bool)
-            
+
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
 
             select_indust_session = self.settings.value('selected_industry')
+
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
             self.feed.initFeed()
     
@@ -248,7 +249,7 @@ class Geo360:
         self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSTION)
+        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSION)
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
@@ -303,7 +304,7 @@ class Geo360:
         # Create Server
         directory = (
                 QgsApplication.qgisSettingsDirPath().replace("\\", "/")
-                + config.server_directory
+                + config.SERVER_DIRECTORY
         )
 
         try:
