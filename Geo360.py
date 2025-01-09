@@ -63,7 +63,7 @@ def import_exifread():
             sys.path.append(exifread_path) 
             import exifread  
         else:
-            QgsMessageLog.logMessage("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.", "PhotoViewer360", Qgis.Warning)
+            QgsMessageLog.logMessage("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.", "PhotoViewer360", Qgis.Critical)
 
 import_exifread()
 
