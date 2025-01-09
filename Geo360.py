@@ -68,7 +68,7 @@ def import_exifread():
             QgsMessageLog.logMessage("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.", "PhotoViewer360", Qgis.Critical)
             iface.messageBar().pushMessage(
                 "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona. Funkcjonalność wtyczki może być ograniczona lub działać niepoprawnie. Proszę upewnić się, że biblioteka jest poprawnie zainstalowana.",
+                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
                 level=Qgis.Warning,
                 duration=10  
             )
