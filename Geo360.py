@@ -47,7 +47,7 @@ from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 from PyQt5.QtWidgets import QDialog, QComboBox
 from qgis.utils import iface
-
+import importlib.util
 
 try:
     from pydevd import *
@@ -234,33 +234,36 @@ class Geo360:
 
     def import_exifread(self):
         """Sprawdza dostępność biblioteki 'exifread'"""
-        try:
-            import exifread
-            return True 
-        except ImportError:
-            plugin_path = os.path.dirname(__file__)  
-            exifread_path = os.path.join(plugin_path, 'resources', 'exifread')  
 
-            if os.path.exists(exifread_path):
-                sys.path.append(exifread_path)
-                try:
-                    import exifread
-                    return True
-                except ImportError:
-                    pass
+        exifread_installed = False
+        exifread_spec = importlib.util.find_spec('exifread')
+
+        if exifread_spec is not None:
+            exifread_installed = True
+        
+        if exifread_installed:
+            return True  
+        
+        plugin_path = os.path.dirname(__file__)
+        exifread_path = os.path.join(plugin_path, 'resources', 'exifread')
+        
+        if os.path.exists(exifread_path):
+            sys.path.append(exifread_path)
+            import exifread  
+            return True  
             
-            QgsMessageLog.logMessage(
-                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
-                "PhotoViewer360",
-                Qgis.Critical
-            )
-            iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona. Funkcjonalność wtyczki może być ograniczona lub działać niepoprawnie. Proszę upewnić się, że biblioteka jest poprawnie zainstalowana.",
-                level=Qgis.Critical,
-                duration=10
-            )
-            return False
+        QgsMessageLog.logMessage(
+            "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
+            "PhotoViewer360",
+            Qgis.Critical
+        )
+        iface.messageBar().pushMessage(
+            "PhotoViewer360",
+            "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
+            level=Qgis.Critical,
+            duration=10
+        )
+        return False
 
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
