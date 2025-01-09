@@ -41,7 +41,7 @@ from functools import partial
 from collections import defaultdict
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-import time, os
+import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
@@ -52,21 +52,20 @@ try:
 except ImportError:
     None
 
-import subprocess
-import sys
-
-def install_exifread():
+def import_exifread():
     try:
         import exifread
     except ImportError:
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "exifread"])
-        except subprocess.CalledProcessError:
-            print("Nie udało się zainstalować biblioteki 'exifread'. Proszę uruchomić QGIS z uprawnieniami administratora.")
-            sys.exit(1)
-        import exifread
-        print("Biblioteka 'exifread' została zainstalowana.")
-install_exifread()
+        plugin_path = os.path.dirname(__file__)  
+        exifread_path = os.path.join(plugin_path, 'resources', 'exifread')  
+
+        if os.path.exists(exifread_path):
+            sys.path.append(exifread_path) 
+            import exifread  
+        else:
+            print("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
+
+import_exifread()
 
 """Wersja wtyczki"""
 plugin_version = '1.1.2'
