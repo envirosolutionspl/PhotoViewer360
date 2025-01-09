@@ -46,6 +46,7 @@ from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 from PyQt5.QtWidgets import QDialog, QComboBox
+from qgis.utils import iface
 
 try:
     from pydevd import *
@@ -64,6 +65,12 @@ def import_exifread():
             import exifread  
         else:
             QgsMessageLog.logMessage("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.", "PhotoViewer360", Qgis.Critical)
+            iface.messageBar().pushMessage(
+                "PhotoViewer360",
+                "Biblioteka 'exifread' nie została odnaleziona. Funkcjonalność wtyczki może być ograniczona lub działać niepoprawnie. Proszę upewnić się, że biblioteka jest poprawnie zainstalowana.",
+                level=Qgis.Warning,
+                duration=10  
+            )
 
 import_exifread()
 
