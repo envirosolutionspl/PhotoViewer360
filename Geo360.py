@@ -47,6 +47,7 @@ from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 from PyQt5.QtWidgets import QDialog, QComboBox
 from qgis.utils import iface
+from importlib.util import find_spec
 
 try:
     from pydevd import *
@@ -231,11 +232,45 @@ class Geo360:
 
         return action
 
+    def import_exifread(self):
+        """Sprawdza dostępność biblioteki 'exifread'"""
+        try:
+            import exifread
+            return True 
+        except ImportError:
+            plugin_path = os.path.dirname(__file__)  
+            exifread_path = os.path.join(plugin_path, 'resources', 'exifread')  
+
+            if os.path.exists(exifread_path):
+                sys.path.append(exifread_path)
+                try:
+                    import exifread
+                    return True
+                except ImportError:
+                    pass
+            
+            QgsMessageLog.logMessage(
+                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
+                "PhotoViewer360",
+                Qgis.Critical
+            )
+            iface.messageBar().pushMessage(
+                "PhotoViewer360",
+                "Biblioteka 'exifread' nie została odnaleziona. Funkcjonalność wtyczki może być ograniczona lub działać niepoprawnie. Proszę upewnić się, że biblioteka jest poprawnie zainstalowana.",
+                level=Qgis.Critical,
+                duration=10
+            )
+            return False
+
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
 
         log.initLogging()
 
+        # Sprawdzenie dostępności biblioteki 'exifread'
+        if not self.import_exifread():
+            return 
+        
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
             icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
