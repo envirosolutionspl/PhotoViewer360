@@ -47,7 +47,7 @@ from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 from PyQt5.QtWidgets import QDialog, QComboBox
 from qgis.utils import iface
-from importlib.util import find_spec
+
 
 try:
     from pydevd import *
