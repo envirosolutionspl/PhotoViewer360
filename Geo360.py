@@ -43,7 +43,6 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import time, os
 from pathlib import Path
-import exifread
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 from PyQt5.QtWidgets import QDialog, QComboBox
@@ -52,6 +51,22 @@ try:
     from pydevd import *
 except ImportError:
     None
+
+import subprocess
+import sys
+
+def install_exifread():
+    try:
+        import exifread
+    except ImportError:
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "exifread"])
+        except subprocess.CalledProcessError:
+            print("Nie udało się zainstalować biblioteki 'exifread'. Proszę uruchomić QGIS z uprawnieniami administratora.")
+            sys.exit(1)
+        import exifread
+        print("Biblioteka 'exifread' została zainstalowana.")
+install_exifread()
 
 """Wersja wtyczki"""
 plugin_version = '1.1.2'
