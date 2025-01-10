@@ -31,7 +31,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5 import uic
 import processing
 
-from . import plugin_dir
+from . import plugin_dir, exifread_path
 from .Geo360Dialog import Geo360Dialog
 from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 import PhotoViewer360.config as config
@@ -222,9 +222,6 @@ class Geo360:
         
         if exifread_installed:
             return True  
-        
-        plugin_path = os.path.dirname(__file__)
-        exifread_path = os.path.join(plugin_path, 'resources', 'exifread')
         
         if os.path.exists(exifread_path):
             sys.path.append(exifread_path)
