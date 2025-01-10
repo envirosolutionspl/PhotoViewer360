@@ -54,27 +54,6 @@ try:
 except ImportError:
     None
 
-def import_exifread():
-    try:
-        import exifread
-    except ImportError:
-        plugin_path = os.path.dirname(__file__)  
-        exifread_path = os.path.join(plugin_path, 'resources', 'exifread')  
-
-        if os.path.exists(exifread_path):
-            sys.path.append(exifread_path) 
-            import exifread  
-        else:
-            QgsMessageLog.logMessage("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.", "PhotoViewer360", Qgis.Critical)
-            iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
-                level=Qgis.Warning,
-                duration=10  
-            )
-
-import_exifread()
-
 """Wersja wtyczki"""
 plugin_version = '1.1.2'
 plugin_name = 'PhotoViewer360'
