@@ -41,7 +41,7 @@ from functools import partial
 from collections import defaultdict
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-import time, os
+import time, os, shutil
 from pathlib import Path
 import exifread
 from .tools import SelectTool
@@ -73,6 +73,7 @@ class Geo360:
         self.project=QgsProject.instance()
         threadcount = QThread.idealThreadCount()
         self.settings = QgsSettings() 
+        self.temp_path = os.path.join(plugin_dir, "temporary_files")
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
@@ -583,9 +584,10 @@ class Geo360:
             self.progress.setValue(2)
         except RuntimeError:
             pass
-
+        
         vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(plugin_dir, "temporary_files", "overwrite.gpkg"))
         self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
+        # shutil.rmtree(self.temp_path)
 
     def usuwanie_duplikatow(self, gpkg_path):
         """uruchomienie narzędzia do wykrywania duplikatów w warstwie po wybranych atrybutach"""
@@ -695,6 +697,10 @@ class Geo360:
             anuluj_button = msgBox.addButton("Anuluj", QtWidgets.QMessageBox.ResetRole)
             msgBox.exec_()
 
+            #utworzenie folderu tymczasowego dla potrzebnych warstw
+            if not os.path.exists(self.temp_path):
+                os.makedirs(self.temp_path, mode=0o700,exist_ok=False)
+
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
                 progressMessageBar.layout().addWidget(self.progress)
                 self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
@@ -743,6 +749,7 @@ class Geo360:
             # ukrycie okna PhotoViewer360
             self.dlg.hide()
             self.click_feature()
+            # shutil.rmtree(self.temp_path) # usuwanie niepotrzebnych warstw tymczasowych
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
             progressMessageBar.layout().addWidget(self.progress)
