@@ -32,7 +32,6 @@ except ImportError:
     None
 
 plugin_dir = os.path.dirname(__file__)
-exifread_path = os.path.join(plugin_dir, 'libs', 'ExifRead-3.0.0')
 
 def classFactory(iface):
     from .Geo360 import Geo360

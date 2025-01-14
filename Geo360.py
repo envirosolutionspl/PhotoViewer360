@@ -31,7 +31,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5 import uic
 import processing
 
-from . import plugin_dir, exifread_path
+from . import plugin_dir
 from .Geo360Dialog import Geo360Dialog
 from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 import PhotoViewer360.config as config
@@ -53,6 +53,8 @@ try:
     from pydevd import *
 except ImportError:
     None
+
+exifread_path = os.path.join(plugin_dir, 'libs', 'ExifRead-3.0.0')
 
 """Wersja wtyczki"""
 plugin_version = '1.1.2'
@@ -221,17 +223,32 @@ class Geo360:
             exifread_installed = True
         
         if exifread_installed:
+            QgsMessageLog.logMessage(
+                "Znaleziono 'exifread'",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
             return True  
         
         if os.path.exists(exifread_path):
             sys.path.append(exifread_path)
+            QgsMessageLog.logMessage(
+                "Znaleziono lokalną wersję 'exifread'",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
             import exifread  
+            QgsMessageLog.logMessage(
+                "Zainstalowano lokalną wersję 'exifread'",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
             return True  
             
         QgsMessageLog.logMessage(
             "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
             "PhotoViewer360",
-            Qgis.Critical
+            level=Qgis.Critical
         )
         iface.messageBar().pushMessage(
             "PhotoViewer360",
@@ -246,9 +263,6 @@ class Geo360:
 
         log.initLogging()
 
-        # Sprawdzenie dostępności biblioteki 'exifread'
-        if not self.import_exifread():
-            return 
         
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
@@ -360,7 +374,9 @@ class Geo360:
 
     def run(self):
         """Run after pressing the plugin"""
-
+        # Sprawdzenie dostępności biblioteki 'exifread'
+        if not self.import_exifread():
+            return 
         # wywołanie okna "PhotoViewer360" po wciśnięciu ikony aparatu
         self.dlg.show()
 
