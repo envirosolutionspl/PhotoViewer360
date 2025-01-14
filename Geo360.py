@@ -218,7 +218,6 @@ class Geo360:
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            print("Znaleziono lokalną wersję")
             QgsMessageLog.logMessage(
                 "Znaleziono lokalną wersję biblioteki'exifread'",
                 "PhotoViewer360",
@@ -233,7 +232,6 @@ class Geo360:
             return True  
 
         elif exifread_spec is not None:
-            print("1 ", "|", exifread_spec)
             from exifread import process_file
             QgsMessageLog.logMessage(
                 "Znaleziono bibliotekę 'exifread' w QGIS",
