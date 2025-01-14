@@ -54,8 +54,6 @@ try:
 except ImportError:
     None
 
-exifread_path = os.path.join(plugin_dir, 'libs', 'ExifRead-3.0.0')
-
 """Wersja wtyczki"""
 plugin_version = '1.1.2'
 plugin_name = 'PhotoViewer360'
@@ -76,6 +74,7 @@ class Geo360:
         self.project=QgsProject.instance()
         threadcount = QThread.idealThreadCount()
         self.settings = QgsSettings() 
+        self.exifread_path = os.path.join(plugin_dir, 'libs', 'exifread_3_0_0')
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
@@ -216,47 +215,49 @@ class Geo360:
     def import_exifread(self):
         """Sprawdza dostępność biblioteki 'exifread'"""
 
-        exifread_installed = False
         exifread_spec = importlib.util.find_spec('exifread')
+        
+        if os.path.exists(self.exifread_path):
+            print("Znaleziono lokalną wersję")
+            QgsMessageLog.logMessage(
+                "Znaleziono lokalną wersję biblioteki'exifread'",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
+              
+            QgsMessageLog.logMessage(
+                "Użyto lokalnej wersji biblioteki 'exifread'",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
+            return True  
 
-        if exifread_spec is not None:
-            exifread_installed = True
-        
-        if exifread_installed:
+        elif exifread_spec is not None:
+            print("1 ", "|", exifread_spec)
+            from exifread import process_file
             QgsMessageLog.logMessage(
-                "Znaleziono 'exifread'",
+                "Znaleziono bibliotekę 'exifread' w QGIS",
                 "PhotoViewer360",
                 level=Qgis.Info
             )
             return True  
         
-        if os.path.exists(exifread_path):
-            sys.path.append(exifread_path)
-            QgsMessageLog.logMessage(
-                "Znaleziono lokalną wersję 'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-            import exifread  
-            QgsMessageLog.logMessage(
-                "Zainstalowano lokalną wersję 'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-            return True  
+        else:
+            from .libs.exifread_3_0_0.exifread import process_file
             
-        QgsMessageLog.logMessage(
-            "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
-            "PhotoViewer360",
-            level=Qgis.Critical
-        )
-        iface.messageBar().pushMessage(
-            "PhotoViewer360",
-            "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
-            level=Qgis.Critical,
-            duration=10
-        )
-        return False
+            QgsMessageLog.logMessage(
+                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
+                "PhotoViewer360",
+                level=Qgis.Critical
+            )
+            iface.messageBar().pushMessage(
+                "PhotoViewer360",
+                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
+                level=Qgis.Critical,
+                duration=10
+            )
+            return False        
+        
 
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
@@ -572,7 +573,7 @@ class Geo360:
                     sciezka_zdjecie_value = feature["sciezka_zdjecie"]
                     sciezka_zdjecie_value = sciezka_zdjecie_value.replace("\\", "/")
                     sciezka_zdjecie_open = open(sciezka_zdjecie_value, "rb")
-                    tags = exifread.process_file(sciezka_zdjecie_open)
+                    tags = process_file(sciezka_zdjecie_open)
                     self.dataTime = tags["EXIF DateTimeOriginal"]
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {
