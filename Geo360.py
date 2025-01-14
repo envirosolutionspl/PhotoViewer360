@@ -574,7 +574,7 @@ class Geo360:
                     layer.addFeature(newfeat)
                 layer.commitChanges()
 
-        self.useLayer = str(layer.name())
+                self.useLayer = str(layer.name())
 
     def dopisanie_plik_button_clicked(self, photo_path, gpkg_path):
         """Obsługa wyboru przycisku dopisania danych do GeoPaczki"""
