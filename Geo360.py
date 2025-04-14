@@ -54,7 +54,7 @@ except ImportError:
     None
 
 """Wersja wtyczki"""
-plugin_version = '1.1.2'
+plugin_version = '1.1.3'
 plugin_name = 'PhotoViewer360'
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -238,6 +238,7 @@ class Geo360:
         # informacje o wersji
         self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
         self.dlg.label_8.setText('%s' % (plugin_version))
+        self.dlg.lbl_pluginVersion_3.setText('%s %s' % (plugin_name, plugin_version))
         ##TODO docelowo ma być wsparcie dla poniższeko komponentu i dolny pasek wtyczki
         # self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
 
