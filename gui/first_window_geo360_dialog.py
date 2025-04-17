@@ -6,7 +6,7 @@
  Show local equirectangular images.
                              -------------------
         begin                : 2022-08-08
-        copyright            : EnviroSolutions Sp z o.o.
+        copyright            : (C) 2025 by EnviroSolutions Sp z o.o.
         email                : office@envirosolutions.pl
  ***************************************************************************/
 /***************************************************************************
