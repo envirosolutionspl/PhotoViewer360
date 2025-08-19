@@ -49,14 +49,14 @@ from PyQt5.QtWidgets import QDialog, QComboBox
 from qgis.utils import iface
 import importlib.util
 
+
+from . import PLUGIN_VERSION as plugin_version
+from . import PLUGIN_NAME as plugin_name
+
 try:
     from pydevd import *
 except ImportError:
     None
-
-"""Wersja wtyczki"""
-plugin_version = '1.1.3'
-plugin_name = 'PhotoViewer360'
 
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
