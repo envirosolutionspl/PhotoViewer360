@@ -10,11 +10,19 @@ var source = Marzipano.ImageUrlSource.fromString(
 // Create geometry.
 var geometry = new Marzipano.EquirectGeometry([{ width: 8192 }]);
 
-// odebranie parametrów zdjęcia z python'a
-let data_coord = pythonSlot.getPhotoDetails();
+// Odebranie parametrów zdjęcia z python'a
+// W przypadku braku połączenia przyjmuje azymut domyślny
+var data_coord = "";
+var azymut_aktualny = 0;
+try {
+  data_coord = pythonSlot.getPhotoDetails();
 
-// wydobycie kierunku w jakim ma być zwrócone zdjęcie w oknie
-var azymut_aktualny = data_coord.toString().split(",")[0].split(" ")[6]
+  // wydobycie kierunku w jakim ma być zwrócone zdjęcie w oknie
+  azymut_aktualny = data_coord.toString().split(",")[0].split(" ")[6];
+} catch (error)
+{
+  console.error("An error occurred:", error.message);
+}
 
 // Create view.
 var limiter = Marzipano.RectilinearView.limit.traditional(8192, 100*Math.PI/180);

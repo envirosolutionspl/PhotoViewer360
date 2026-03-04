@@ -33,10 +33,10 @@ import processing
 
 from . import plugin_dir
 from .Geo360Dialog import Geo360Dialog
-from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
-import PhotoViewer360.config as config
-from PhotoViewer360.utils.log import log
-from PhotoViewer360.utils.qgsutils import qgsutils
+from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
+from . import config
+from .utils.log import log
+from .utils.qgsutils import qgsutils
 from functools import partial
 from collections import defaultdict
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -351,10 +351,7 @@ class Geo360:
         # Close server
         self.close_server()
         # Create Server
-        directory = (
-                QgsApplication.qgisSettingsDirPath().replace("\\", "/")
-                + config.SERVER_DIRECTORY
-        )
+        directory = plugin_dir.replace("\\", "/") + config.SERVER_DIRECTORY
 
         try:
             self.server = ThreadingHTTPServer(
