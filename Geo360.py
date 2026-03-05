@@ -23,7 +23,7 @@
 
 
 from qgis.gui import QgsMapToolIdentify
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication
+from qgis.PyQt.QtCore import Qt, QSettings, QThread, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
 from qgis.core import *
@@ -118,6 +118,9 @@ class Geo360:
         if not self.toolbar:
             self.toolbar = self.iface.addToolBar(u"EnviroSolutions")
             self.toolbar.setObjectName(u"EnviroSolutions")
+
+        # Create temporary_files folder
+        os.makedirs(os.path.join(plugin_dir, "temporary_files"), exist_ok=True)  
 
         # noinspection PyMethodMayBeStatic
 
@@ -262,7 +265,6 @@ class Geo360:
 
         log.initLogging()
 
-        
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
             icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
@@ -328,7 +330,19 @@ class Geo360:
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
-            self.close_server()
+        
+        self.close_server()
+
+        # usuwanie katalogu temporary_files
+        for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
+            try:
+                os.remove(os.path.join(plugin_dir, "temporary_files", nazwa_pliku_tymczasowego))
+            except OSError as e:
+                pass
+        try:
+            os.rmdir(os.path.join(plugin_dir, "temporary_files"))
+        except OSError as e:
+            pass
 
         # remove the toolbar
         del self.toolbar
@@ -502,7 +516,7 @@ class Geo360:
 
             # dodanie nowych kolumn do warstwy
         
-            field_type=QVariant.String
+            field_type=QMetaType.Type.QString
             generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
             vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
@@ -514,9 +528,17 @@ class Geo360:
                     new_value=GPKP_COLUMNS_CHANGE_DICT[field.name()]
                     old_value=field.name()
                     self.rename_name_field(vlayer, old_value, new_value)
-                if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
-                    vlayer.dataProvider().deleteAttributes([field_idx])
-                    vlayer.updateFields()
+            
+            # usuwanie zbędnych kolumn z GeoPaczki
+            cleaned = False
+            while not cleaned:
+                cleaned = True
+                for field_idx,field in enumerate(vlayer.fields()):        
+                    if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
+                        cleaned = False
+                        vlayer.dataProvider().deleteAttributes([field_idx])
+                        vlayer.updateFields()
+                        break
 
             features = vlayer.getFeatures()
             number_of_features = vlayer.featureCount()
@@ -647,8 +669,8 @@ class Geo360:
                 "INPUT": gpkg_path,
                 "FIELDS": [
                     "nazwa_zdjecia",
-                    "długosc geog",
-                    "szerokosc geog",
+                    "dlugosc_geog",
+                    "szerokosc_geog",
                     "data_wykonania",
                 ],
                 "OUTPUT": plugin_dir + "/temporary_files/no_duplicates.gpkg",
@@ -705,7 +727,7 @@ class Geo360:
         if not self.checkSavePath(photo_path):
             return False
         
-                # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
+        # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
         files = os.listdir(photo_path)
         rozszerzenia = []
 
@@ -713,15 +735,11 @@ class Geo360:
             rozszerzenie = file.split(".")
             rozszerzenia.append(rozszerzenie[-1])
             
-
         if ("jpg" not in rozszerzenia):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
+            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
-        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
-        if gpkg_path.find(".gpkg") == -1:
-            gpkg_path = gpkg_path + ".gpkg"
 
         # stworzenie paska postępu
         progressMessageBar = self.iface.messageBar().createMessage("Postęp importowania " + gpkg_path.split("\\")[-1] + "...")
@@ -730,8 +748,20 @@ class Geo360:
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano wskazano miejsca zapisu plików").exec_()
+            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.").exec_()
             return False
+        
+        # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
+        if os.path.exists(gpkg_path):
+            try:
+                os.rename(gpkg_path, gpkg_path)
+            except OSError as e:
+                QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.").exec_()
+                return False
+
+        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
+        if gpkg_path.find(".gpkg") == -1:
+            gpkg_path = gpkg_path + ".gpkg"
 
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
 
@@ -878,10 +908,10 @@ class Geo360:
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano ścieżki do pliku/folderu").exec_()
+            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu").exec_()
             return False
         elif not os.path.exists(path):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu").exec_()
+            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu").exec_()
             return False
         else:
             return True
