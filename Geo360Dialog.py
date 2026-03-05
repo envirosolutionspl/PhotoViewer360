@@ -83,6 +83,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     _id = -1
     _coordinates = []
     _index = ""
+    isWindowFullScreen = False
 
     def setXYId(self, coordinates):
         """definiuje wartości parametrów do przekazania do JS"""
@@ -123,6 +124,10 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.DEFAULT_BLANK = (
                 "http://" + config.IP + ":" + str(config.PORT) + "/blank.html"
         )
+
+        # opcja FullScreen
+        self.isWindowFullScreen = False
+        self.normalWindowState = None
 
         # stworzenie okna Street View (okna ze zdjeciem)
         self.CreateViewer()
@@ -165,12 +170,11 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         # otrzymanie ściezki do zdjęcia
         self.current_image = self.GetImage()
-        
-
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
             qgsutils.showUserAndLogMessage(
-                u"Information: ", u"There is no associated image."
+                u"Informacja: ",
+                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
             self.resetQgsRubberBand()
             self.ChangeUrlViewer(self.DEFAULT_EMPTY)
@@ -183,10 +187,6 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.resetQgsRubberBand()
         # self.UpdateOrientation()
         self.setPosition()
-
-        # opcja FullScreen
-        self.isWindowFullScreen = False
-        self.normalWindowState = None
         
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
@@ -249,7 +249,10 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         except OSError:
             pass
 
-        shutil.copy(src_dir, dst_dir)
+        try:
+            shutil.copy(src_dir, dst_dir)
+        except OSError:
+            pass
 
         # utworzenie pliku html z danymi potrzebnymi do wyświetlenia informacji o zdjęciu
         with open(self.plugin_path + "/viewer/file_metadata.html", "w") as file_metadata:
@@ -463,8 +466,8 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
             qgsutils.showUserAndLogMessage(
-                u"Information: ",
-                u"There is no associated image.",
+                u"Informacja: ",
+                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
             self.ChangeUrlViewer(self.DEFAULT_EMPTY)
             self.resetQgsRubberBand()
