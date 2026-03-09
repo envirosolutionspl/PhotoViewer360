@@ -31,8 +31,10 @@ from qgis.core import (
     QgsFeatureRequest,
     QgsVectorLayer,
     QgsWkbTypes,
+    QgsMessageLog,
     QgsProcessingFeatureSourceDefinition,
     QgsCoordinateReferenceSystem,
+    Qgis,
     QgsCoordinateTransform
 )
 from qgis.gui import QgsRubberBand
@@ -252,7 +254,17 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         try:
             shutil.copy(src_dir, dst_dir)
         except OSError:
-            pass
+            QgsMessageLog.logMessage(
+                "Błąd podczas importowania zdjęcia do okna przeglądarki.",
+                "PhotoViewer360",
+                level=Qgis.Critical
+            )
+            self.iface.messageBar().pushMessage(
+                "PhotoViewer360",
+                "Błąd podczas importowania zdjęcia do okna przeglądarki.",
+                level=Qgis.Critical,
+                duration=10
+            )
 
         # utworzenie pliku html z danymi potrzebnymi do wyświetlenia informacji o zdjęciu
         with open(self.plugin_path + "/viewer/file_metadata.html", "w") as file_metadata:
