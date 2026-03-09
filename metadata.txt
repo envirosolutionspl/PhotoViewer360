@@ -5,7 +5,7 @@ qgisMinimumVersion= 3.28
 qgisMaximumVersion=4.99
 description= PL: Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych. 
     ENG: Plugin for for importing and visualising local panoramic images. 
-version= 1.1.4
+version= 1.1.5
 author= EnviroSolutions Sp. z o.o.
 email= office@envirosolutions.pl
 based on= EquirectangularViewer
