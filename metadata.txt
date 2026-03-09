@@ -18,8 +18,10 @@ tracker= https://github.com/envirosolutionspl/PhotoViewer360/issues
 repository= https://github.com/envirosolutionspl/PhotoViewer360
 
 changelog=
-  Wersja 1.1.4
-    * Dodanie danych testowych do wtyczki
+  Wersja 1.1.5
+  * Dodanie informacji o qgisMaximumVersion
+#  Wersja 1.1.4
+#    * Dodanie danych testowych do wtyczki
 #  Wersja 1.1.3
 #    * Utworzenie stopki wtyczki
 #    * Zmiana minimalnej wersji QGIS na 3.28
