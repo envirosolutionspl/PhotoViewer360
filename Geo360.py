@@ -23,7 +23,7 @@
 
 
 from qgis.gui import QgsMapToolIdentify
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication
+from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
 from qgis.core import *
@@ -31,7 +31,8 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5 import uic
 import processing
 
-from . import plugin_dir
+from . import plugin_dir, temp_dir
+from .utils import MessageUtils
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from . import config
@@ -218,42 +219,19 @@ class Geo360:
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            QgsMessageLog.logMessage(
-                "Znaleziono lokalną wersję biblioteki'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-              
-            QgsMessageLog.logMessage(
-                "Użyto lokalnej wersji biblioteki 'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            MessageUtils.pushLogInfo("Znaleziono lokalną wersję biblioteki'exifread'")
+            MessageUtils.pushLogInfo("Użyto lokalnej wersji biblioteki 'exifread'")
             return True  
 
         elif exifread_spec is not None:
             from exifread import process_file
-            QgsMessageLog.logMessage(
-                "Znaleziono bibliotekę 'exifread' w QGIS",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            MessageUtils.pushLogInfo("Znaleziono bibliotekę 'exifread' w QGIS")
             return True  
         
         else:
             from .libs.exifread_3_0_0.exifread import process_file
-            
-            QgsMessageLog.logMessage(
-                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
-                "PhotoViewer360",
-                level=Qgis.Critical
-            )
-            iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
-                level=Qgis.Critical,
-                duration=10
-            )
+            MessageUtils.pushLogCritical("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
+            MessageUtils.pushCritical(self.iface, "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.")
             return False        
         
 
@@ -262,7 +240,6 @@ class Geo360:
 
         log.initLogging()
 
-        
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
             icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
@@ -328,7 +305,15 @@ class Geo360:
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
-            self.close_server()
+        
+        self.close_server()
+
+        # usuwanie katalogu plików tymczasowych
+        for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
+            try:
+                os.remove(os.path.join(temp_dir, nazwa_pliku_tymczasowego))
+            except OSError as e:
+                pass
 
         # remove the toolbar
         del self.toolbar
@@ -344,12 +329,14 @@ class Geo360:
             while self.server_thread.is_alive():
                 self.server_thread.join()
             self.server = None
-
+            MessageUtils.pushLogInfo(f"Serwer usługi zatrzymany.")
+            
     def make_server(self):
         """Create Local server"""
 
         # Close server
         self.close_server()
+
         # Create Server
         directory = plugin_dir.replace("\\", "/") + config.SERVER_DIRECTORY
 
@@ -363,11 +350,11 @@ class Geo360:
                 name="http_server",
             )
             self.server_thread.daemon = True
-            print("Serving at port: %s" % self.server.server_address[1])
             time.sleep(1)
             self.server_thread.start()
+            MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
         except Exception:
-            print("Server Error")
+            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porie: {config.PORT}")
 
     def run(self):
         """Run after pressing the plugin"""
@@ -405,7 +392,7 @@ class Geo360:
 
         layer = self.dlg.mapLayerComboBox.currentText()
         layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
-        self.iface.messageBar().pushMessage("Informacja", "Korzystasz z warstwy: " + self.useLayer, level=Qgis.Info, duration=-1)
+        MessageUtils.pushMessage(self.iface, "Korzystasz z warstwy: " + self.useLayer)     
         self.layer = layer
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
         self.iface.mapCanvas().setMapTool(self.mapTool)
@@ -434,13 +421,11 @@ class Geo360:
                 self.dlg.hide()
                 self.click_feature()
             else:
-                self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                     "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
+                MessageUtils.pushWarning(self.iface, "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
                 return False
 
         except IndexError:
-            self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                 "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
+            MessageUtils.pushWarning(self.iface, "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
             return False
 
     def create_gpkg(self, photo_path, gpkg_path):
@@ -472,7 +457,7 @@ class Geo360:
                 {
                 "FOLDER": photo_path,
                 "RECURSIVE": False,
-                "OUTPUT":gpkg_path,
+                "OUTPUT": gpkg_path,
                 },
                 feedback=f
             )
@@ -499,21 +484,30 @@ class Geo360:
 
             # dodanie nowych kolumn do warstwy
         
-            field_type=QVariant.String
+            # field_type = QMetaType.Type.QString
+            field_type = QVariant.String
             generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
             vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
 
-            # modyfikacja już utworzonych kolumn (zmiana nazwy lub całkowite usunięcie atrybutu)
+            # modyfikacja już utworzonych kolumn (zmiana nazw atrybutów)
             for field_idx,field in enumerate(vlayer.fields()):
                 GPKP_COLUMNS_CHANGE_DICT=defaultdict(str,config.GPKP_COLUMNS_CHANGE_DICT)
                 if GPKP_COLUMNS_CHANGE_DICT[field.name()]:
                     new_value=GPKP_COLUMNS_CHANGE_DICT[field.name()]
                     old_value=field.name()
                     self.rename_name_field(vlayer, old_value, new_value)
-                if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
-                    vlayer.dataProvider().deleteAttributes([field_idx])
-                    vlayer.updateFields()
+            
+            # usuwanie zbędnych atrybutów z GeoPaczki, które powstały podczas processingu
+            is_cleaned = False
+            while not is_cleaned:
+                is_cleaned = True
+                for field_idx,field in enumerate(vlayer.fields()):        
+                    if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
+                        is_cleaned = False
+                        vlayer.dataProvider().deleteAttributes([field_idx])
+                        vlayer.updateFields()
+                        break
 
             features = vlayer.getFeatures()
             number_of_features = vlayer.featureCount()
@@ -632,7 +626,7 @@ class Geo360:
         except RuntimeError:
             pass
 
-        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(plugin_dir, "temporary_files", "overwrite.gpkg"))
+        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(temp_dir, "overwrite.gpkg"))
         self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
 
     def usuwanie_duplikatow(self, gpkg_path):
@@ -644,12 +638,12 @@ class Geo360:
                 "INPUT": gpkg_path,
                 "FIELDS": [
                     "nazwa_zdjecia",
-                    "długosc geog",
-                    "szerokosc geog",
+                    "dlugosc_geog",
+                    "szerokosc_geog",
                     "data_wykonania",
                 ],
-                "OUTPUT": plugin_dir + "/temporary_files/no_duplicates.gpkg",
-                "DUPLICATES": plugin_dir + "/temporary_files/duplicates.gpkg"
+                "OUTPUT": os.path.join(temp_dir, "no_duplicates.gpkg"),
+                "DUPLICATES": os.path.join(temp_dir, "duplicates.gpkg")
             }
         )
 
@@ -684,13 +678,12 @@ class Geo360:
                 lista_zdjec = str(sciezka_zdjecie_list[0:19]) + " ... "
 
             # wyświetlenie okna z informacją duplikatach
-            msgbox = QMessageBox(QMessageBox.Information, "Ostrzeżenie:",
-                                    f"Usunięto {duplicate['DUPLICATE_COUNT']} duplikatów.\n\n"
-                                    f"Duplikaty stwierdzono na podstawie atrybutów: "
-                                    f"nazwa_zdjecia, długosc geog, szerokosc geog, data_wykonania.\n\n"
-                                    f"Stwierdzono duplikaty zdjęć: \n"
-                                    f"{lista_zdjec}")
-            msgbox.exec_()
+            MessageUtils.pushMessageBoxInfo(self.iface.mainWindow(), "Ostrzeżenie",
+                                            f"Usunięto {duplicate['DUPLICATE_COUNT']} duplikatów.\n\n"
+                                            f"Duplikaty stwierdzono na podstawie atrybutów: "
+                                            f"nazwa_zdjecia, długosc_geog, szerokosc_geog, data_wykonania.\n\n"
+                                            f"Stwierdzono duplikaty zdjęć: \n"
+                                            f"{lista_zdjec}")
 
     def fromPhotos_btn_clicked(self):
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
@@ -702,23 +695,19 @@ class Geo360:
         if not self.checkSavePath(photo_path):
             return False
         
-                # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
+        # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
         files = os.listdir(photo_path)
         rozszerzenia = []
 
         for file in files:
             rozszerzenie = file.split(".")
             rozszerzenia.append(rozszerzenie[-1])
-            
 
         if ("jpg" not in rozszerzenia):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
-        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
-        if gpkg_path.find(".gpkg") == -1:
-            gpkg_path = gpkg_path + ".gpkg"
 
         # stworzenie paska postępu
         progressMessageBar = self.iface.messageBar().createMessage("Postęp importowania " + gpkg_path.split("\\")[-1] + "...")
@@ -727,8 +716,20 @@ class Geo360:
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano wskazano miejsca zapisu plików").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
             return False
+        
+        # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
+        if os.path.exists(gpkg_path):
+            try:
+                os.rename(gpkg_path, gpkg_path)
+            except OSError as e:
+                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
+                return False
+
+        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
+        if Path(gpkg_path).suffix.lower() != ".gpkg":
+            gpkg_path = gpkg_path + ".gpkg"
 
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
 
@@ -875,10 +876,10 @@ class Geo360:
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano ścieżki do pliku/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
             return False
         elif not os.path.exists(path):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
             return False
         else:
             return True

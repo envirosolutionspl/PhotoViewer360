@@ -13,7 +13,7 @@ class SelectTool(QgsMapToolIdentify):
         self.queryLayer = queryLayer
         self.parent = parent
 
-        small_image=plugin_dir + "/images/small_celownik.png"
+        small_image = plugin_dir + "/images/small_celownik.png"
 
         self.cursor = QCursor(
             QPixmap(small_image)

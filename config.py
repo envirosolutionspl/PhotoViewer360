@@ -9,6 +9,12 @@ SERVER_DIRECTORY = "/viewer"
 IP = "127.0.0.1"
 PORT = 1520
 
+TEMPORATORY_FILES_LIST = (
+    'overwrite.gpkg',
+    'duplicates.gpkg',
+    'no_duplicates.gpkg'
+)
+
 GPKP_COLUMNS_DELETE_LIST = (
     'altitude',
     'rotation'
@@ -27,8 +33,8 @@ GPKP_COLUMNS_CHANGE_DICT = {
     "filename": 'nazwa_zdjecia',
     "directory": "nazwa_folderu",
     "direction": 'azymut',
-    "longitude": 'długosc geog',
-    "latitude": 'szerokosc geog',
+    "longitude": 'dlugosc_geog',
+    "latitude": 'szerokosc_geog',
     "timestamp": 'data_wykonania'
 }
 
