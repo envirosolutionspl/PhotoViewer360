@@ -230,7 +230,7 @@ class Geo360:
         
         else:
             from .libs.exifread_3_0_0.exifread import process_file
-            MessageUtils.pushLogInfo("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
+            MessageUtils.pushLogCritical("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
             MessageUtils.pushCritical(self.iface, "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.")
             return False        
         
@@ -329,12 +329,14 @@ class Geo360:
             while self.server_thread.is_alive():
                 self.server_thread.join()
             self.server = None
-
+            MessageUtils.pushLogInfo(f"Serwer usługi zatrzymany.")
+            
     def make_server(self):
         """Create Local server"""
 
         # Close server
         self.close_server()
+
         # Create Server
         directory = (
                 QgsApplication.qgisSettingsDirPath().replace("\\", "/")
@@ -351,11 +353,11 @@ class Geo360:
                 name="http_server",
             )
             self.server_thread.daemon = True
-            print("Serving at port: %s" % self.server.server_address[1])
             time.sleep(1)
             self.server_thread.start()
+            MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
         except Exception:
-            print("Server Error")
+            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porie: {config.PORT}")
 
     def run(self):
         """Run after pressing the plugin"""
