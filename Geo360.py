@@ -395,7 +395,7 @@ class Geo360:
 
         layer = self.dlg.mapLayerComboBox.currentText()
         layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
-        MessageUtils.pushInfo(self.iface, "Korzystasz z warstwy: " + self.useLayer, duration=-1)     
+        MessageUtils.pushInfo(self.iface, "Korzystasz z warstwy: " + self.useLayer)     
         self.layer = layer
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
         self.iface.mapCanvas().setMapTool(self.mapTool)

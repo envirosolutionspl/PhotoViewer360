@@ -239,12 +239,12 @@ class MessageUtils:
         return result == QMessageBox.StandardButton.Yes
 
     @staticmethod
-    def pushMessage(iface, message: str, duration=10) -> None:
+    def pushMessage(iface, message: str) -> None:
         iface.messageBar().pushMessage(
             'Informacja',
             message,
             level=Qgis.Info,
-            duration=duration
+            duration=10
         )
     
     @staticmethod
@@ -253,7 +253,7 @@ class MessageUtils:
             "Sukces",
             message,
             level=Qgis.Success,
-            duration=0
+            duration=10
         )
 
     @staticmethod
