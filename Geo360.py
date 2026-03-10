@@ -32,6 +32,7 @@ from PyQt5 import uic
 import processing
 
 from . import plugin_dir, temp_dir
+from .utils import MessageUtils
 from .Geo360Dialog import Geo360Dialog
 from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 import PhotoViewer360.config as config
@@ -218,42 +219,19 @@ class Geo360:
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            QgsMessageLog.logMessage(
-                "Znaleziono lokalną wersję biblioteki'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-              
-            QgsMessageLog.logMessage(
-                "Użyto lokalnej wersji biblioteki 'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            MessageUtils.pushLogInfo("Znaleziono lokalną wersję biblioteki'exifread'")
+            MessageUtils.pushLogInfo("Użyto lokalnej wersji biblioteki 'exifread'")
             return True  
 
         elif exifread_spec is not None:
             from exifread import process_file
-            QgsMessageLog.logMessage(
-                "Znaleziono bibliotekę 'exifread' w QGIS",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            MessageUtils.pushLogInfo("Znaleziono bibliotekę 'exifread' w QGIS")
             return True  
         
         else:
             from .libs.exifread_3_0_0.exifread import process_file
-            
-            QgsMessageLog.logMessage(
-                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
-                "PhotoViewer360",
-                level=Qgis.Critical
-            )
-            iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
-                level=Qgis.Critical,
-                duration=10
-            )
+            MessageUtils.pushLogInfo("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
+            MessageUtils.pushCritical(self.iface, "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.")
             return False        
         
 
@@ -415,7 +393,7 @@ class Geo360:
 
         layer = self.dlg.mapLayerComboBox.currentText()
         layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
-        self.iface.messageBar().pushMessage("Informacja", "Korzystasz z warstwy: " + self.useLayer, level=Qgis.Info, duration=-1)
+        MessageUtils.pushInfo(self.iface, "Korzystasz z warstwy: " + self.useLayer, duration=-1)     
         self.layer = layer
         self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
         self.iface.mapCanvas().setMapTool(self.mapTool)
@@ -444,13 +422,11 @@ class Geo360:
                 self.dlg.hide()
                 self.click_feature()
             else:
-                self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                     "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
+                MessageUtils.pushWarning(self.iface, "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
                 return False
 
         except IndexError:
-            self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                 "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
+            MessageUtils.pushWarning(self.iface, "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
             return False
 
     def create_gpkg(self, photo_path, gpkg_path):
@@ -667,8 +643,8 @@ class Geo360:
                     "szerokosc_geog",
                     "data_wykonania",
                 ],
-                "OUTPUT": os.path.join(temp_dir, + "no_duplicates.gpkg"),
-                "DUPLICATES": os.path.join(temp_dir, + "duplicates.gpkg")
+                "OUTPUT": os.path.join(temp_dir, "no_duplicates.gpkg"),
+                "DUPLICATES": os.path.join(temp_dir, "duplicates.gpkg")
             }
         )
 
@@ -703,13 +679,12 @@ class Geo360:
                 lista_zdjec = str(sciezka_zdjecie_list[0:19]) + " ... "
 
             # wyświetlenie okna z informacją duplikatach
-            msgbox = QMessageBox(QMessageBox.Information, "Ostrzeżenie:",
-                                    f"Usunięto {duplicate['DUPLICATE_COUNT']} duplikatów.\n\n"
-                                    f"Duplikaty stwierdzono na podstawie atrybutów: "
-                                    f"nazwa_zdjecia, długosc geog, szerokosc geog, data_wykonania.\n\n"
-                                    f"Stwierdzono duplikaty zdjęć: \n"
-                                    f"{lista_zdjec}")
-            msgbox.exec_()
+            MessageUtils.pushMessageBoxInfo(self.iface.mainWindow(), "Ostrzeżenie",
+                                            f"Usunięto {duplicate['DUPLICATE_COUNT']} duplikatów.\n\n"
+                                            f"Duplikaty stwierdzono na podstawie atrybutów: "
+                                            f"nazwa_zdjecia, długosc_geog, szerokosc_geog, data_wykonania.\n\n"
+                                            f"Stwierdzono duplikaty zdjęć: \n"
+                                            f"{lista_zdjec}")
 
     def fromPhotos_btn_clicked(self):
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
@@ -728,9 +703,9 @@ class Geo360:
         for file in files:
             rozszerzenie = file.split(".")
             rozszerzenia.append(rozszerzenie[-1])
-            
+
         if ("jpg" not in rozszerzenia):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
@@ -742,7 +717,7 @@ class Geo360:
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
             return False
         
         # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
@@ -750,7 +725,7 @@ class Geo360:
             try:
                 os.rename(gpkg_path, gpkg_path)
             except OSError as e:
-                QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.").exec_()
+                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
@@ -902,10 +877,10 @@ class Geo360:
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
             return False
         elif not os.path.exists(path):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
             return False
         else:
             return True
