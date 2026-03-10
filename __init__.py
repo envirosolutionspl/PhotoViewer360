@@ -21,6 +21,7 @@
  ***************************************************************************/
 """
 import sys, os
+import tempfile
 
 try:
     sys.path.append(r"C:\eclipse\plugins\org.python.pydev.core_8.3.0.202104101217\pysrc")
@@ -32,6 +33,7 @@ except ImportError:
     None
 
 plugin_dir = os.path.dirname(__file__)
+temp_dir = tempfile.gettempdir()
 
 PLUGIN_NAME = ''
 PLUGIN_VERSION = ''

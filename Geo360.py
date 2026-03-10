@@ -23,7 +23,7 @@
 
 
 from qgis.gui import QgsMapToolIdentify
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QCoreApplication, QMetaType
+from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
 from qgis.core import *
@@ -31,7 +31,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5 import uic
 import processing
 
-from . import plugin_dir
+from . import plugin_dir, temp_dir
 from .Geo360Dialog import Geo360Dialog
 from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 import PhotoViewer360.config as config
@@ -118,9 +118,6 @@ class Geo360:
         if not self.toolbar:
             self.toolbar = self.iface.addToolBar(u"EnviroSolutions")
             self.toolbar.setObjectName(u"EnviroSolutions")
-
-        # Create temporary_files folder
-        os.makedirs(os.path.join(plugin_dir, "temporary_files"), exist_ok=True)  
 
         # noinspection PyMethodMayBeStatic
 
@@ -333,16 +330,12 @@ class Geo360:
         
         self.close_server()
 
-        # usuwanie katalogu temporary_files
+        # usuwanie katalogu plików tymczasowych
         for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
             try:
-                os.remove(os.path.join(plugin_dir, "temporary_files", nazwa_pliku_tymczasowego))
+                os.remove(os.path.join(temp_dir, nazwa_pliku_tymczasowego))
             except OSError as e:
                 pass
-        try:
-            os.rmdir(os.path.join(plugin_dir, "temporary_files"))
-        except OSError as e:
-            pass
 
         # remove the toolbar
         del self.toolbar
@@ -489,7 +482,7 @@ class Geo360:
                 {
                 "FOLDER": photo_path,
                 "RECURSIVE": False,
-                "OUTPUT":gpkg_path,
+                "OUTPUT": gpkg_path,
                 },
                 feedback=f
             )
@@ -516,12 +509,13 @@ class Geo360:
 
             # dodanie nowych kolumn do warstwy
         
-            field_type=QMetaType.Type.QString
+            # field_type = QMetaType.Type.QString
+            field_type = QVariant.String
             generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
             vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
 
-            # modyfikacja już utworzonych kolumn (zmiana nazwy lub całkowite usunięcie atrybutu)
+            # modyfikacja już utworzonych kolumn (zmiana nazw atrybutów)
             for field_idx,field in enumerate(vlayer.fields()):
                 GPKP_COLUMNS_CHANGE_DICT=defaultdict(str,config.GPKP_COLUMNS_CHANGE_DICT)
                 if GPKP_COLUMNS_CHANGE_DICT[field.name()]:
@@ -529,13 +523,13 @@ class Geo360:
                     old_value=field.name()
                     self.rename_name_field(vlayer, old_value, new_value)
             
-            # usuwanie zbędnych kolumn z GeoPaczki
-            cleaned = False
-            while not cleaned:
-                cleaned = True
+            # usuwanie zbędnych atrybutów z GeoPaczki, które powstały podczas processingu
+            is_cleaned = False
+            while not is_cleaned:
+                is_cleaned = True
                 for field_idx,field in enumerate(vlayer.fields()):        
                     if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
-                        cleaned = False
+                        is_cleaned = False
                         vlayer.dataProvider().deleteAttributes([field_idx])
                         vlayer.updateFields()
                         break
@@ -657,7 +651,7 @@ class Geo360:
         except RuntimeError:
             pass
 
-        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(plugin_dir, "temporary_files", "overwrite.gpkg"))
+        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(temp_dir, "overwrite.gpkg"))
         self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
 
     def usuwanie_duplikatow(self, gpkg_path):
@@ -673,8 +667,8 @@ class Geo360:
                     "szerokosc_geog",
                     "data_wykonania",
                 ],
-                "OUTPUT": plugin_dir + "/temporary_files/no_duplicates.gpkg",
-                "DUPLICATES": plugin_dir + "/temporary_files/duplicates.gpkg"
+                "OUTPUT": os.path.join(temp_dir, + "no_duplicates.gpkg"),
+                "DUPLICATES": os.path.join(temp_dir, + "duplicates.gpkg")
             }
         )
 
@@ -760,7 +754,7 @@ class Geo360:
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
-        if gpkg_path.find(".gpkg") == -1:
+        if Path(gpkg_path).suffix.lower() != ".gpkg":
             gpkg_path = gpkg_path + ".gpkg"
 
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
