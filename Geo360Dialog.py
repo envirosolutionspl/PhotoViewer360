@@ -44,10 +44,10 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor
-import PhotoViewer360.config as config
-from PhotoViewer360.geom.transformgeom import transformGeometry
-from PhotoViewer360.gui.ui_orbitalDialog import Ui_orbitalDialog
-from PhotoViewer360.utils.qgsutils import qgsutils
+from . import config
+from .geom.transformgeom import transformGeometry
+from .gui.ui_orbitalDialog import Ui_orbitalDialog
+from .utils.qgsutils import qgsutils
 from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
 from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore

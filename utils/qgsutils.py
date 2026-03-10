@@ -14,7 +14,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsRectangle,
 )
-from PhotoViewer360.utils.log import log
+from .log import log
 
 try:
     from pydevd import *

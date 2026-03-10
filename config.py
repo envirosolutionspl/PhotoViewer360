@@ -3,7 +3,7 @@ COLUMN_NAME = "sciezka_zdjecie"
 COLUMN_YAW = "azymut"
 
 # Server
-SERVER_DIRECTORY = "python/plugins/PhotoViewer360/viewer"
+SERVER_DIRECTORY = "/viewer"
 
 # Panorama Viewer
 IP = "127.0.0.1"
