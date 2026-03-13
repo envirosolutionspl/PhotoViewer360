@@ -35,14 +35,22 @@ except ImportError:
 plugin_dir = os.path.dirname(__file__)
 temp_dir = tempfile.gettempdir()
 
-PLUGIN_NAME = ''
 PLUGIN_VERSION = ''
-with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r') as pluginMetadataFile:
-    for line in pluginMetadataFile:
+PLUGIN_NAME = ''
+
+plugin_libs_path = os.path.join(os.path.dirname(__file__), 'libs')
+if os.path.isdir(plugin_libs_path):
+    for file in os.listdir(plugin_libs_path):
+        if file.endswith('.whl'):
+            sys.path.append(os.path.join(plugin_libs_path, file))
+
+metadata_path = os.path.join(os.path.dirname(__file__), 'metadata.txt')
+with open(metadata_path, 'r', encoding='utf-8') as pluginMetadataFile:
+    for line in pluginMetadataFile.readlines():
         if line.startswith("version="):
-            PLUGIN_VERSION = line.strip().split('=')[-1]
-        elif line.startswith("name="):
-            PLUGIN_NAME = line.strip().split('=')[-1]
+            PLUGIN_VERSION = line.strip().split('=', 1)[-1]
+        if line.startswith("name="):
+            PLUGIN_NAME = line.strip().split('=', 1)[-1]
 
 def classFactory(iface):
     from .Geo360 import Geo360
