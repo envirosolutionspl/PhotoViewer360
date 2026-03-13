@@ -44,15 +44,15 @@ class qgsutils(object):
             for feature in layer.getFeatures():
                 if feature.id() == ide:
                     # Transform Point
-                    actualPoint = feature.geometry().asPoint()
-                    projPoint = qgsutils.convertProjection(
-                        actualPoint.x(),
-                        actualPoint.y(),
+                    actual_point = feature.geometry().asPoint()
+                    proj_point = qgsutils.convertProjection(
+                        actual_point.x(),
+                        actual_point.y(),
                         layer.crs().authid(),
                         canvas.mapSettings().destinationCrs().authid(),
                     )
-                    x = projPoint.x()
-                    y = projPoint.y()
+                    x = proj_point.x()
+                    y = proj_point.y()
                     # rect = QgsRectangle(x*0.99998, y*0.99998, x*1.00002, y*1.00002) # zakres zoom w przypadku przybliżenia do punktu
                     rect = QgsRectangle(x, y, x, y)
                     canvas.setExtent(rect)
