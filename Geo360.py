@@ -60,7 +60,7 @@ except ImportError:
     None
 
 class QuietHandler(SimpleHTTPRequestHandler):
-    def logMessage(self, format, *args):
+    def log_message(self, format, *args):
         pass
 
 

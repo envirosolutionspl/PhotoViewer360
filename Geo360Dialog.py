@@ -513,7 +513,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.setFloating(True)
             self.normalWindowState = self.windowState()
             self.setWindowState(Qt.WindowfullScreen)
-            self.cef_widget.showfullScreen()
+            self.cef_widget.showFullScreen()
             self.isWindowfullScreen = True
 
         else:
