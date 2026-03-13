@@ -20,12 +20,12 @@ import sys
 import argparse
 import timeit
 from exifread.tags import FIELD_TYPES
-from exifread import process_file, exif_log, __version__
+from exifread import processFile, exif_log, __version__
 
-logger = exif_log.get_logger()
+logger = exif_log.getLogger()
 
 
-def get_args():
+def getArgs():
     parser = argparse.ArgumentParser(
         prog='EXIF.py',
         description='Extract EXIF information from digital image files.'
@@ -66,7 +66,7 @@ def get_args():
 def main(args) -> None:
     """Extract tags based on options (args)."""
 
-    exif_log.setup_logger(args.debug, args.color)
+    exif_log.setupLogger(args.debug, args.color)
 
     # output info for each file
     for filename in args.files:
@@ -86,7 +86,7 @@ def main(args) -> None:
         tag_start = timeit.default_timer()
 
         # get the tags
-        data = process_file(
+        data = processFile(
             img_file, stop_tag=args.stop_tag, details=args.detailed, strict=args.strict, debug=args.debug
         )
 
@@ -121,4 +121,4 @@ def main(args) -> None:
 
 
 if __name__ == '__main__':
-    main(get_args())
+    main(getArgs())

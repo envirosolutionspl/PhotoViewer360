@@ -4,10 +4,10 @@ Makernote (proprietary) tag definitions for FujiFilm.
 http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/FujiFilm.html
 """
 
-from exifread.utils import make_string
+from exifread.utils import makeString
 
 TAGS = {
-    0x0000: ('NoteVersion', make_string),
+    0x0000: ('NoteVersion', makeString),
     0x0010: ('InternalSerialNumber', ),
     0x1000: ('Quality', ),
     0x1001: ('Sharpness', {

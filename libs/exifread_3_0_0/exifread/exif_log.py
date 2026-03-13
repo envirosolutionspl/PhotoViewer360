@@ -15,12 +15,12 @@ TEXT_MAGENTA = 35
 TEXT_CYAN = 36
 
 
-def get_logger():
+def getLogger():
     """Use this from all files needing to log."""
     return logging.getLogger("exifread")
 
 
-def setup_logger(debug, color):
+def setupLogger(debug, color):
     """Configure the logger."""
 
     if debug:

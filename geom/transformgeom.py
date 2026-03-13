@@ -4,7 +4,7 @@ from qgis.core import QgsPoint, QgsGeometry
 from PyQt5.QtWidgets import QMessageBox
 
 
-class transformGeometry:
+class TransformGeometry:
 
     # Rotates a geometry.
     # (c) Stefan Ziegler

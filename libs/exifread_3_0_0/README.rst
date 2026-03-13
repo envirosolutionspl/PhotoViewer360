@@ -66,7 +66,7 @@ Python Script
     f = open(path_name, 'rb')
 
     # Return Exif tags
-    tags = exifread.process_file(f)
+    tags = exifread.processFile(f)
 
 *Note:* To use this library in your project as a Git submodule, you should::
 
@@ -119,7 +119,7 @@ Pass the ``-q`` or ``--quick`` command line arguments, or as:
 
 .. code-block:: python
 
-    tags = exifread.process_file(f, details=False)
+    tags = exifread.processFile(f, details=False)
 
 Stop at a Given Tag
 ===================
@@ -130,7 +130,7 @@ Pass the ``-t TAG`` or ``--stop-tag TAG`` argument, or as:
 
 .. code-block:: python
 
-    tags = exifread.process_file(f, stop_tag='TAG')
+    tags = exifread.processFile(f, stop_tag='TAG')
 
 where ``TAG`` is a valid tag name, ex ``'DateTimeOriginal'``.
 
@@ -145,7 +145,7 @@ Pass the ``-s`` or ``--strict`` argument, or as:
 
 .. code-block:: python
 
-    tags = exifread.process_file(f, strict=True)
+    tags = exifread.processFile(f, strict=True)
 
 Usage Example
 =============
@@ -159,11 +159,11 @@ This example shows how to use the library to correct the orientation of an image
     from PIL import Image
     import logging
     
-    def _read_img_and_correct_exif_orientation(path):
+    def _readImgAndCorrectExifOrientation(path):
         im = Image.open(path)
         tags = {}
         with open(path, 'rb') as f:
-            tags = exifread.process_file(f, details=False)
+            tags = exifread.processFile(f, details=False)
         if "Image Orientation" in tags.keys():
             orientation = tags["Image Orientation"]
             logging.basicConfig(level=logging.DEBUG)

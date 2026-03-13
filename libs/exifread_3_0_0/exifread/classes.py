@@ -2,11 +2,11 @@ import re
 import struct
 from typing import BinaryIO, Dict, Any
 
-from exifread.exif_log import get_logger
+from exifread.exif_log import getLogger
 from exifread.utils import Ratio
 from exifread.tags import EXIF_TAGS, DEFAULT_STOP_TAG, FIELD_TYPES, IGNORE_TAGS, makernote
 
-logger = get_logger()
+logger = getLogger()
 
 
 class IfdTag:
@@ -116,21 +116,21 @@ class ExifHeader:
             offset = offset >> 8
         return s
 
-    def _first_ifd(self) -> int:
+    def _firstIfd(self) -> int:
         """Return first IFD."""
         return self.s2n(4, 4)
 
-    def _next_ifd(self, ifd) -> int:
+    def _nextIfd(self, ifd) -> int:
         """Return the pointer to next IFD."""
         entries = self.s2n(ifd, 2)
-        next_ifd = self.s2n(ifd + 2 + 12 * entries, 4)
-        if next_ifd == ifd:
+        nextIfd = self.s2n(ifd + 2 + 12 * entries, 4)
+        if nextIfd == ifd:
             return 0
-        return next_ifd
+        return nextIfd
 
-    def list_ifd(self) -> list:
+    def listIfd(self) -> list:
         """Return the list of IFDs in the header."""
-        i = self._first_ifd()
+        i = self._firstIfd()
         ifds = []
         set_ifds = set()
         while i:
@@ -139,10 +139,10 @@ class ExifHeader:
                 break
             set_ifds.add(i)
             ifds.append(i)
-            i = self._next_ifd(i)
+            i = self._nextIfd(i)
         return ifds
 
-    def _process_field(self, tag_name, count, field_type, type_length, offset):
+    def _processField(self, tag_name, count, field_type, type_length, offset):
         values = []
         signed = (field_type in [6, 8, 9, 10])
         # XXX investigate
@@ -188,7 +188,7 @@ class ExifHeader:
                 offset = offset + type_length
         return values
 
-    def _process_field2(self, ifd_name, tag_name, count, offset):
+    def _processField2(self, ifd_name, tag_name, count, offset):
         values = ''
         # special case: null-terminated ASCII string
         # XXX investigate
@@ -214,7 +214,7 @@ class ExifHeader:
                 values = ''
         return values
 
-    def _process_tag(self, ifd, ifd_name: str, tag_entry, entry, tag: int, tag_name, relative, stop_tag) -> None:
+    def _processTag(self, ifd, ifd_name: str, tag_entry, entry, tag: int, tag_name, relative, stop_tag) -> None:
         field_type = self.s2n(entry + 2, 2)
 
         # unknown field type
@@ -249,9 +249,9 @@ class ExifHeader:
         field_offset = offset
         values = None
         if field_type == 2:
-            values = self._process_field2(ifd_name, tag_name, count, offset)
+            values = self._processField2(ifd_name, tag_name, count, offset)
         else:
-            values = self._process_field(tag_name, count, field_type, type_length, offset)
+            values = self._processField(tag_name, count, field_type, type_length, offset)
         # now 'values' is either a string or an array
         # TODO: use only one type
         if count == 1 and field_type != 2:
@@ -274,7 +274,7 @@ class ExifHeader:
                     ifd_info = tag_entry[1]
                     try:
                         logger.debug('%s SubIFD at offset %d:', ifd_info[0], values[0])
-                        self.dump_ifd(values[0], ifd_info[0], tag_dict=ifd_info[1], stop_tag=stop_tag)
+                        self.dumpIfd(values[0], ifd_info[0], tag_dict=ifd_info[1], stop_tag=stop_tag)
                     except IndexError:
                         logger.warning('No values found for %s SubIFD', ifd_info[0])
                 else:
@@ -289,7 +289,7 @@ class ExifHeader:
         tag_value = repr(self.tags[ifd_name + ' ' + tag_name])
         logger.debug(' %s: %s', tag_name, tag_value)
 
-    def dump_ifd(self, ifd, ifd_name: str, tag_dict=None, relative=0, stop_tag=DEFAULT_STOP_TAG) -> None:
+    def dumpIfd(self, ifd, ifd_name: str, tag_dict=None, relative=0, stop_tag=DEFAULT_STOP_TAG) -> None:
         """
         Return a list of entries in the given IFD.
         """
@@ -316,12 +316,12 @@ class ExifHeader:
 
             # ignore certain tags for faster processing
             if not (not self.detailed and tag in IGNORE_TAGS):
-                self._process_tag(ifd, ifd_name, tag_entry, entry, tag, tag_name, relative, stop_tag)
+                self._processTag(ifd, ifd_name, tag_entry, entry, tag, tag_name, relative, stop_tag)
 
             if tag_name == stop_tag:
                 break
 
-    def extract_tiff_thumbnail(self, thumb_ifd: int) -> None:
+    def extractTiffThumbnail(self, thumb_ifd: int) -> None:
         """
         Extract uncompressed TIFF thumbnail.
 
@@ -384,7 +384,7 @@ class ExifHeader:
 
         self.tags['TIFFThumbnail'] = tiff
 
-    def extract_jpeg_thumbnail(self) -> None:
+    def extractJpegThumbnail(self) -> None:
         """
         Extract JPEG thumbnail.
 
@@ -404,7 +404,7 @@ class ExifHeader:
                 self.file_handle.seek(self.offset + thumb_offset.values[0])
                 self.tags['JPEGThumbnail'] = self.file_handle.read(thumb_offset.field_length)
 
-    def decode_maker_note(self) -> None:
+    def decodeMakerNote(self) -> None:
         """
         Decode all the camera-specific MakerNote formats
 
@@ -442,25 +442,25 @@ class ExifHeader:
         if 'NIKON' in make:
             if note.values[0:7] == [78, 105, 107, 111, 110, 0, 1]:
                 logger.debug('Looks like a type 1 Nikon MakerNote.')
-                self.dump_ifd(note.field_offset + 8, 'MakerNote',
+                self.dumpIfd(note.field_offset + 8, 'MakerNote',
                               tag_dict=makernote.nikon.TAGS_OLD)
             elif note.values[0:7] == [78, 105, 107, 111, 110, 0, 2]:
                 logger.debug('Looks like a labeled type 2 Nikon MakerNote')
                 if note.values[12:14] != [0, 42] and note.values[12:14] != [42, 0]:
                     raise ValueError('Missing marker tag 42 in MakerNote.')
                     # skip the Makernote label and the TIFF header
-                self.dump_ifd(note.field_offset + 10 + 8, 'MakerNote',
+                self.dumpIfd(note.field_offset + 10 + 8, 'MakerNote',
                               tag_dict=makernote.nikon.TAGS_NEW, relative=1)
             else:
                 # E99x or D1
                 logger.debug('Looks like an unlabeled type 2 Nikon MakerNote')
-                self.dump_ifd(note.field_offset, 'MakerNote',
+                self.dumpIfd(note.field_offset, 'MakerNote',
                               tag_dict=makernote.nikon.TAGS_NEW)
             return
 
         # Olympus
         if make.startswith('OLYMPUS'):
-            self.dump_ifd(note.field_offset + 8, 'MakerNote', tag_dict=makernote.olympus.TAGS)
+            self.dumpIfd(note.field_offset + 8, 'MakerNote', tag_dict=makernote.olympus.TAGS)
             # TODO
             #for i in (('MakerNote Tag 0x2020', makernote.OLYMPUS_TAG_0x2020),):
             #    self.decode_olympus_tag(self.tags[i[0]].values, i[1])
@@ -468,7 +468,7 @@ class ExifHeader:
 
         # Casio
         if 'CASIO' in make or 'Casio' in make:
-            self.dump_ifd(note.field_offset, 'MakerNote',
+            self.dumpIfd(note.field_offset, 'MakerNote',
                           tag_dict=makernote.casio.TAGS)
             return
 
@@ -483,7 +483,7 @@ class ExifHeader:
             offset = self.offset
             self.offset += note.field_offset
             # process note with bogus values (note is actually at offset 12)
-            self.dump_ifd(12, 'MakerNote', tag_dict=makernote.fujifilm.TAGS)
+            self.dumpIfd(12, 'MakerNote', tag_dict=makernote.fujifilm.TAGS)
             # reset to correct values
             self.endian = endian
             self.offset = offset
@@ -493,13 +493,13 @@ class ExifHeader:
         if make == 'Apple' and note.values[0:10] == [65, 112, 112, 108, 101, 32, 105, 79, 83, 0]:
             offset = self.offset
             self.offset += note.field_offset + 14
-            self.dump_ifd(0, 'MakerNote', tag_dict=makernote.apple.TAGS)
+            self.dumpIfd(0, 'MakerNote', tag_dict=makernote.apple.TAGS)
             self.offset = offset
             return
 
         # Canon
         if make == 'Canon':
-            self.dump_ifd(note.field_offset, 'MakerNote',
+            self.dumpIfd(note.field_offset, 'MakerNote',
                           tag_dict=makernote.canon.TAGS)
 
             for i in (('MakerNote Tag 0x0001', makernote.canon.CAMERA_SETTINGS),
@@ -509,12 +509,12 @@ class ExifHeader:
                       ('MakerNote Tag 0x0093', makernote.canon.FILE_INFO)):
                 if i[0] in self.tags:
                     logger.debug('Canon %s', i[0])
-                    self._canon_decode_tag(self.tags[i[0]].values, i[1])
+                    self._canonDecodeTag(self.tags[i[0]].values, i[1])
                     del self.tags[i[0]]
             if makernote.canon.CAMERA_INFO_TAG_NAME in self.tags:
                 tag = self.tags[makernote.canon.CAMERA_INFO_TAG_NAME]
                 logger.debug('Canon CameraInfo')
-                self._canon_decode_camera_info(tag)
+                self._canonDecodeCameraInfo(tag)
                 del self.tags[makernote.canon.CAMERA_INFO_TAG_NAME]
             return
 
@@ -522,7 +522,7 @@ class ExifHeader:
 #    def _olympus_decode_tag(self, value, mn_tags):
 #        pass
 
-    def _canon_decode_tag(self, value, mn_tags):
+    def _canonDecodeTag(self, value, mn_tags):
         """
         Decode Canon MakerNote tag based on offset within tag.
 
@@ -544,7 +544,7 @@ class ExifHeader:
             # This will have a "proprietary" type
             self.tags['MakerNote ' + name] = IfdTag(str(val), 0, 0, val, 0, 0)
 
-    def _canon_decode_camera_info(self, camera_info_tag):
+    def _canonDecodeCameraInfo(self, camera_info_tag):
         """
         Decode the variable length encoded camera info section.
         """
@@ -586,7 +586,7 @@ class ExifHeader:
 
             self.tags['MakerNote ' + tag_name] = IfdTag(str(tag_value), 0, 0, tag_value, 0, 0)
 
-    def parse_xmp(self, xmp_bytes: bytes):
+    def parseXmp(self, xmp_bytes: bytes):
         """Adobe's Extensible Metadata Platform, just dump the pretty XML."""
 
         import xml.dom.minidom  # pylint: disable=import-outside-toplevel

@@ -4,7 +4,7 @@ Change Log
 
 3.0.0 — 2022-05-08
     * **BREAKING CHANGE:** Add type hints, which removes Python2 compatibility
-    * Update make_string util to clean up bad values (#128) by Étienne Pelletier
+    * Update makeString util to clean up bad values (#128) by Étienne Pelletier
     * Fix Olympus SpecialMode Unknown Values (#143) by Paul Barton
     * Remove coding system from UserComment sequence only if it is valid (#147) by Grzegorz Ruciński
     * Fixes to orientation by Mark
@@ -150,7 +150,7 @@ Change Log
 2008-07-08 - all by Stephen H. Olson
     * An error check for large tags totally borked MakerNotes.
       With Nikon anyway, valid MakerNotes can be pretty big.
-    * Add error check for a crash caused by nikon_ev_bias being
+    * Add error check for a crash caused by nikon_evBias being
       called with the wrong args.
     * Drop any garbage after a null character in string
       (patch from Andrew McNabb <amcnabb@google.com>).
@@ -201,7 +201,7 @@ Change Log
     * Fixed a couple errors and assuming maintenance of the library.
 
 2006-08-04 all by Reimar Bauer
-    * Added an optional parameter name to process_file and dump_IFD. Using this
+    * Added an optional parameter name to processFile and dumpIfd. Using this
       parameter the loop is breaked after that tag_name is processed.
     * some PEP8 changes
 
@@ -228,7 +228,7 @@ Patch Contributors:
     * Finally fixed bit shift warning by converting Y to 0L.
 
 2003-11-30 CEC
-    * Fixed problem with canon_decode_tag() not creating an
+    * Fixed problem with canonDecodeTag() not creating an
       IFD_Tag() object.
 
 2002-01-26 CEC

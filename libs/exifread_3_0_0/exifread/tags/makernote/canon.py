@@ -659,15 +659,15 @@ FILE_INFO = {
 }
 
 
-def add_one(value):
+def addOne(value):
     return value + 1
 
 
-def subtract_one(value):
+def subtractOne(value):
     return value - 1
 
 
-def convert_temp(value):
+def convertTemp(value):
     return '%d C' % (value - 128)
 
 # CameraInfo data structures have variable sized members. Each entry here is:
@@ -677,29 +677,29 @@ def convert_temp(value):
 CAMERA_INFO_TAG_NAME = 'MakerNote Tag 0x000D'
 
 CAMERA_INFO_5D = {
-    23: ('CameraTemperature', '<B', convert_temp),
-    204: ('DirectoryIndex', '<L', subtract_one),
-    208: ('FileIndex', '<H', add_one),
+    23: ('CameraTemperature', '<B', convertTemp),
+    204: ('DirectoryIndex', '<L', subtractOne),
+    208: ('FileIndex', '<H', addOne),
 }
 
 CAMERA_INFO_5DMKII = {
-    25: ('CameraTemperature', '<B', convert_temp),
-    443: ('FileIndex', '<L', add_one),
-    455: ('DirectoryIndex', '<L', subtract_one),
+    25: ('CameraTemperature', '<B', convertTemp),
+    443: ('FileIndex', '<L', addOne),
+    455: ('DirectoryIndex', '<L', subtractOne),
 }
 
 CAMERA_INFO_5DMKIII = {
-    27: ('CameraTemperature', '<B', convert_temp),
-    652: ('FileIndex', '<L', add_one),
-    656: ('FileIndex2', '<L', add_one),
-    664: ('DirectoryIndex', '<L', subtract_one),
-    668: ('DirectoryIndex2', '<L', subtract_one),
+    27: ('CameraTemperature', '<B', convertTemp),
+    652: ('FileIndex', '<L', addOne),
+    656: ('FileIndex2', '<L', addOne),
+    664: ('DirectoryIndex', '<L', subtractOne),
+    668: ('DirectoryIndex2', '<L', subtractOne),
 }
 
 CAMERA_INFO_600D = {
-    25: ('CameraTemperature', '<B', convert_temp),
-    475: ('FileIndex', '<L', add_one),
-    487: ('DirectoryIndex', '<L', subtract_one),
+    25: ('CameraTemperature', '<B', convertTemp),
+    475: ('FileIndex', '<L', addOne),
+    487: ('DirectoryIndex', '<L', subtractOne),
 }
 
 # A map of regular expressions on 'Image Model' to the CameraInfo spec
