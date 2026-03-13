@@ -710,7 +710,7 @@ class Geo360:
         progressMessageBar = self.iface.messageBar().createMessage("Postęp importowania " + gpkg_path.split("\\")[-1] + "...")
         self.progress = QProgressBar()
         self.progress.setMaximum(100)
-        self.progress.setAlignment(QtCompat.alignment_left_vcenter(Qt))
+        self.progress.setAlignment(QtCompat.alignmentLeftVcenter(Qt))
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
             MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
@@ -732,7 +732,7 @@ class Geo360:
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
             msgBox = QMessageBox(self.iface.mainWindow())
-            msgBox.setIcon(QtCompat.qmessagebox_information_icon())
+            msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
             msgBox.setWindowTitle("Informacja")
             msgBox.setText(
                 "Plik już istnieje.\n"
@@ -740,8 +740,8 @@ class Geo360:
                 "Czy chcesz dopisać dane do starego pliku?"
             )
 
-            zatwierdz_role = QtCompat.qmessagebox_apply_role(QtWidgets)
-            anuluj_role = QtCompat.qmessagebox_reset_role(QtWidgets)
+            zatwierdz_role = QtCompat.qmessageboxApplyRole(QtWidgets)
+            anuluj_role = QtCompat.qmessageboxResetRole(QtWidgets)
 
             nowy_plik_button = msgBox.addButton("Nowy plik", zatwierdz_role)
             dopisanie_plik_button = msgBox.addButton("Dopisanie do pliku", zatwierdz_role)
@@ -858,7 +858,7 @@ class Geo360:
             parent=self,
         )
 
-        pozycja_dockwidget = QtCompat.right_dockwidget_area(Qt)
+        pozycja_dockwidget = QtCompat.rightDockwidgetArea(Qt)
         self.iface.addDockWidget(pozycja_dockwidget, self.orbitalViewer)
 
     def layerRemoved(self):

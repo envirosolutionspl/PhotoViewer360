@@ -30,8 +30,8 @@ class Ui_orbitalDialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/ikona_wtyczki.svg"),
-            QtCompat.qicon_mode_normal(QtGui),
-            QtCompat.qicon_state_off(QtGui),
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         orbitalDialog.setWindowIcon(icon)
         orbitalDialog.setFeatures(QtWidgets.QDockWidget.AllDockWidgetFeatures)
@@ -47,7 +47,7 @@ class Ui_orbitalDialog(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
 
         spacerItem = QtWidgets.QSpacerItem(
-            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicy_minimum(QtWidgets)
+            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicyMinimum(QtWidgets)
         )
         self.horizontalLayout.addItem(spacerItem)
 
@@ -58,8 +58,8 @@ class Ui_orbitalDialog(object):
         icon1 = QtGui.QIcon()
         icon1.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/camera.svg"),
-            QtCompat.qicon_mode_normal(QtGui),
-            QtCompat.qicon_state_off(QtGui),
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_screenshot.setIcon(icon1)
         self.btn_screenshot.setObjectName("btn_screenshot")
@@ -72,8 +72,8 @@ class Ui_orbitalDialog(object):
         icon3 = QtGui.QIcon()
         icon3.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/full_screen.svg"),
-            QtCompat.qicon_mode_normal(QtGui),
-            QtCompat.qicon_state_off(QtGui),
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_fullscreen.setIcon(icon3)
         self.btn_fullscreen.setCheckable(True)
@@ -82,7 +82,7 @@ class Ui_orbitalDialog(object):
 
 
         spacerItem1 = QtWidgets.QSpacerItem(
-            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicy_minimum(QtWidgets)
+            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicyMinimum(QtWidgets)
         )
         self.horizontalLayout.addItem(spacerItem1)
 

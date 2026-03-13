@@ -87,7 +87,7 @@ class Ui_main(object):
         self.mQgsFileWidget_search_photo.setSizePolicy(sizePolicy)
         self.mQgsFileWidget_search_photo.setStorageMode(QgsFileWidget.GetDirectory)
         self.mQgsFileWidget_search_photo.setOptions(
-            QtCompat.qfiledialog_show_dirs_only(QtWidgets)
+            QtCompat.qfiledialogShowDirsOnly(QtWidgets)
         )
         self.mQgsFileWidget_search_photo.setObjectName("mQgsFileWidget_search_photo")
         self.verticalLayout_2.addWidget(self.mQgsFileWidget_search_photo)

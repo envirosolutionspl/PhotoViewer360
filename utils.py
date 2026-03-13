@@ -215,10 +215,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxCritical(parent, title: str, message: str):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessagebox_critical_icon())
+        msg_box.setIcon(QtCompat.qmessageboxCriticalIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -228,10 +228,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxInfo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessagebox_information_icon())
+        msg_box.setIcon(QtCompat.qmessageboxInformationIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -241,10 +241,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxWarning(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessagebox_warning_icon())
+        msg_box.setIcon(QtCompat.qmessageboxWarningIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -253,16 +253,16 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxYesNo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessagebox_question_icon())
+        msg_box.setIcon(QtCompat.qmessageboxQuestionIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(
-            QtCompat.qmessagebox_yes_button() |
-            QtCompat.qmessagebox_no_button()
+            QtCompat.qmessageboxYesButton() |
+            QtCompat.qmessageboxNoButton()
         )
 
         result = msg_box.exec()
-        return result == QtCompat.qmessagebox_yes_button()
+        return result == QtCompat.qmessageboxYesButton()
 
     @staticmethod
     def pushMessage(iface, message: str) -> None:
@@ -636,60 +636,60 @@ class QtCompat:
     """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
 
     @staticmethod
-    def qmessagebox_warning_icon():
+    def qmessageboxWarningIcon():
         return QMessageBox.Icon.Warning if hasattr(QMessageBox, "Icon") else QMessageBox.Warning
 
     @staticmethod
-    def qmessagebox_information_icon():
+    def qmessageboxInformationIcon():
         return QMessageBox.Icon.Information if hasattr(QMessageBox, "Icon") else QMessageBox.Information
 
     @staticmethod
-    def qmessagebox_critical_icon():
+    def qmessageboxCriticalIcon():
         return QMessageBox.Icon.Critical if hasattr(QMessageBox, "Icon") else QMessageBox.Critical
 
     @staticmethod
-    def qmessagebox_question_icon():
+    def qmessageboxQuestionIcon():
         return QMessageBox.Icon.Question if hasattr(QMessageBox, "Icon") else QMessageBox.Question
 
     @staticmethod
-    def qmessagebox_ok_button():
+    def qmessageboxOkButton():
         if hasattr(QMessageBox, "StandardButton"):
             return QMessageBox.StandardButton.Ok
         return QMessageBox.Ok
 
     @staticmethod
-    def qmessagebox_yes_button():
+    def qmessageboxYesButton():
         if hasattr(QMessageBox, "StandardButton"):
             return QMessageBox.StandardButton.Yes
         return QMessageBox.Yes
 
     @staticmethod
-    def qmessagebox_no_button():
+    def qmessageboxNoButton():
         if hasattr(QMessageBox, "StandardButton"):
             return QMessageBox.StandardButton.No
         return QMessageBox.No
 
     @staticmethod
-    def alignment_left_vcenter(QtClass):
+    def alignmentLeftVcenter(QtClass):
         if hasattr(QtClass, "AlignmentFlag"):
             return QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
         return QtClass.AlignLeft | QtClass.AlignVCenter
 
 
     @staticmethod
-    def right_dockwidget_area(QtClass):
+    def rightDockwidgetArea(QtClass):
         if hasattr(QtClass, "DockWidgetArea"):
             return QtClass.DockWidgetArea.RightDockWidgetArea
         return QtClass.RightDockWidgetArea
 
     @staticmethod
-    def qmessagebox_apply_role(qtwidgets_module):
+    def qmessageboxApplyRole(qtwidgets_module):
         if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
             return qtwidgets_module.QMessageBox.ButtonRole.ApplyRole
         return qtwidgets_module.QMessageBox.ApplyRole
 
     @staticmethod
-    def qmessagebox_reset_role(qtwidgets_module):
+    def qmessageboxResetRole(qtwidgets_module):
         if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
             return qtwidgets_module.QMessageBox.ButtonRole.ResetRole
         return qtwidgets_module.QMessageBox.ResetRole
@@ -701,25 +701,25 @@ class QtCompat:
             return qtwidgets_module.QSizePolicy.Policy.Expanding
         return qtwidgets_module.QSizePolicy.Expanding
     @staticmethod
-    def qsizepolicy_minimum(qtwidgets_module):
+    def qsizepolicyMinimum(qtwidgets_module):
         if hasattr(qtwidgets_module.QSizePolicy, "Policy"):
             return qtwidgets_module.QSizePolicy.Policy.Minimum
         return qtwidgets_module.QSizePolicy.Minimum
 
     @staticmethod
-    def qfiledialog_show_dirs_only(qtwidgets_module):
+    def qfiledialogShowDirsOnly(qtwidgets_module):
         if hasattr(qtwidgets_module.QFileDialog, "Option"):
             return qtwidgets_module.QFileDialog.Option.ShowDirsOnly
         return qtwidgets_module.QFileDialog.ShowDirsOnly
 
     @staticmethod
-    def qicon_mode_normal(qtgui_module):
+    def qiconModeNormal(qtgui_module):
         if hasattr(qtgui_module.QIcon, "Mode"):
             return qtgui_module.QIcon.Mode.Normal
         return qtgui_module.QIcon.Normal
 
     @staticmethod
-    def qicon_state_off(qtgui_module):
+    def qiconStateOff(qtgui_module):
         if hasattr(qtgui_module.QIcon, "State"):
             return qtgui_module.QIcon.State.Off
         return qtgui_module.QIcon.Off

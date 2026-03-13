@@ -1,5 +1,5 @@
 [general]
-name= PhotoViewer360
+name= PhotoViewer360 dev mw
 qgisMinimumVersion= 3.28
 qgisMaximumVersion= 3.99
 supportsQt6=true
