@@ -5,20 +5,46 @@ import os
 import processing
 import sys
 import time
-from .. import PLUGIN_NAME
+from . import PLUGIN_NAME
 from qgis.core import (
     Qgis,
     QgsMessageLog,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsNetworkAccessManager,
-    QgsBlockingNetworkRequest
+    QgsBlockingNetworkRequest,
+    QgsPointXY,
+    QgsProject,
+    QgsRectangle,
 )
+from qgis.utils import iface
+
+try:
+    from pydevd import *
+except ImportError:
+    None
+import inspect
+import logging
+import logging.handlers
+import os
+from qgis.core import QgsApplication
+import sys
+import traceback
+
+try:
+    d = os.path.dirname(QgsApplication.qgisSettingsDirPath() + "log/")
+    if not os.path.exists(d):
+        os.mkdir(d)
+finally:
+    logFilePath = QgsApplication.qgisSettingsDirPath() + "log/PhotoViewer360.log"
+
+
+
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QUrl, QUrlQuery, QEventLoop, QTimer, QT_VERSION_STR
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
-from ..constants import (
+from .constants import (
     TIMEOUT_MS,
     MAX_ATTEMPTS,
     ULDK_URL,
@@ -170,6 +196,7 @@ class FileUtils:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
             subprocess.call([opener, filename])
 
+
     @staticmethod
     def createReport(file_path, headers, obj_list, file_name_from_url=True):
         file_path = f'{file_path}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.txt'
@@ -188,23 +215,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxCritical(parent, title: str, message: str):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setIcon(QtCompat.qmessagebox_critical_icon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-
-        if hasattr(parent, 'plugin_icon'):
-            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
-
-        msg_box.exec()
-
-    @staticmethod
-    def pushMessageBoxWarning(parent, title, message):
-        msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -214,10 +228,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxInfo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setIcon(QtCompat.qmessagebox_information_icon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -225,18 +239,30 @@ class MessageUtils:
         msg_box.exec()
 
     @staticmethod
+    def pushMessageBoxWarning(parent, title, message):
+        msg_box = QMessageBox(parent)
+        msg_box.setIcon(QtCompat.qmessagebox_warning_icon())
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QtCompat.qmessagebox_ok_button())
+
+        if hasattr(parent, 'plugin_icon'):
+            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
+
+        msg_box.exec()
+    @staticmethod
     def pushMessageBoxYesNo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setIcon(QtCompat.qmessagebox_question_icon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.No
+            QtCompat.qmessagebox_yes_button() |
+            QtCompat.qmessagebox_no_button()
         )
 
         result = msg_box.exec()
-        return result == QMessageBox.StandardButton.Yes
+        return result == QtCompat.qmessagebox_yes_button()
 
     @staticmethod
     def pushMessage(iface, message: str) -> None:
@@ -253,7 +279,7 @@ class MessageUtils:
             "Sukces",
             message,
             level=Qgis.Success,
-            duration=10
+            duration=0
         )
 
     @staticmethod
@@ -264,15 +290,6 @@ class MessageUtils:
             level=Qgis.Warning,
             duration=10
         )
-
-    @staticmethod
-    def pushCritical(iface, message: str) -> None:
-        iface.messageBar().pushMessage(
-            'Błąd',
-            message,
-            level=Qgis.Critical,
-            duration=10
-        )    
 
     @staticmethod
     def pushLogInfo(message: str) -> None:
@@ -613,3 +630,224 @@ class VersionUtils:
     @staticmethod
     def isCompatibleQtVersion(cur_version, tar_version):
         return cur_version.startswith(QT_VER[tar_version])
+
+
+class QtCompat:
+    """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
+
+    @staticmethod
+    def qmessagebox_warning_icon():
+        return QMessageBox.Icon.Warning if hasattr(QMessageBox, "Icon") else QMessageBox.Warning
+
+    @staticmethod
+    def qmessagebox_information_icon():
+        return QMessageBox.Icon.Information if hasattr(QMessageBox, "Icon") else QMessageBox.Information
+
+    @staticmethod
+    def qmessagebox_critical_icon():
+        return QMessageBox.Icon.Critical if hasattr(QMessageBox, "Icon") else QMessageBox.Critical
+
+    @staticmethod
+    def qmessagebox_question_icon():
+        return QMessageBox.Icon.Question if hasattr(QMessageBox, "Icon") else QMessageBox.Question
+
+    @staticmethod
+    def qmessagebox_ok_button():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.Ok
+        return QMessageBox.Ok
+
+    @staticmethod
+    def qmessagebox_yes_button():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.Yes
+        return QMessageBox.Yes
+
+    @staticmethod
+    def qmessagebox_no_button():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.No
+        return QMessageBox.No
+
+    @staticmethod
+    def alignment_left_vcenter(QtClass):
+        if hasattr(QtClass, "AlignmentFlag"):
+            return QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
+        return QtClass.AlignLeft | QtClass.AlignVCenter
+
+
+    @staticmethod
+    def right_dockwidget_area(QtClass):
+        if hasattr(QtClass, "DockWidgetArea"):
+            return QtClass.DockWidgetArea.RightDockWidgetArea
+        return QtClass.RightDockWidgetArea
+
+    @staticmethod
+    def qmessagebox_apply_role(qtwidgets_module):
+        if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
+            return qtwidgets_module.QMessageBox.ButtonRole.ApplyRole
+        return qtwidgets_module.QMessageBox.ApplyRole
+
+    @staticmethod
+    def qmessagebox_reset_role(qtwidgets_module):
+        if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
+            return qtwidgets_module.QMessageBox.ButtonRole.ResetRole
+        return qtwidgets_module.QMessageBox.ResetRole
+
+
+    @staticmethod
+    def qsizepolicy_expanding(qtwidgets_module):
+        if hasattr(qtwidgets_module.QSizePolicy, "Policy"):
+            return qtwidgets_module.QSizePolicy.Policy.Expanding
+        return qtwidgets_module.QSizePolicy.Expanding
+    @staticmethod
+    def qsizepolicy_minimum(qtwidgets_module):
+        if hasattr(qtwidgets_module.QSizePolicy, "Policy"):
+            return qtwidgets_module.QSizePolicy.Policy.Minimum
+        return qtwidgets_module.QSizePolicy.Minimum
+
+    @staticmethod
+    def qfiledialog_show_dirs_only(qtwidgets_module):
+        if hasattr(qtwidgets_module.QFileDialog, "Option"):
+            return qtwidgets_module.QFileDialog.Option.ShowDirsOnly
+        return qtwidgets_module.QFileDialog.ShowDirsOnly
+
+    @staticmethod
+    def qicon_mode_normal(qtgui_module):
+        if hasattr(qtgui_module.QIcon, "Mode"):
+            return qtgui_module.QIcon.Mode.Normal
+        return qtgui_module.QIcon.Normal
+
+    @staticmethod
+    def qicon_state_off(qtgui_module):
+        if hasattr(qtgui_module.QIcon, "State"):
+            return qtgui_module.QIcon.State.Off
+        return qtgui_module.QIcon.Off
+
+class QgsMapUtils(object):
+    @staticmethod
+    def convertProjection(x, y, from_crs, to_crs):
+        """Convert Coordinates EPSG"""
+        crsSrc = QgsCoordinateReferenceSystem(from_crs)
+        crsDest = QgsCoordinateReferenceSystem(to_crs)
+        xform = QgsCoordinateTransform(crsSrc, crsDest, QgsProject.instance())
+        pt = xform.transform(QgsPointXY(x, y))
+        return pt
+
+    @staticmethod
+    def getAttributeFromFeature(feature, columnName):
+        """Get Attribute from feature"""
+        return feature.attribute(columnName)
+
+    @staticmethod
+    def zoomToFeature(canvas, layer, ide):
+        """Zoom to feature by Id"""
+        if layer:
+            for feature in layer.getFeatures():
+                if feature.id() == ide:
+                    # Transform Point
+                    actualPoint = feature.geometry().asPoint()
+                    projPoint = QgsMapUtils.convertProjection(
+                        actualPoint.x(),
+                        actualPoint.y(),
+                        layer.crs().authid(),
+                        canvas.mapSettings().destinationCrs().authid(),
+                    )
+                    x = projPoint.x()
+                    y = projPoint.y()
+                    # rect = QgsRectangle(x*0.99998, y*0.99998, x*1.00002, y*1.00002) # zakres zoom w przypadku przybliżenia do punktu
+                    rect = QgsRectangle(x, y, x, y)
+                    canvas.setExtent(rect)
+                    canvas.refresh()
+                    return True
+        return False
+
+    @staticmethod
+    def showUserAndLogMessage(
+        before, text="", level=Qgis.Info, duration=3, onlyLog=False
+    ):
+        """Show user & log info/warning/error messages"""
+        if not onlyLog and iface:
+            iface.messageBar().popWidget()
+            iface.messageBar().pushMessage(before, text, level=level, duration=duration)
+        if level == Qgis.Info:
+            PluginLog.info(text)
+        elif level == Qgis.Warning:
+            PluginLog.warning(text)
+        elif level == Qgis.Critical:
+            PluginLog.error(text)
+        return
+
+    @staticmethod
+    def getToFeature(layer, ide):
+        """Get To feature by ID"""
+        if layer:
+            for feature in layer.getFeatures():
+                if feature.id() == ide:
+                    return feature
+        return False
+
+
+class PluginLog(object):
+
+    handler = None
+    pluginId = "PhotoViewer360"
+
+    @staticmethod
+    def error(text):
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.error(text)
+
+    @staticmethod
+    def info(text):
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.info(text)
+
+    @staticmethod
+    def warning(text):
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.warning(text)
+
+    @staticmethod
+    def debug(text):
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.debug(text)
+
+    @staticmethod
+    def last_exception(msg):
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        PluginLog.error(
+            msg
+            + "\n  ".join(
+                traceback.format_exception(exc_type, exc_value, exc_traceback)
+            )
+        )
+
+    @staticmethod
+    def initLogging():
+        try:
+            """set up rotating log file handler with custom formatting"""
+            PluginLog.handler = logging.handlers.RotatingFileHandler(
+                logFilePath, maxBytes=1024 * 1024 * 10, backupCount=5
+            )
+            formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
+            PluginLog.handler.setFormatter(formatter)
+            logger = logging.getLogger(PluginLog.pluginId)  # root logger
+            logger.setLevel(logging.DEBUG)
+            logger.addHandler(PluginLog.handler)
+        except Exception as e:
+            pass
+
+    @staticmethod
+    def removeLogging():
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.removeHandler(PluginLog.handler)
+        del PluginLog.handler
+
+    @staticmethod
+    def logStackTrace():
+        logger = logging.getLogger(PluginLog.pluginId)
+        logger.debug("logStackTrace")
+        for x in inspect.stack():
+            logger.debug(x)
+

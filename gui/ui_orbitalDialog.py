@@ -7,8 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 from .. import plugin_dir
+from ..utils import QtCompat
 
 
 class Ui_orbitalDialog(object):
@@ -18,7 +19,7 @@ class Ui_orbitalDialog(object):
         orbitalDialog.setObjectName("orbitalDialog")
         orbitalDialog.resize(563, 375)
         sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+            QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicy_expanding(QtWidgets)
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -29,8 +30,8 @@ class Ui_orbitalDialog(object):
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/ikona_wtyczki.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qicon_mode_normal(QtGui),
+            QtCompat.qicon_state_off(QtGui),
         )
         orbitalDialog.setWindowIcon(icon)
         orbitalDialog.setFeatures(QtWidgets.QDockWidget.AllDockWidgetFeatures)
@@ -46,7 +47,7 @@ class Ui_orbitalDialog(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
 
         spacerItem = QtWidgets.QSpacerItem(
-            5, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicy_minimum(QtWidgets)
         )
         self.horizontalLayout.addItem(spacerItem)
 
@@ -57,8 +58,8 @@ class Ui_orbitalDialog(object):
         icon1 = QtGui.QIcon()
         icon1.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/camera.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qicon_mode_normal(QtGui),
+            QtCompat.qicon_state_off(QtGui),
         )
         self.btn_screenshot.setIcon(icon1)
         self.btn_screenshot.setObjectName("btn_screenshot")
@@ -71,8 +72,8 @@ class Ui_orbitalDialog(object):
         icon3 = QtGui.QIcon()
         icon3.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/full_screen.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qicon_mode_normal(QtGui),
+            QtCompat.qicon_state_off(QtGui),
         )
         self.btn_fullscreen.setIcon(icon3)
         self.btn_fullscreen.setCheckable(True)
@@ -81,7 +82,7 @@ class Ui_orbitalDialog(object):
 
 
         spacerItem1 = QtWidgets.QSpacerItem(
-            5, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            5, 20, QtCompat.qsizepolicy_expanding(QtWidgets), QtCompat.qsizepolicy_minimum(QtWidgets)
         )
         self.horizontalLayout.addItem(spacerItem1)
 

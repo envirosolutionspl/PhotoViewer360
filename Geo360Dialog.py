@@ -49,11 +49,10 @@ from qgis.PyQt.QtGui import QColor
 from . import config
 from .geom.transformgeom import transformGeometry
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
-from .utils.qgsutils import qgsutils
+from .utils import QgsMapUtils
 from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
 from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore
-from PyQt5 import QtNetwork
 
 from math import sin, cos, sqrt, atan2, radians
 import shutil
@@ -167,14 +166,14 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
             self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
         )
 
-        self.selected_features = qgsutils.getToFeature(self.layer, self.featuresId)
+        self.selected_features = QgsMapUtils.getToFeature(self.layer, self.featuresId)
 
 
         # otrzymanie ściezki do zdjęcia
         self.current_image = self.GetImage()
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
-            qgsutils.showUserAndLogMessage(
+            QgsMapUtils.showUserAndLogMessage(
                 u"Informacja: ",
                 u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
@@ -205,7 +204,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def CreateViewer(self):
         """Funkcja odpowiadająca za załadowanie okna Street View (okna ze zdjęciem)"""
 
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
+        QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
 
         self.cef_widget = QWebView()
         self.cef_widget.setContextMenuPolicy(Qt.NoContextMenu)
@@ -236,7 +235,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
     def CopyFile(self, src):
         """Funkcja do kopiowania zdjęcia na serwer lokalny"""
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
+        QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
 
         src_dir = src
         dst_dir = self.plugin_path + "/viewer"
@@ -405,7 +404,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.GetPointsToHotspot()
 
         try:
-            path = qgsutils.getAttributeFromFeature(
+            path = QgsMapUtils.getAttributeFromFeature(
                 self.selected_features,
                 config.COLUMN_NAME,
             )
@@ -414,10 +413,10 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
                 path = os.path.normpath(os.path.join(path_project, path))
 
         except Exception:
-            qgsutils.showUserAndLogMessage(u"Information: ", u"Column not found.")
+            QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Column not found.")
             return
 
-        qgsutils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
+        QgsMapUtils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
         
         return path
         
@@ -469,7 +468,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.cef_widget.load(QUrl(self.DEFAULT_URL))
         self.ViewerLayout.addWidget(self.cef_widget, 1, 0)
 
-        self.selected_features = qgsutils.getToFeature(self.layer, newId)
+        self.selected_features = QgsMapUtils.getToFeature(self.layer, newId)
 
         # przypisanie danych z poprzedniego hotspotu do nowych zmiennych
         self.current_direction = self.bearing_current # w celu zachowania kierunku radaru
@@ -477,7 +476,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.current_image = self.GetImage()
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
-            qgsutils.showUserAndLogMessage(
+            QgsMapUtils.showUserAndLogMessage(
                 u"Informacja: ",
                 u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
@@ -496,7 +495,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.ChangeUrlViewer(self.DEFAULT_URL)
 
         # zoom do punktu po wybraniu hotspot'u
-        qgsutils.zoomToFeature(self.canvas, self.layer, newId)
+        QgsMapUtils.zoomToFeature(self.canvas, self.layer, newId)
 
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
@@ -553,7 +552,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         originalPoint = self.selected_features.geometry().asPoint()
 
-        self.actualPointDx = qgsutils.convertProjection(
+        self.actualPointDx = QgsMapUtils.convertProjection(
             originalPoint.x(),
             originalPoint.y(),
             self.layer.crs().authid(),
@@ -721,7 +720,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         # Transform Point
         originalPoint = self.selected_features.geometry().asPoint()
-        self.actualPointDx = qgsutils.convertProjection(
+        self.actualPointDx = QgsMapUtils.convertProjection(
             originalPoint.x(),
             originalPoint.y(),
             "EPSG:4326",
