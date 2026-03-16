@@ -47,7 +47,6 @@ from .constants import (
     COLUMN_NAME,
     COLUMN_YAW,
     ENV_MENU_NAME,
-    PLUGIN_DISPLAY_NAME,
     DEFAULT_YAW_DEGREES,
     HOTSPOT_BUFFER_RADIUS_M,
     DUPLICATES_PREVIEW_LIMIT,
@@ -162,7 +161,7 @@ class Geo360:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate(PLUGIN_DISPLAY_NAME, message)
+        return QCoreApplication.translate(plugin_name, message)
 
     def add_action(
             self,
@@ -271,7 +270,7 @@ class Geo360:
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
             icon_path=QIcon(plugin_dir + IMAGE_PLUGIN_ICON),
-            text=PLUGIN_DISPLAY_NAME,
+            text=plugin_name,
             callback=self.run,
             parent=self.iface.mainWindow(),
         )
@@ -279,7 +278,7 @@ class Geo360:
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.add_action(
             icon_path=QIcon(plugin_dir + IMAGE_TARGET_ICON),
-            text=f"{PLUGIN_DISPLAY_NAME} aktywacja",
+            text=f"{plugin_name} aktywacja",
             callback=self.activate,
             parent=self.iface.mainWindow(),
             enabled_flag=False,

@@ -1,5 +1,7 @@
 from datetime import datetime
 
+ENV_MENU_NAME = "EnviroSolutions"
+
 DEFAULT_ENCODING = 'utf-8'
 
 # url do sprawdzania połączenia z internetem
@@ -37,8 +39,6 @@ DEFAULT_REDIRECT_POLICY = 1
 ERR_TIMEOUT = 'TimeoutError'
 ERR_NONE = 'NoError'
 ERR_CANCELED = 'OperationCanceledError'
-STATUS_SUCCESS = 'brak_bledow'
-STATUS_CANCELED = 'anulowano'
 
 # Komunikaty sieciowe
 MSG_DOWNLOAD_CANCELED = "Pobieranie zostało anulowane."
@@ -50,13 +50,6 @@ MSG_FILE_WRITE_ERROR = "Błąd zapisu do pliku: {}"
 MSG_JSON_DECODE_ERROR = "Błąd JSON: {}"
 MSG_NO_CONNECTION = "Brak połączenia z internetem."
 # =============================
-
-# minimalny rozmiar pliku do pobrania danych (~9KB)
-MIN_FILE_SIZE = 9000
-
-CURRENT_YEAR = datetime.now().year
-MIN_YEAR_BUILDINGS_3D = 1970
-OKRES_DOSTEPNYCH_DANYCH_LOD = range(MIN_YEAR_BUILDINGS_3D, CURRENT_YEAR + 1)
 
 FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
 
@@ -74,6 +67,11 @@ INDUSTRIES = {
     "i": "Inne",
     "it": "IT",
     "n": "Nieruchomości"
+}
+
+FEED_SETTINGS_KEYS = {
+    "SELECTED_INDUSTRY": "selected_industry",
+    "SHOW_DIALOG": "showDialog",
 }
 
 
@@ -125,10 +123,6 @@ GPKP_COLUMNS_CHANGE_DICT = {
 
 GPKG_FILTER_EXTENSION = "geoPackage(*.gpkg)"
 
-ENV_MENU_NAME = "EnviroSolutions"
-
-PLUGIN_DISPLAY_NAME = "PhotoViewer360"
-
 DEFAULT_YAW_DEGREES = 310
 HOTSPOT_BUFFER_RADIUS_M = 15
 DUPLICATES_PREVIEW_LIMIT = 20
@@ -157,11 +151,6 @@ CRS_2180_PROJ_OPERATION = (
 )
 
 EARTH_RADIUS_KM = 6373.0
-
-FEED_SETTINGS_KEYS = {
-    "SELECTED_INDUSTRY": "selected_industry",
-    "SHOW_DIALOG": "showDialog",
-}
 
 QGIS_SETTINGS_KEYS = {
     "PARALLEL_RENDERING": "/qgis/parallel_rendering",

@@ -56,11 +56,11 @@ from .constants import (
     CRS_EPSG_4326,
     CRS_2180_PROJ_OPERATION,
     VIEWER_FILES,
-    VIEWER_IMAGE_NAME,
+    VIEWER_CURRENT_IMAGE_FILENAME,
     SERVER_DIRECTORY,
-    PLUGIN_DISPLAY_NAME,
     EARTH_RADIUS_KM,
 )
+from . import PLUGIN_NAME as plugin_name
 from .utils.log import log
 from .geom.transformgeom import transformGeometry
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
@@ -240,7 +240,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def RemoveImage(self):
         """Usunięcie zdjęcia z serwera lokalnego"""
         try:
-            image_path = os.path.join(self.plugin_path, SERVER_DIRECTORY.strip("/"), VIEWER_IMAGE_NAME)
+            image_path = os.path.join(self.plugin_path, SERVER_DIRECTORY.strip("/"), VIEWER_CURRENT_IMAGE_FILENAME)
             os.remove(image_path)
         except OSError:
             pass
@@ -255,7 +255,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         # Copy image in local folder
         a = self.current_image
         name_img = basename(a)
-        dst_dir = os.path.join(dst_dir, VIEWER_IMAGE_NAME)
+        dst_dir = os.path.join(dst_dir, VIEWER_CURRENT_IMAGE_FILENAME)
 
         try:
             os.remove(dst_dir)
@@ -267,11 +267,11 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         except OSError:
             QgsMessageLog.logMessage(
                 "Błąd podczas importowania zdjęcia do okna przeglądarki.",
-                PLUGIN_DISPLAY_NAME,
+                plugin_name,
                 level=Qgis.Critical
             )
             self.iface.messageBar().pushMessage(
-                PLUGIN_DISPLAY_NAME,
+                plugin_name,
                 "Błąd podczas importowania zdjęcia do okna przeglądarki.",
                 level=Qgis.Critical,
                 duration=10
