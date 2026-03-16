@@ -23,22 +23,6 @@ try:
     from pydevd import *
 except ImportError:
     None
-import inspect
-import logging
-import logging.handlers
-import os
-from qgis.core import QgsApplication
-import sys
-import traceback
-
-try:
-    d = os.path.dirname(QgsApplication.qgisSettingsDirPath() + "log/")
-    if not os.path.exists(d):
-        os.mkdir(d)
-finally:
-    logFilePath = QgsApplication.qgisSettingsDirPath() + "log/PhotoViewer360.log"
-
-
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon
@@ -770,14 +754,6 @@ class QgsMapUtils(object):
         if not onlyLog and iface:
             iface.messageBar().popWidget()
             iface.messageBar().pushMessage(before, text, level=level, duration=duration)
-        if level == Qgis.Info:
-            PluginLog.info(text)
-        elif level == Qgis.Warning:
-            PluginLog.warning(text)
-        elif level == Qgis.Critical:
-            PluginLog.error(text)
-        return
-
     @staticmethod
     def getToFeature(layer, ide):
         """Get To feature by ID"""
@@ -786,68 +762,3 @@ class QgsMapUtils(object):
                 if feature.id() == ide:
                     return feature
         return False
-
-
-class PluginLog(object):
-
-    handler = None
-    pluginId = "PhotoViewer360"
-
-    @staticmethod
-    def error(text):
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.error(text)
-
-    @staticmethod
-    def info(text):
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.info(text)
-
-    @staticmethod
-    def warning(text):
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.warning(text)
-
-    @staticmethod
-    def debug(text):
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.debug(text)
-
-    @staticmethod
-    def last_exception(msg):
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        PluginLog.error(
-            msg
-            + "\n  ".join(
-                traceback.format_exception(exc_type, exc_value, exc_traceback)
-            )
-        )
-
-    @staticmethod
-    def initLogging():
-        try:
-            """set up rotating log file handler with custom formatting"""
-            PluginLog.handler = logging.handlers.RotatingFileHandler(
-                logFilePath, maxBytes=1024 * 1024 * 10, backupCount=5
-            )
-            formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
-            PluginLog.handler.setFormatter(formatter)
-            logger = logging.getLogger(PluginLog.pluginId)  # root logger
-            logger.setLevel(logging.DEBUG)
-            logger.addHandler(PluginLog.handler)
-        except Exception as e:
-            pass
-
-    @staticmethod
-    def removeLogging():
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.removeHandler(PluginLog.handler)
-        del PluginLog.handler
-
-    @staticmethod
-    def logStackTrace():
-        logger = logging.getLogger(PluginLog.pluginId)
-        logger.debug("logStackTrace")
-        for x in inspect.stack():
-            logger.debug(x)
-

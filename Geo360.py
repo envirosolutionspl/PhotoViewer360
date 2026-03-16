@@ -31,7 +31,7 @@ from qgis.PyQt import QtWidgets, QtCore, uic
 import processing
 
 from . import plugin_dir, temp_dir
-from .utils import MessageUtils, QtCompat, PluginLog
+from .utils import MessageUtils, QtCompat
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from . import config
@@ -234,8 +234,6 @@ class Geo360:
 
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
-
-        PluginLog.initLogging()
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
