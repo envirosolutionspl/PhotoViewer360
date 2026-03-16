@@ -17,7 +17,7 @@ class QgisFeed:
         self.industries_dict = INDUSTRIES
 
         self.industry_decoded = [key for key, val in self.industries_dict.items() if val == selected_industry]
-        self.plugin_name_slug = self.create_slug(plugin_name)
+        self.plugin_name_slug = self.createSlug(plugin_name)
 
         self.es_url = (
             f"{FEED_URL}?industry={self.industry_decoded[0]}&plugin={self.plugin_name_slug}" if self.industry_decoded else FEED_URL
@@ -26,8 +26,8 @@ class QgisFeed:
             feedUrl=QUrl(self.es_url)
         )
         self.industry_url_short = self.shortenUrl(self.es_url)
-        self.envirosolutionsFeedPattern_old = re.compile(f"core/NewsFeed/{self.industry_url_short}")
-        self.envirosolutionsFeedPattern_new = re.compile(f"app/news-feed/items/{self.industry_url_short}")
+        self.envirosolutions_feed_pattern_old = re.compile(f"core/NewsFeed/{self.industry_url_short}")
+        self.envirosolutions_feed_pattern_new = re.compile(f"app/news-feed/items/{self.industry_url_short}")
 
         self.parser.fetched.connect(self.registerFeed)
 
@@ -39,7 +39,7 @@ class QgisFeed:
 
         return re.sub(r'://|\.|:|/\?|=|&|-|:', '', url)
 
-    def create_slug(self, text):
+    def createSlug(self, text):
         """
         This function makes slug from a random text
         """
@@ -59,7 +59,7 @@ class QgisFeed:
         """
         QgsMessageLog.logMessage('Registering feed')
         for key in self.s.allKeys():
-            if self.envirosolutionsFeedPattern_old.match(key) or self.envirosolutionsFeedPattern_new.match(key):
+            if self.envirosolutions_feed_pattern_old.match(key) or self.envirosolutions_feed_pattern_new.match(key):
                 finalKey = re.sub(r'(\d+)', r'9999\1', key.replace(self.industry_url_short, 'httpsfeedqgisorg'))
                 self.s.setValue(finalKey, self.s.value(key))
 
@@ -80,7 +80,7 @@ class QgisFeed:
         """
 
         for key in self.s.allKeys():
-            if self.envirosolutionsFeedPattern_old.match(key) or self.envirosolutionsFeedPattern_new.match(key):
+            if self.envirosolutions_feed_pattern_old.match(key) or self.envirosolutions_feed_pattern_new.match(key):
                 # sprawdz czy jest odpowiadajacy w qgis
                 if self.s.contains(
                         re.sub(
@@ -114,23 +114,23 @@ class QgisFeedDialog(QDialog):
         self.ui_file_path = os.path.join(os.path.dirname(__file__), 'ui', 'qgis_feed.ui')
         uic.loadUi(self.ui_file_path, self)
 
-        self.comboBox = self.findChild(QComboBox, 'comboBox')
-        self.pushButton = self.findChild(QPushButton, 'pushButton')
-        self.pushButton.clicked.connect(self.onSaveClicked)
+        self.combo_box = self.findChild(QComboBox, 'comboBox')
+        self.push_button = self.findChild(QPushButton, 'pushButton')
+        self.push_button.clicked.connect(self.onSaveClicked)
 
         self.loadPreviousSelection()
 
     def loadPreviousSelection(self):
         settings = QgsSettings()
         if previous_selection := settings.value("selected_industry"):
-            index = self.comboBox.findText(previous_selection)
+            index = self.combo_box.findText(previous_selection)
             if index != -1:
-                self.comboBox.setCurrentIndex(index)
+                self.combo_box.setCurrentIndex(index)
             self.hide()
 
     def onSaveClicked(self):
         # zapisz wybraną branżę
-        selected_industry = self.comboBox.currentText()
+        selected_industry = self.combo_box.currentText()
         settings = QgsSettings()
         settings.setValue("selected_industry", selected_industry)
         self.accept()

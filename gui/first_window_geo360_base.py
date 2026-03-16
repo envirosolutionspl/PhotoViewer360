@@ -11,7 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_main(object):
+class UiMain(object):
     def setupUi(self, main):
         main.setObjectName("main")
         main.setWindowModality(QtCore.Qt.NonModal)
