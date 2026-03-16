@@ -44,6 +44,19 @@ from .constants import (
     GPKP_COLUMNS_ADD_LIST,
     GPKP_COLUMNS_CHANGE_DICT,
     GPKP_COLUMNS_DELETE_LIST,
+    COLUMN_NAME,
+    COLUMN_YAW,
+    ENV_MENU_NAME,
+    PLUGIN_DISPLAY_NAME,
+    DEFAULT_YAW_DEGREES,
+    HOTSPOT_BUFFER_RADIUS_M,
+    DUPLICATES_PREVIEW_LIMIT,
+    PROGRESS,
+    IMAGE_PLUGIN_ICON,
+    IMAGE_TARGET_ICON,
+    FEED_SETTINGS_KEYS,
+    QGIS_SETTINGS_KEYS,
+    QGIS_FEED_MIN_VERSION_INT,
 )
 from .utils.log import log
 from .utils.qgsutils import qgsutils
@@ -86,25 +99,31 @@ class Geo360:
         self.settings = QgsSettings() 
         self.exifread_path = os.path.join(plugin_dir, 'libs', 'exifread_3_0_0')
 
-        if Qgis.QGIS_VERSION_INT >= 31000:
+        if Qgis.QGIS_VERSION_INT >= QGIS_FEED_MIN_VERSION_INT:
             from .qgis_feed import QgisFeed
 
-            self.selected_industry = self.settings.value("selected_industry", None)
-            show_dialog = self.settings.value("showDialog", True, type=bool)
+            self.selected_industry = self.settings.value(
+                FEED_SETTINGS_KEYS["SELECTED_INDUSTRY"], None
+            )
+            show_dialog = self.settings.value(
+                FEED_SETTINGS_KEYS["SHOW_DIALOG"], True, type=bool
+            )
 
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
 
-            select_indust_session = self.settings.value('selected_industry')
+            select_indust_session = self.settings.value(
+                FEED_SETTINGS_KEYS["SELECTED_INDUSTRY"]
+            )
 
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
             self.feed.initFeed()
     
         # use all available cores and parallel rendering
         QgsApplication.setMaxThreads(threadcount)
-        QSettings().setValue("/qgis/parallel_rendering", True)
+        QSettings().setValue(QGIS_SETTINGS_KEYS["PARALLEL_RENDERING"], True)
         # OpenCL acceleration
-        QSettings().setValue("/core/OpenClEnabled", True)
+        QSettings().setValue(QGIS_SETTINGS_KEYS["OPENCL_ENABLED"], True)
         self.orbitalViewer = None
         self.server = None
         self.actions = []
@@ -117,17 +136,17 @@ class Geo360:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u"&EnviroSolutions")
+        self.menu = self.tr(f"&{ENV_MENU_NAME}")
         self.layer = None
         self.mapTool = None
 
 
         # toolbar
-        self.toolbar = self.iface.mainWindow().findChild(QToolBar, "EnviroSolutions")
+        self.toolbar = self.iface.mainWindow().findChild(QToolBar, ENV_MENU_NAME)
 
         if not self.toolbar:
-            self.toolbar = self.iface.addToolBar(u"EnviroSolutions")
-            self.toolbar.setObjectName(u"EnviroSolutions")
+            self.toolbar = self.iface.addToolBar(ENV_MENU_NAME)
+            self.toolbar.setObjectName(ENV_MENU_NAME)
 
         # noinspection PyMethodMayBeStatic
 
@@ -143,7 +162,7 @@ class Geo360:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate("PhotoViewer360", message)
+        return QCoreApplication.translate(PLUGIN_DISPLAY_NAME, message)
 
     def add_action(
             self,
@@ -251,16 +270,16 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
-            text=u"PhotoViewer360",
+            icon_path=QIcon(plugin_dir + IMAGE_PLUGIN_ICON),
+            text=PLUGIN_DISPLAY_NAME,
             callback=self.run,
             parent=self.iface.mainWindow(),
         )
 
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/target.png"),
-            text=u"PhotoViewer360 aktywacja",
+            icon_path=QIcon(plugin_dir + IMAGE_TARGET_ICON),
+            text=f"{PLUGIN_DISPLAY_NAME} aktywacja",
             callback=self.activate,
             parent=self.iface.mainWindow(),
             enabled_flag=False,
@@ -310,7 +329,7 @@ class Geo360:
         # ponowne załadowanie narzędzi
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&EnviroSolutions'),
+                self.menu,
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
@@ -421,7 +440,7 @@ class Geo360:
 
             # zdiagnozowanie czy wybrana wartwa została utworzona przez wtyczkę PhotoViewer360 (poprzez znalezienie kolumny "sciezka_zdjecie")
             for field in self.layer.fields():
-                if field.name() == "sciezka_zdjecie":
+                if field.name() == COLUMN_NAME:
                     good_layer = True
 
             if good_layer == True:
@@ -444,13 +463,13 @@ class Geo360:
         def progress_changed(progress):
             """Funkcja pokazująca progres podczas pracy narzędzia "Importuj geotagowane zdjęcia" """
             try:
-                self.progress.setValue(5 + int(progress*34/100))
+                self.progress.setValue(PROGRESS["IMPORT_START"] + int(progress * (PROGRESS["IMPORT_AFTER_TOOL"] - PROGRESS["IMPORT_START"]) / 100))
                 QApplication.processEvents()
             except RuntimeError:
                 pass
 
         try:
-            self.progress.setValue(5)
+            self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
             pass
                 
@@ -471,12 +490,11 @@ class Geo360:
                 feedback=f
             )
 
-        except:
-            print("Tool Import Geotagged Photos failed!")
+        except Exception as exc:
+            log.error(f"Tool Import Geotagged Photos failed: {exc}")
 
         try:
-            self.progress.setValue(40)
-
+            self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
         except RuntimeError:
             pass
 
@@ -486,7 +504,7 @@ class Geo360:
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
 
         if not vlayer.isValid():
-            print("Layer failed to load!")
+            log.error("Layer failed to load after creating GeoPackage.")
         else:
             # start edycji GeoPaczki
             vlayer.startEditing()
@@ -527,13 +545,18 @@ class Geo360:
 
                 time_progress += 1
                 try:
-                    self.progress.setValue(45+int(int(50*time_progress)/number_of_features))
+                    progress_attr = PROGRESS["IMPORT_AFTER_TOOL"] + int(
+                        (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"])
+                        * time_progress
+                        / number_of_features
+                    )
+                    self.progress.setValue(progress_attr)
                     QApplication.processEvents()
                 except RuntimeError:
                     pass
                 
                 # uzupełnienie wartości dla atrybutów: nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz
-                nazwa_zdjecia = feature["nazwa_zdjecia"]
+                nazwa_zdjecia = feature[GPKP_COLUMNS_CHANGE_DICT["filename"]]
 
                 try:
                     nr_drogi = nazwa_zdjecia.split("_")[0]
@@ -546,41 +569,42 @@ class Geo360:
                     nazwa_ulicy = None
                     numer_odcinka = None
                     kilometraz = None
-                                                               
+
+                field_map = vlayer.dataProvider().fieldNameMap()
                 vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["nr_drogi"]: nr_drogi}})
+                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[0]]: nr_drogi}})
                 vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["nazwa_ulicy"]: nazwa_ulicy}})
+                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[1]]: nazwa_ulicy}})
                 vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["numer_odcinka"]: numer_odcinka}})
+                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[2]]: numer_odcinka}})
                 vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["kilometraz"]: kilometraz}})
+                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[3]]: kilometraz}})
 
                 # uzupełnienie wartości dla atrybutu azymut, w przypadku braku danych o azymucie w metadanych zdjęcia
-                azymut_value = feature["azymut"]
+                azymut_value = feature[COLUMN_YAW]
 
                 if str(azymut_value) == "NULL":
                     vlayer.dataProvider().changeAttributeValues(
-                        {feature.id(): {vlayer.dataProvider().fieldNameMap()["azymut"]: 310}})
+                        {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
                 else:
                     pass    
 
                 # uzupełnienie wartości dla atrybutu data_wykonania
-                data_value = feature["data_wykonania"]
+                data_value = feature[GPKP_COLUMNS_CHANGE_DICT["timestamp"]]
 
                 if str(data_value) == "NULL":
-                    sciezka_zdjecie_value = feature["sciezka_zdjecie"]
+                    sciezka_zdjecie_value = feature[COLUMN_NAME]
                     sciezka_zdjecie_value = sciezka_zdjecie_value.replace("\\", "/")
                     sciezka_zdjecie_open = open(sciezka_zdjecie_value, "rb")
                     tags = process_file(sciezka_zdjecie_open)
                     self.dataTime = tags["EXIF DateTimeOriginal"]
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {
-                            vlayer.dataProvider().fieldNameMap()["data_wykonania"]: str(self.dataTime)}})
+                            field_map[GPKP_COLUMNS_CHANGE_DICT["timestamp"]]: str(self.dataTime)}})
                     sciezka_zdjecie_open.close()
 
         try:
-            self.progress.setValue(95)
+            self.progress.setValue(PROGRESS["IMPORT_ATTRIBUTES_DONE"])
         except RuntimeError:
             pass
 
@@ -601,7 +625,7 @@ class Geo360:
                 layer.commitChanges()
 
         try:
-            self.progress.setValue(5)
+            self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
             pass
 
@@ -631,11 +655,11 @@ class Geo360:
         """Obsługa wyboru przycisku dopisania danych do GeoPaczki"""
 
         try:
-            self.progress.setValue(2)
+            self.progress.setValue(PROGRESS["IMPORT_START"] // 2)
         except RuntimeError:
             pass
 
-        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(temp_dir, "overwrite.gpkg"))
+        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(temp_dir, TEMPORATORY_FILES_LIST[0]))
         self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
 
     def usuwanie_duplikatow(self, gpkg_path):
@@ -646,13 +670,13 @@ class Geo360:
             {
                 "INPUT": gpkg_path,
                 "FIELDS": [
-                    "nazwa_zdjecia",
-                    "dlugosc_geog",
-                    "szerokosc_geog",
-                    "data_wykonania",
+                    GPKP_COLUMNS_CHANGE_DICT["filename"],
+                    GPKP_COLUMNS_CHANGE_DICT["longitude"],
+                    GPKP_COLUMNS_CHANGE_DICT["latitude"],
+                    GPKP_COLUMNS_CHANGE_DICT["timestamp"],
                 ],
-                "OUTPUT": os.path.join(temp_dir, "no_duplicates.gpkg"),
-                "DUPLICATES": os.path.join(temp_dir, "duplicates.gpkg")
+                "OUTPUT": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[2]),
+                "DUPLICATES": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[1])
             }
         )
 
@@ -661,7 +685,7 @@ class Geo360:
             self.usuniecie_wartosci_gpkg(gpkg_path)
 
             try:
-                self.progress.setValue(96)
+                self.progress.setValue(PROGRESS["DUPLICATES_BEFORE_MERGE"])
             except RuntimeError:
                 pass
 
@@ -669,7 +693,7 @@ class Geo360:
             self.polaczenie_warstw(gpkg_path, layer_no_duplicate)
 
             try:
-                self.progress.setValue(98)
+                self.progress.setValue(PROGRESS["DUPLICATES_AFTER_MERGE"])
             except RuntimeError:
                 pass
 
@@ -678,13 +702,13 @@ class Geo360:
             layer_duplicate = QgsVectorLayer(duplicate["DUPLICATES"], "duplicate", "ogr")
 
             for feat_duplic in layer_duplicate.getFeatures():
-                sciezka_zdjecie_value = feat_duplic["nazwa_zdjecia"]
+                sciezka_zdjecie_value = feat_duplic[GPKP_COLUMNS_CHANGE_DICT["filename"]]
                 sciezka_zdjecie_list.append(sciezka_zdjecie_value)
 
-            if len(sciezka_zdjecie_list) <= 20:
+            if len(sciezka_zdjecie_list) <= DUPLICATES_PREVIEW_LIMIT:
                 lista_zdjec = str(sciezka_zdjecie_list)
             else:
-                lista_zdjec = str(sciezka_zdjecie_list[0:19]) + " ... "
+                lista_zdjec = str(sciezka_zdjecie_list[0:DUPLICATES_PREVIEW_LIMIT-1]) + " ... "
 
             # wyświetlenie okna z informacją duplikatach
             MessageUtils.pushMessageBoxInfo(self.iface.mainWindow(), "Ostrzeżenie",
@@ -721,7 +745,7 @@ class Geo360:
         # stworzenie paska postępu
         progressMessageBar = self.iface.messageBar().createMessage("Postęp importowania " + gpkg_path.split("\\")[-1] + "...")
         self.progress = QProgressBar()
-        self.progress.setMaximum(100)
+        self.progress.setMaximum(PROGRESS["COMPLETE"])
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
@@ -794,7 +818,7 @@ class Geo360:
             self.useLayer = str(layer.name())
 
             try:
-                self.progress.setValue(100)
+                self.progress.setValue(PROGRESS["COMPLETE"])
             except RuntimeError:
                 pass
 
@@ -811,7 +835,7 @@ class Geo360:
             self.useLayer = str(vlayer.name())
 
             try:
-                self.progress.setValue(100)
+                self.progress.setValue(PROGRESS["COMPLETE"])
             except RuntimeError:
                 pass
 
@@ -832,7 +856,7 @@ class Geo360:
 
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
         if not vlayer.isValid():
-            print("Layer failed to load!")
+            log.error(f"Layer failed to load from existing GeoPackage: {gpkg_path}")
             return False
 
         self.project.addMapLayer(vlayer)
