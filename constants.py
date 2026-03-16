@@ -75,3 +75,45 @@ INDUSTRIES = {
     "it": "IT",
     "n": "Nieruchomości"
 }
+
+
+# Properties
+COLUMN_NAME = "sciezka_zdjecie"
+COLUMN_YAW = "azymut"
+
+# Server
+SERVER_DIRECTORY = "/viewer"
+
+# Panorama Viewer
+IP = "127.0.0.1"
+PORT = 1520
+
+TEMPORATORY_FILES_LIST = (
+    'overwrite.gpkg',
+    'duplicates.gpkg',
+    'no_duplicates.gpkg'
+)
+
+GPKP_COLUMNS_DELETE_LIST = (
+    'altitude',
+    'rotation'
+)
+
+GPKP_COLUMNS_ADD_LIST = (
+    'nr_drogi',
+    'nazwa_ulicy',
+    'numer_odcinka',
+    'kilometraz'
+)
+
+GPKP_COLUMNS_CHANGE_DICT = {
+    "photo": 'sciezka_zdjecie',
+    "filename": 'nazwa_zdjecia',
+    "directory": "nazwa_folderu",
+    "direction": 'azymut',
+    "longitude": 'dlugosc_geog',
+    "latitude": 'szerokosc_geog',
+    "timestamp": 'data_wykonania'
+}
+
+GPKG_FILTER_EXTENSION = "geoPackage(*.gpkg)"

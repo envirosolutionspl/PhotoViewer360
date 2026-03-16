@@ -46,7 +46,7 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor
-from . import config
+from .constants import IP, PORT, COLUMN_YAW, COLUMN_NAME
 from .geom.transformgeom import transformGeometry
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
 from .utils.qgsutils import qgsutils
@@ -118,13 +118,13 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.setupUi(self)
 
         self.DEFAULT_URL = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/viewer.html"
+                "http://" + IP + ":" + str(PORT) + "/viewer.html"
         )
         self.DEFAULT_EMPTY = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/none.html"
+                "http://" + IP + ":" + str(PORT) + "/none.html"
         )
         self.DEFAULT_BLANK = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/blank.html"
+                "http://" + IP + ":" + str(PORT) + "/blank.html"
         )
 
         # opcja FullScreen
@@ -400,14 +400,14 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def GetImage(self):
         """Funkcja odpowiedzialna za znalezienie ścieżki do zdjęcia"""
 
-        self.new_bering = self.selected_features.attribute(config.COLUMN_YAW)
+        self.new_bering = self.selected_features.attribute(COLUMN_YAW)
 
         self.GetPointsToHotspot()
 
         try:
             path = qgsutils.getAttributeFromFeature(
                 self.selected_features,
-                config.COLUMN_NAME,
+                COLUMN_NAME,
             )
             if not os.path.isabs(path):  # Relative Path to Project
                 path_project = QgsProject.instance().readPath("./")
@@ -549,7 +549,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         if self.current_direction is not None: # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
             self.bearing = str(self.bearing_current * -180 / math.pi)
         else: # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
-            self.bearing = self.selected_features.attribute(config.COLUMN_YAW)
+            self.bearing = self.selected_features.attribute(COLUMN_YAW)
 
         originalPoint = self.selected_features.geometry().asPoint()
 

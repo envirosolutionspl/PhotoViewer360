@@ -35,7 +35,16 @@ from . import plugin_dir, temp_dir
 from .utils import MessageUtils
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
-from . import config
+from .constants import (
+    GPKG_FILTER_EXTENSION,
+    TEMPORATORY_FILES_LIST,
+    SERVER_DIRECTORY,
+    IP,
+    PORT,
+    GPKP_COLUMNS_ADD_LIST,
+    GPKP_COLUMNS_CHANGE_DICT,
+    GPKP_COLUMNS_DELETE_LIST,
+)
 from .utils.log import log
 from .utils.qgsutils import qgsutils
 from functools import partial
@@ -275,7 +284,7 @@ class Geo360:
         self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSION)
+        self.dlg.mQgsFileWidget_save_gpkg.setFilter(GPKG_FILTER_EXTENSION)
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
@@ -309,7 +318,7 @@ class Geo360:
         self.close_server()
 
         # usuwanie katalogu plików tymczasowych
-        for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
+        for nazwa_pliku_tymczasowego in TEMPORATORY_FILES_LIST:
             try:
                 os.remove(os.path.join(temp_dir, nazwa_pliku_tymczasowego))
             except OSError as e:
@@ -338,11 +347,11 @@ class Geo360:
         self.close_server()
 
         # Create Server
-        directory = plugin_dir.replace("\\", "/") + config.SERVER_DIRECTORY
+        directory = plugin_dir.replace("\\", "/") + SERVER_DIRECTORY
 
         try:
             self.server = ThreadingHTTPServer(
-                (config.IP, config.PORT),
+                (IP, PORT),
                 partial(QuietHandler, directory=directory),
             )
             self.server_thread = Thread(
@@ -354,7 +363,7 @@ class Geo360:
             self.server_thread.start()
             MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
         except Exception:
-            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porie: {config.PORT}")
+            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porie: {PORT}")
 
     def run(self):
         """Run after pressing the plugin"""
@@ -486,15 +495,15 @@ class Geo360:
         
             # field_type = QMetaType.Type.QString
             field_type = QVariant.String
-            generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
+            generated_fature_list=[QgsField(x,field_type) for x in GPKP_COLUMNS_ADD_LIST]
             vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
 
             # modyfikacja już utworzonych kolumn (zmiana nazw atrybutów)
             for field_idx,field in enumerate(vlayer.fields()):
-                GPKP_COLUMNS_CHANGE_DICT=defaultdict(str,config.GPKP_COLUMNS_CHANGE_DICT)
-                if GPKP_COLUMNS_CHANGE_DICT[field.name()]:
-                    new_value=GPKP_COLUMNS_CHANGE_DICT[field.name()]
+                GPKP_COLUMNS_CHANGE_DICT_local = defaultdict(str, GPKP_COLUMNS_CHANGE_DICT)
+                if GPKP_COLUMNS_CHANGE_DICT_local[field.name()]:
+                    new_value=GPKP_COLUMNS_CHANGE_DICT_local[field.name()]
                     old_value=field.name()
                     self.rename_name_field(vlayer, old_value, new_value)
             
@@ -503,7 +512,7 @@ class Geo360:
             while not is_cleaned:
                 is_cleaned = True
                 for field_idx,field in enumerate(vlayer.fields()):        
-                    if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
+                    if field.name() in GPKP_COLUMNS_DELETE_LIST:
                         is_cleaned = False
                         vlayer.dataProvider().deleteAttributes([field_idx])
                         vlayer.updateFields()
