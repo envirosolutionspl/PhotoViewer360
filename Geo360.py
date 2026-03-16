@@ -271,8 +271,8 @@ class Geo360:
 
         # obsługa zdarzeń wciśnięć przycisków w oknie PhotoViewer360
         self.dlg.fromLayer_btn.clicked.connect(self.fromLayer_btn_clicked)
-        self.dlg.fromPhotos_btn.clicked.connect(self.fromPhotosBtnClicked)
-        self.dlg.fromGPKG_btn.clicked.connect(self.fromGpkgBtnClicked)
+        self.dlg.fromPhotos_btn.clicked.connect(self.importPhotos)
+        self.dlg.fromGPKG_btn.clicked.connect(self.browseGpkg)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
         self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSION)
@@ -354,7 +354,7 @@ class Geo360:
             self.server_thread.start()
             MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
         except Exception:
-            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porie: {config.PORT}")
+            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porcie: {config.PORT}")
 
     def run(self):
         """Run after pressing the plugin"""
@@ -374,7 +374,7 @@ class Geo360:
             self.settings.setValue("selected_industry", self.selected_branch)  
             self.settings.setValue("showDialog", False) 
 
-    def clickFeature(self):
+    def clickPointOnMapFeature(self):
         """Obsługa wybrania punktu na mapie"""
 
         lys = self.project.mapLayers().values()
@@ -396,7 +396,7 @@ class Geo360:
         self.layer = layer
         self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
         self.iface.mapCanvas().setMapTool(self.map_tool)
-        self.clickFeature()
+        self.clickPointOnMapFeature()
 
     def fromLayer_btn_clicked(self):
         """Obsługa przycisku "Przeglądaj" do wybrania warstwy z projektu QGIS"""
@@ -419,7 +419,7 @@ class Geo360:
                 self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
                 self.iface.mapCanvas().setMapTool(self.map_tool)
                 self.dlg.hide()
-                self.clickFeature()
+                self.clickPointOnMapFeature()
             else:
                 MessageUtils.pushWarning(self.iface, "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
                 return False
@@ -685,7 +685,7 @@ class Geo360:
                                             f"Stwierdzono duplikaty zdjęć: \n"
                                             f"{lista_zdjec}")
 
-    def fromPhotosBtnClicked(self):
+    def importPhotos(self):
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
 
         self.is_press_button = True
@@ -793,7 +793,7 @@ class Geo360:
 
             # ukrycie okna PhotoViewer360
             self.dlg.hide()
-            self.clickFeature()
+            self.clickPointOnMapFeature()
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
             progress_message_bar.layout().addWidget(self.progress)
@@ -809,9 +809,9 @@ class Geo360:
                 pass
 
             self.dlg.hide()
-            self.clickFeature()
+            self.clickPointOnMapFeature()
 
-    def fromGpkgBtnClicked(self):
+    def browseGpkg(self):
         """Obsługa przycisku "Przeglądaj" do wczytania już istniejącej GeoPaczki nie wczytanej w projekcie QGIS 
         (GeoPaczka musi być utworzona przez tą wtyczkę) """
 
@@ -832,7 +832,7 @@ class Geo360:
 
         self.use_layer = vlayer.name()
         self.dlg.hide()
-        self.clickFeature()
+        self.clickPointOnMapFeature()
 
     def renameNameField(self, rlayer, oldname, newname):
         """Funkcja zmieniająca nazwy atrybutów w warstwie"""

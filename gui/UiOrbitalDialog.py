@@ -64,7 +64,7 @@ class UiOrbitalDialog(object):
         self.btn_screenshot.setObjectName("btn_screenshot")
         self.horizontalLayout.addWidget(self.btn_screenshot)
 
-        # dodanie przycisku służącego do obsługi fullScreen'a
+        # dodanie przycisku służącego do obsługi setFullScreen'a
         self.btn_fullScreen = QtWidgets.QPushButton(self.dockWidgetContents)
         self.btn_fullScreen.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.btn_fullScreen.setText("")
@@ -91,7 +91,7 @@ class UiOrbitalDialog(object):
         self.retranslateUi(orbitalDialog)
         
         # obsługa wciśnięć przycisków w oknie przeglądania zdjęć
-        self.btn_fullScreen.clicked["bool"].connect(orbitalDialog.fullScreen)
+        self.btn_fullScreen.clicked["bool"].connect(orbitalDialog.setFullScreen)
         self.btn_screenshot.clicked.connect(orbitalDialog.getScreenShot)
 
         QtCore.QMetaObject.connectSlotsByName(orbitalDialog)

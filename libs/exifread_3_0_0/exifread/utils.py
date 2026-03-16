@@ -12,7 +12,7 @@ def ord_(dta):
     return dta
 
 
-def makeString(seq: Union[bytes, list]) -> str:
+def make_string(seq: Union[bytes, list]) -> str:
     """
     Don't throw an exception when given an out of range character.
     """
@@ -39,21 +39,21 @@ def makeString(seq: Union[bytes, list]) -> str:
     return string.strip(' \x00')
 
 
-def makeString_uc(seq) -> str:
+def make_string_uc(seq) -> str:
     """
     Special version to deal with the code in the first 8 bytes of a user comment.
     First 8 bytes gives coding system e.g. ASCII vs. JIS vs Unicode.
     """
     if not isinstance(seq, str):
         # Remove code from sequence only if it is valid
-        if makeString(seq[:8]).upper() in ('ASCII', 'UNICODE', 'JIS', ''):
+        if make_string(seq[:8]).upper() in ('ASCII', 'UNICODE', 'JIS', ''):
             seq = seq[8:]
     # Of course, this is only correct if ASCII, and the standard explicitly
     # allows JIS and Unicode.
-    return makeString(seq)
+    return make_string(seq)
 
 
-def getGpsCoords(tags: dict) -> tuple:
+def get_gps_coords(tags: dict) -> tuple:
 
     lng_ref_tag_name = 'GPS GPSLongitudeRef'
     lng_tag_name = 'GPS GPSLongitude'

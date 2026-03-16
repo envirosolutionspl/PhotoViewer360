@@ -2,7 +2,7 @@
 Standard tag definitions.
 """
 
-from exifread.utils import makeString, makeString_uc
+from exifread.utils import make_string, make_string_uc
 
 # Interoperability tags
 INTEROP_TAGS = {
@@ -138,7 +138,7 @@ EXIF_TAGS = {
     0x011A: ('XResolution', ),
     0x011B: ('YResolution', ),
     0x011C: ('PlanarConfiguration', ),
-    0x011D: ('PageName', makeString),
+    0x011D: ('PageName', make_string),
     0x011E: ('XPosition', ),
     0x011F: ('YPosition', ),
     0x0122: ('GrayResponseUnit', {
@@ -260,7 +260,7 @@ EXIF_TAGS = {
     }),
     0x8832: ('RecommendedExposureIndex', ),
     0x8833: ('ISOSpeed', ),
-    0x9000: ('ExifVersion', makeString),
+    0x9000: ('ExifVersion', make_string),
     0x9003: ('DateTimeOriginal', ),
     0x9004: ('DateTimeDigitized', ),
     0x9010: ('OffsetTime', ),
@@ -350,7 +350,7 @@ EXIF_TAGS = {
     0x9215: ('ExposureIndex', ),
     0x9216: ('TIFF/EPStandardID', ),
     0x927C: ('MakerNote', ),
-    0x9286: ('UserComment', makeString_uc),
+    0x9286: ('UserComment', make_string_uc),
     0x9290: ('SubSecTime', ),
     0x9291: ('SubSecTimeOriginal', ),
     0x9292: ('SubSecTimeDigitized', ),
@@ -358,10 +358,10 @@ EXIF_TAGS = {
     # used by Windows Explorer
     0x9C9B: ('XPTitle', ),
     0x9C9C: ('XPComment', ),
-    0x9C9D: ('XPAuthor', makeString),  # (ignored by Windows Explorer if Artist exists)
+    0x9C9D: ('XPAuthor', make_string),  # (ignored by Windows Explorer if Artist exists)
     0x9C9E: ('XPKeywords', ),
     0x9C9F: ('XPSubject', ),
-    0xA000: ('FlashPixVersion', makeString),
+    0xA000: ('FlashPixVersion', make_string),
     0xA001: ('ColorSpace', {
         1: 'sRGB',
         2: 'Adobe RGB',

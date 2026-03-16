@@ -127,7 +127,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 "http://" + config.IP + ":" + str(config.PORT) + "/blank.html"
         )
 
-        # opcja fullScreen
+        # opcja setFullScreen
         self.is_window_full_screen = False
         self.normal_window_state = None
 
@@ -506,7 +506,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.setFloating(False)
             self.is_window_full_screen = False
 
-    def fullScreen(self):
+    def setFullScreen(self):
         """Funkcja odpowiedzialna za przycisk do przeglądania zdjęć w trybie pełnoekranowym"""
 
         if not self.is_window_full_screen:

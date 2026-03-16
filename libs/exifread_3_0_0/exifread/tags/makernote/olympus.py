@@ -1,8 +1,8 @@
 
-from exifread.utils import makeString
+from exifread.utils import make_string
 
 
-def specialMode(val):
+def special_mode(val):
     """Decode Olympus SpecialMode tag in MakerNote"""
     mode1 = {
         0: 'Normal',
@@ -30,7 +30,7 @@ TAGS = {
     # Ah HAH! those sneeeeeaky bastids! this is how they get past the fact
     # that a JPEG thumbnail is not allowed in an uncompressed TIFF file
     0x0100: ('JPEGThumbnail', ),
-    0x0200: ('SpecialMode', specialMode),
+    0x0200: ('SpecialMode', special_mode),
     0x0201: ('JPEGQual', {
         1: 'SQ',
         2: 'HQ',
@@ -50,7 +50,7 @@ TAGS = {
     0x0206: ('LensDistortionParams', ),
     0x0207: ('SoftwareRelease', ),
     0x0208: ('PictureInfo', ),
-    0x0209: ('CameraID', makeString),  # print as string
+    0x0209: ('CameraID', make_string),  # print as string
     0x0F00: ('DataDump', ),
     0x0300: ('PreCaptureFrames', ),
     0x0404: ('SerialNumber', ),

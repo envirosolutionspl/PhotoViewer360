@@ -1,8 +1,8 @@
 
-from exifread.utils import makeString, Ratio
+from exifread.utils import make_string, Ratio
 
 
-def evBias(seq) -> str:
+def ev_bias(seq) -> str:
     """
     First digit seems to be in steps of 1/6 EV.
     Does the third value mean the step size?  It is usually 6,
@@ -53,7 +53,7 @@ def evBias(seq) -> str:
 
 # Nikon E99x MakerNote Tags
 TAGS_NEW = {
-    0x0001: ('MakernoteVersion', makeString),  # Sometimes binary
+    0x0001: ('MakernoteVersion', make_string),  # Sometimes binary
     0x0002: ('ISOSetting', ),
     0x0003: ('ColorMode', ),
     0x0004: ('Quality', ),
@@ -64,17 +64,17 @@ TAGS_NEW = {
     0x0009: ('AutoFlashMode', ),
     0x000B: ('WhiteBalanceBias', ),
     0x000C: ('WhiteBalanceRBCoeff', ),
-    0x000D: ('ProgramShift', evBias),
+    0x000D: ('ProgramShift', ev_bias),
     # Nearly the same as the other EV vals, but step size is 1/12 EV (?)
-    0x000E: ('ExposureDifference', evBias),
+    0x000E: ('ExposureDifference', ev_bias),
     0x000F: ('ISOSelection', ),
     0x0010: ('DataDump', ),
     0x0011: ('NikonPreview', ),
-    0x0012: ('FlashCompensation', evBias),
+    0x0012: ('FlashCompensation', ev_bias),
     0x0013: ('ISOSpeedRequested', ),
     0x0016: ('PhotoCornerCoordinates', ),
-    0x0017: ('ExternalFlashExposureComp', evBias),
-    0x0018: ('FlashBracketCompensationApplied', evBias),
+    0x0017: ('ExternalFlashExposureComp', ev_bias),
+    0x0018: ('FlashBracketCompensationApplied', ev_bias),
     0x0019: ('AEBracketCompensationApplied', ),
     0x001A: ('ImageProcessing', ),
     0x001B: ('CropHiSpeed', ),

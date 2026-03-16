@@ -13,9 +13,9 @@
 import struct
 from typing import List, Dict, Callable, BinaryIO, Optional
 
-from exifread.exif_log import getLogger
+from exifread.exif_log import get_logger
 
-logger = getLogger()
+logger = get_logger()
 
 
 class WrongBox(Exception):
@@ -58,13 +58,13 @@ class Box:
     def __repr__(self) -> str:
         return "<box '%s'>" % self.name
 
-    def setSizes(self, offset: int, length: int, base_offset: int, index: int):
+    def set_sizes(self, offset: int, length: int, base_offset: int, index: int):
         self.offset_size = offset
         self.length_size = length
         self.base_offset_size = base_offset
         self.index_size = index
 
-    def setFull(self, vflags: int):
+    def set_full(self, vflags: int):
         """
         ISO boxes come in 'old' and 'full' variants.
         The 'full' variant contains version and flags information.
@@ -100,13 +100,13 @@ class HEICExifFinder:
     def get64(self) -> int:
         return struct.unpack('>Q', self.get(8))[0]
 
-    def getInt4x2(self) -> tuple:
+    def get_int4x2(self) -> tuple:
         num = struct.unpack('>B', self.get(1))[0]
         num0 = num >> 4
         num1 = num & 0xf
         return num0, num1
 
-    def getInt(self, size: int) -> int:
+    def get_int(self, size: int) -> int:
         """some fields have variant-sized data."""
         if size == 2:
             return self.get16()
@@ -118,7 +118,7 @@ class HEICExifFinder:
             return 0
         raise BadSize(size)
 
-    def getString(self) -> bytes:
+    def get_string(self) -> bytes:
         read = []
         while 1:
             char = self.get(1)
@@ -127,7 +127,7 @@ class HEICExifFinder:
             read.append(char)
         return b''.join(read)
 
-    def nextBox(self) -> Box:
+    def next_box(self) -> Box:
         pos = self.file_handle.tell()
         size = self.get32()
         kind = self.get(4).decode('ascii')
@@ -146,26 +146,26 @@ class HEICExifFinder:
         box.pos = self.file_handle.tell()
         return box
 
-    def getFull(self, box: Box):
-        box.setFull(self.get32())
+    def get_full(self, box: Box):
+        box.set_full(self.get32())
 
     def skip(self, box: Box):
         self.file_handle.seek(box.after)
 
-    def expectParse(self, name: str) -> Box:
+    def expect_parse(self, name: str) -> Box:
         while True:
-            box = self.nextBox()
+            box = self.next_box()
             if box.name == name:
                 return self.parse_box(box)
             self.skip(box)
 
-    def getParser(self, box: Box) -> Callable:
+    def get_parser(self, box: Box) -> Callable:
         defs = {
-            'ftyp': self._parseFtyp,
-            'meta': self._parseMeta,
-            'infe': self._parseInfe,
-            'iinf': self._parseIinf,
-            'iloc': self._parseIloc,
+            'ftyp': self._parse_ftyp,
+            'meta': self._parse_meta,
+            'infe': self._parse_infe,
+            'iinf': self._parse_iinf,
+            'iloc': self._parse_iloc,
         }
         try:
             return defs[box.name]
@@ -173,13 +173,13 @@ class HEICExifFinder:
             raise NoParser(box.name) from err
 
     def parse_box(self, box: Box) -> Box:
-        probe = self.getParser(box)
+        probe = self.get_parser(box)
         probe(box)
         # in case anything is left unread
         self.file_handle.seek(box.after)
         return box
 
-    def _parseFtyp(self, box: Box):
+    def _parse_ftyp(self, box: Box):
         box.major_brand = self.get(4)
         box.minor_version = self.get32()
         box.compat = []
@@ -188,11 +188,11 @@ class HEICExifFinder:
             box.compat.append(self.get(4))
             size -= 4
 
-    def _parseMeta(self, meta: Box):
-        self.getFull(meta)
+    def _parse_meta(self, meta: Box):
+        self.get_full(meta)
         while self.file_handle.tell() < meta.after:
-            box = self.nextBox()
-            psub = self.getParser(box)
+            box = self.next_box()
+            psub = self.get_parser(box)
             if psub is not None:
                 psub(box)
                 meta.subs[box.name] = box
@@ -201,8 +201,8 @@ class HEICExifFinder:
             # skip any unparsed data
             self.skip(box)
 
-    def _parseInfe(self, box: Box):
-        self.getFull(box)
+    def _parse_infe(self, box: Box):
+        self.get_full(box)
         if box.version >= 2:
             if box.version == 2:
                 box.item_id = self.get16()
@@ -210,25 +210,25 @@ class HEICExifFinder:
                 box.item_id = self.get32()
             box.item_protection_index = self.get16()
             box.item_type = self.get(4)
-            box.item_name = self.getString()
+            box.item_name = self.get_string()
             # ignore the rest
 
-    def _parseIinf(self, box: Box):
-        self.getFull(box)
+    def _parse_iinf(self, box: Box):
+        self.get_full(box)
         count = self.get16()
         box.exif_infe = None
         for _ in range(count):
-            infe = self.expectParse('infe')
+            infe = self.expect_parse('infe')
             if infe.item_type == b'Exif':
                 logger.debug("HEIC: found Exif 'infe' box")
                 box.exif_infe = infe
                 break
 
-    def _parseIloc(self, box: Box):
-        self.getFull(box)
-        size0, size1 = self.getInt4x2()
-        size2, size3 = self.getInt4x2()
-        box.setSizes(size0, size1, size2, size3)
+    def _parse_iloc(self, box: Box):
+        self.get_full(box)
+        size0, size1 = self.get_int4x2()
+        size2, size3 = self.get_int4x2()
+        box.set_sizes(size0, size1, size2, size3)
         if box.version < 2:
             box.item_count = self.get16()
         elif box.version == 2:
@@ -250,22 +250,22 @@ class HEICExifFinder:
                 self.get16()
             # ignore data_reference_index
             self.get16()
-            box.base_offset = self.getInt(box.base_offset_size)
+            box.base_offset = self.get_int(box.base_offset_size)
             extent_count = self.get16()
             extents = []
             for _ in range(extent_count):
                 if box.version in (1, 2) and box.index_size > 0:
-                    self.getInt(box.index_size)
-                extent_offset = self.getInt(box.offset_size)
-                extent_length = self.getInt(box.length_size)
+                    self.get_int(box.index_size)
+                extent_offset = self.get_int(box.offset_size)
+                extent_length = self.get_int(box.length_size)
                 extents.append((extent_offset, extent_length))
             box.locs[item_id] = extents
 
-    def findExif(self) -> tuple:
-        ftyp = self.expectParse('ftyp')
+    def find_exif(self) -> tuple:
+        ftyp = self.expect_parse('ftyp')
         assert ftyp.major_brand == b'heic'
         assert ftyp.minor_version == 0
-        meta = self.expectParse('meta')
+        meta = self.expect_parse('meta')
         assert meta.subs['iinf'].exif_infe is not None
         item_id = meta.subs['iinf'].exif_infe.item_id
         extents = meta.subs['iloc'].locs[item_id]

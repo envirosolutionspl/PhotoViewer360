@@ -5,20 +5,20 @@ Read Exif metadata from tiff and jpeg files.
 import struct
 from typing import BinaryIO
 
-from exifread.exif_log import getLogger
+from exifread.exif_log import get_logger
 from exifread.classes import ExifHeader
 from exifread.tags import DEFAULT_STOP_TAG
-from exifread.utils import ord_, makeString
+from exifread.utils import ord_, make_string
 from exifread.heic import HEICExifFinder
-from exifread.jpeg import findJpegExif
+from exifread.jpeg import find_jpeg_exif
 from exifread.exceptions import InvalidExif, ExifNotFound
 
 __version__ = '3.0.0'
 
-logger = getLogger()
+logger = get_logger()
 
 
-def _findTiffExif(fh: BinaryIO) -> tuple:
+def _find_tiff_exif(fh: BinaryIO) -> tuple:
     logger.debug("TIFF format recognized in data[0:2]")
     fh.seek(0)
     endian = fh.read(1)
@@ -27,7 +27,7 @@ def _findTiffExif(fh: BinaryIO) -> tuple:
     return offset, endian
 
 
-def _findWebpExif(fh: BinaryIO) -> tuple:
+def _find_webp_exif(fh: BinaryIO) -> tuple:
     logger.debug("WebP format recognized in data[0:4], data[8:12]")
     # file specification: https://developers.google.com/speed/webp/docs/riff_container
     data = fh.read(5)
@@ -47,7 +47,7 @@ def _findWebpExif(fh: BinaryIO) -> tuple:
     raise ExifNotFound("Webp file does not have exif data.")
 
 
-def _findPngExif(fh: BinaryIO, data: bytes) -> tuple:
+def _find_png_exif(fh: BinaryIO, data: bytes) -> tuple:
     logger.debug("PNG format recognized in data[0:8]=%s", data[:8].hex())
     fh.seek(8)
 
@@ -68,7 +68,7 @@ def _findPngExif(fh: BinaryIO, data: bytes) -> tuple:
     raise ExifNotFound("PNG file does not have exif data.")
 
 
-def _getXmp(fh: BinaryIO) -> bytes:
+def _get_xmp(fh: BinaryIO) -> bytes:
     xmp_bytes = b''
     logger.debug('XMP not in Exif, searching file for XMP info...')
     xml_started = False
@@ -95,32 +95,32 @@ def _getXmp(fh: BinaryIO) -> bytes:
     return xmp_bytes
 
 
-def _determineType(fh: BinaryIO) -> tuple:
+def _determine_type(fh: BinaryIO) -> tuple:
     # by default do not fake an EXIF beginning
     fake_exif = 0
 
     data = fh.read(12)
     if data[0:2] in [b'II', b'MM']:
         # it's a TIFF file
-        offset, endian = _findTiffExif(fh)
+        offset, endian = _find_tiff_exif(fh)
     elif data[4:12] == b'ftypheic':
         fh.seek(0)
         heic = HEICExifFinder(fh)
-        offset, endian = heic.findExif()
+        offset, endian = heic.find_exif()
     elif data[0:4] == b'RIFF' and data[8:12] == b'WEBP':
-        offset, endian = _findWebpExif(fh)
+        offset, endian = _find_webp_exif(fh)
     elif data[0:2] == b'\xFF\xD8':
         # it's a JPEG file
-        offset, endian, fake_exif = findJpegExif(fh, data, fake_exif)
+        offset, endian, fake_exif = find_jpeg_exif(fh, data, fake_exif)
     elif data[0:8] == b'\x89PNG\r\n\x1a\n':
-        offset, endian = _findPngExif(fh, data)
+        offset, endian = _find_png_exif(fh, data)
     else:
         # file format not recognized
         raise ExifNotFound("File format not recognized.")
     return offset, endian, fake_exif
 
 
-def processFile(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
+def process_file(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
                  details=True, strict=False, debug=False,
                  truncate_tags=True, auto_seek=True):
     """
@@ -134,7 +134,7 @@ def processFile(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
         fh.seek(0)
 
     try:
-        offset, endian, fake_exif = _determineType(fh)
+        offset, endian, fake_exif = _determine_type(fh)
     except ExifNotFound as err:
         logger.warning(err)
         return {}
@@ -152,7 +152,7 @@ def processFile(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
     }[endian])
 
     hdr = ExifHeader(fh, endian, offset, fake_exif, strict, debug, details, truncate_tags)
-    ifd_list = hdr.listIfd()
+    ifd_list = hdr.list_ifd()
     thumb_ifd = 0
     ctr = 0
     for ifd in ifd_list:
@@ -164,24 +164,24 @@ def processFile(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
         else:
             ifd_name = 'IFD %d' % ctr
         logger.debug('IFD %d (%s) at offset %s:', ctr, ifd_name, ifd)
-        hdr.dumpIfd(ifd, ifd_name, stop_tag=stop_tag)
+        hdr.dump_ifd(ifd, ifd_name, stop_tag=stop_tag)
         ctr += 1
     # EXIF IFD
     exif_off = hdr.tags.get('Image ExifOffset')
     if exif_off:
         logger.debug('Exif SubIFD at offset %s:', exif_off.values[0])
-        hdr.dumpIfd(exif_off.values[0], 'EXIF', stop_tag=stop_tag)
+        hdr.dump_ifd(exif_off.values[0], 'EXIF', stop_tag=stop_tag)
 
     # deal with MakerNote contained in EXIF IFD
     # (Some apps use MakerNote tags but do not use a format for which we
     # have a description, do not process these).
     if details and 'EXIF MakerNote' in hdr.tags and 'Image Make' in hdr.tags:
-        hdr.decodeMakerNote()
+        hdr.decode_maker_note()
 
     # extract thumbnails
     if details and thumb_ifd:
-        hdr.extractTiffThumbnail(thumb_ifd)
-        hdr.extractJpegThumbnail()
+        hdr.extract_tiff_thumbnail(thumb_ifd)
+        hdr.extract_jpeg_thumbnail()
 
     # parse XMP tags (experimental)
     if debug and details:
@@ -192,7 +192,7 @@ def processFile(fh: BinaryIO, stop_tag=DEFAULT_STOP_TAG,
             xmp_bytes = bytes(xmp_tag.values)
         # We need to look in the entire file for the XML
         else:
-            xmp_bytes = _getXmp(fh)
+            xmp_bytes = _get_xmp(fh)
         if xmp_bytes:
-            hdr.parseXmp(xmp_bytes)
+            hdr.parse_xmp(xmp_bytes)
     return hdr.tags
