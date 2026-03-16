@@ -241,7 +241,7 @@ class MessageUtils:
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(
-            QtCompat.qmessageboxYesButton() |
+            QtCompat.qmessageboxYesButton() or
             QtCompat.qmessageboxNoButton()
         )
 
@@ -260,10 +260,10 @@ class MessageUtils:
     @staticmethod
     def pushSuccess(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            "Sukces",
+            'Sukces',
             message,
             level=Qgis.Success,
-            duration=0
+            duration=10
         )
 
     @staticmethod
@@ -656,8 +656,8 @@ class QtCompat:
     @staticmethod
     def alignmentLeftVcenter(QtClass):
         if hasattr(QtClass, "AlignmentFlag"):
-            return QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
-        return QtClass.AlignLeft | QtClass.AlignVCenter
+            return QtClass.AlignmentFlag.AlignLeft or QtClass.AlignmentFlag.AlignVCenter
+        return QtClass.AlignLeft or QtClass.AlignVCenter
 
 
     @staticmethod
