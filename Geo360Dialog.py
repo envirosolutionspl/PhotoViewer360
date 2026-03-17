@@ -22,6 +22,7 @@
 """
 
 import math
+import logging
 import processing
 import os
 from os.path import basename
@@ -61,7 +62,6 @@ from .constants import (
     EARTH_RADIUS_KM,
 )
 from . import PLUGIN_NAME as plugin_name
-from . import config
 from .geom.transformgeom import TransformGeometry
 
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
@@ -79,6 +79,8 @@ try:
     from pydevd import *
 except ImportError:
     None
+
+log = logging.getLogger(__name__)
 
 
 class _ViewerPage(QWebPage):
@@ -450,6 +452,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         return distance
 
+    def changeUrlViewer(self, new_url):
         """Funkcja odpowiadająca za załadowanie odpowiedniego pliku HTML"""
         self.cef_widget.load(QUrl(new_url))
 
@@ -489,6 +492,8 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.current_image = self.getImage()
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
+            MessageUtils.pushWarning(
+                self.iface,
                 "Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
             self.changeUrlViewer(self.DEFAULT_EMPTY)
@@ -516,7 +521,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
             self.setFloating(False)
             self.is_window_full_screen = False
 
-    def FullScreen(self):
+    def fullScreen(self):
         """Funkcja odpowiedzialna za przycisk do przeglądania zdjęć w trybie pełnoekranowym"""
 
         if not self.is_window_full_screen:
@@ -563,12 +568,12 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         original_point = self.selected_features.geometry().asPoint()
 
+        self.actual_point_dx = QgsMapUtils.convertProjection(
             original_point.x(),
             original_point.y(),
-        self.actual_point_dx = QgsMapUtils.convertProjection(
             self.layer.crs().authid(),
             self.canvas.mapSettings().destinationCrs().authid(),
-        ) 
+        )
       
         try:
             self.actual_point_orientation.reset()
@@ -786,10 +791,18 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         """Usunięcie łuku wskazującego kierunek zdjęcia"""
 
         try:
-            self.position_sx.reset()
-            self.position_int.reset()
-            self.position_dx.reset()
-            self.actual_point_orientation.reset()
+            if self.position_sx is not None:
+                self.position_sx.reset()
+            if self.position_int is not None:
+                self.position_int.reset()
+            if self.position_dx is not None:
+                self.position_dx.reset()
+            if self.actual_point_orientation is not None:
+                self.actual_point_orientation.reset()
         except Exception as exc:
-            log.warning(f"Exception while removing rubberband: {exc}")
+            QgsMessageLog.logMessage(
+                f"Exception while removing rubberband: {exc}",
+                plugin_name,
+                level=Qgis.Warning,
+            )
 

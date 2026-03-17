@@ -92,8 +92,8 @@ class Ui_orbitalDialog(object):
         self.retranslateUi(orbitalDialog)
         
         # obsługa wciśnięć przycisków w oknie przeglądania zdjęć
-        self.btn_fullscreen.clicked["bool"].connect(orbitalDialog.FullScreen)
-        self.btn_screenshot.clicked.connect(orbitalDialog.GetScreenShot)
+        self.btn_fullscreen.clicked["bool"].connect(orbitalDialog.fullScreen)
+        self.btn_screenshot.clicked.connect(orbitalDialog.getScreenShot)
 
         QtCore.QMetaObject.connectSlotsByName(orbitalDialog)
 

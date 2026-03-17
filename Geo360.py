@@ -22,6 +22,7 @@
 """
 
 
+import logging
 from qgis.gui import QgsMapToolIdentify
 from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
@@ -56,7 +57,6 @@ from .constants import (
     QGIS_SETTINGS_KEYS,
     QGIS_FEED_MIN_VERSION_INT,
 )
-from . import config
 
 from functools import partial
 from collections import defaultdict
@@ -78,6 +78,8 @@ try:
     from pydevd import *
 except ImportError:
     None
+
+log = logging.getLogger(__name__)
 
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -122,7 +124,7 @@ class Geo360:
         QSettings().setValue(QGIS_SETTINGS_KEYS["PARALLEL_RENDERING"], True)
         # OpenCL acceleration
         QSettings().setValue(QGIS_SETTINGS_KEYS["OPENCL_ENABLED"], True)
-        self.orbitalViewer = None
+        self.orbital_viewer = None
 
         self.server = None
         self.actions = []
@@ -319,7 +321,7 @@ class Geo360:
         self.action_activate.setEnabled(False)
         self.iface.actionPan().trigger()
 
-        if self.orbital_viewer != None:
+        if self.orbital_viewer is not None:
             self.orbital_viewer.close()
 
         if self.dlg != None:
@@ -381,7 +383,7 @@ class Geo360:
             self.server_thread.start()
             MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
         except Exception:
-            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porcie: {config.PORT}")
+            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porcie: {PORT}")
 
 
     def run(self):
@@ -491,7 +493,11 @@ class Geo360:
             )
 
         except Exception as exc:
-            log.error(f"Tool Import Geotagged Photos failed: {exc}")
+            QgsMessageLog.logMessage(
+                f"Tool Import Geotagged Photos failed: {exc}",
+                plugin_name,
+                level=Qgis.Critical,
+            )
 
         try:
             self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
@@ -504,7 +510,11 @@ class Geo360:
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
 
         if not vlayer.isValid():
-            log.error("Layer failed to load after creating GeoPackage.")
+            QgsMessageLog.logMessage(
+                "Layer failed to load after creating GeoPackage.",
+                plugin_name,
+                level=Qgis.Critical,
+            )
         else:
             # start edycji GeoPaczki
             vlayer.startEditing()
@@ -869,7 +879,11 @@ class Geo360:
 
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
         if not vlayer.isValid():
-            log.error(f"Layer failed to load from existing GeoPackage: {gpkg_path}")
+            QgsMessageLog.logMessage(
+                f"Layer failed to load from existing GeoPackage: {gpkg_path}",
+                plugin_name,
+                level=Qgis.Critical,
+            )
             return False
 
         self.project.addMapLayer(vlayer)
@@ -916,7 +930,7 @@ class Geo360:
             self.action_activate.setEnabled(False)
             self.iface.actionPan().trigger()
 
-            if self.orbital_viewer != None:
+            if self.orbital_viewer is not None:
                 self.orbital_viewer.close()
 
     def checkSavePath(self, path):
