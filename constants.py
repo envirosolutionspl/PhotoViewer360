@@ -69,12 +69,6 @@ INDUSTRIES = {
     "n": "Nieruchomości"
 }
 
-FEED_SETTINGS_KEYS = {
-    "SELECTED_INDUSTRY": "selected_industry",
-    "SHOW_DIALOG": "showDialog",
-}
-
-
 # Properties
 COLUMN_NAME = "sciezka_zdjecie"
 COLUMN_YAW = "azymut"
@@ -87,7 +81,12 @@ VIEWER_FILES = {
     "BLANK": "/blank.html",
     "METADATA": "/file_metadata.html",
 }
-VIEWER_IMAGE_NAME = "image.jpg"
+VIEWER_CURRENT_IMAGE_FILENAME = "image.jpg"
+
+# Images
+UI_PLUGIN_ICON_PATH = "/images/ikona_wtyczki.svg"
+UI_TARGET_ICON_PATH = "/images/target.png"
+UI_SMALL_CURSOR_PATH = "/images/small_celownik.png"
 
 # Panorama Viewer
 IP = "127.0.0.1"
@@ -135,11 +134,6 @@ PROGRESS = {
     "DUPLICATES_AFTER_MERGE": 98,
     "COMPLETE": 100,
 }
-
-# Images
-IMAGE_PLUGIN_ICON = "/images/ikona_wtyczki.svg"
-IMAGE_TARGET_ICON = "/images/target.png"
-IMAGE_SMALL_CURSOR = "/images/small_celownik.png"
 
 # CRS codes
 CRS_EPSG_2180 = "EPSG:2180"

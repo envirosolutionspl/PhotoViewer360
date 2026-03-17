@@ -51,9 +51,8 @@ from .constants import (
     HOTSPOT_BUFFER_RADIUS_M,
     DUPLICATES_PREVIEW_LIMIT,
     PROGRESS,
-    IMAGE_PLUGIN_ICON,
-    IMAGE_TARGET_ICON,
-    FEED_SETTINGS_KEYS,
+    UI_PLUGIN_ICON_PATH,
+    UI_TARGET_ICON_PATH,
     QGIS_SETTINGS_KEYS,
     QGIS_FEED_MIN_VERSION_INT,
 )
@@ -102,17 +101,17 @@ class Geo360:
             from .qgis_feed import QgisFeed
 
             self.selected_industry = self.settings.value(
-                FEED_SETTINGS_KEYS["SELECTED_INDUSTRY"], None
+                "selected_industry", None
             )
             show_dialog = self.settings.value(
-                FEED_SETTINGS_KEYS["SHOW_DIALOG"], True, type=bool
+                "showDialog", True, type=bool
             )
 
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
 
             select_indust_session = self.settings.value(
-                FEED_SETTINGS_KEYS["SELECTED_INDUSTRY"]
+                "selected_industry"
             )
 
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
@@ -269,7 +268,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + IMAGE_PLUGIN_ICON),
+            icon_path=QIcon(plugin_dir + UI_PLUGIN_ICON_PATH),
             text=plugin_name,
             callback=self.run,
             parent=self.iface.mainWindow(),
@@ -277,7 +276,7 @@ class Geo360:
 
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.add_action(
-            icon_path=QIcon(plugin_dir + IMAGE_TARGET_ICON),
+            icon_path=QIcon(plugin_dir + UI_TARGET_ICON_PATH),
             text=f"{plugin_name} aktywacja",
             callback=self.activate,
             parent=self.iface.mainWindow(),
@@ -661,6 +660,14 @@ class Geo360:
         vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(temp_dir, TEMPORATORY_FILES_LIST[0]))
         self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
 
+    def _gpkpFields(self, *keys):
+        """
+        zwraca nazwy pól (kolumn) z GeoPackage na podstawie GPKP_COLUMNS_CHANGE_DICT
+        """
+        if not keys:
+            return list(GPKP_COLUMNS_CHANGE_DICT.values())
+        return [GPKP_COLUMNS_CHANGE_DICT[key] for key in keys]
+
     def usuwanie_duplikatow(self, gpkg_path):
         """uruchomienie narzędzia do wykrywania duplikatów w warstwie po wybranych atrybutach"""
 
@@ -668,12 +675,7 @@ class Geo360:
             "native:removeduplicatesbyattribute",
             {
                 "INPUT": gpkg_path,
-                "FIELDS": [
-                    GPKP_COLUMNS_CHANGE_DICT["filename"],
-                    GPKP_COLUMNS_CHANGE_DICT["longitude"],
-                    GPKP_COLUMNS_CHANGE_DICT["latitude"],
-                    GPKP_COLUMNS_CHANGE_DICT["timestamp"],
-                ],
+                "FIELDS": self._gpkpFields(),
                 "OUTPUT": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[2]),
                 "DUPLICATES": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[1])
             }

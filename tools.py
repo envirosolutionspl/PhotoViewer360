@@ -2,7 +2,7 @@ from . import plugin_dir
 from qgis.gui import QgsMapToolIdentify
 from PyQt5.QtGui import QCursor, QPixmap
 from .utils.qgsutils import qgsutils
-from .constants import IMAGE_SMALL_CURSOR
+from .constants import UI_SMALL_CURSOR_PATH
 
 
 class SelectTool(QgsMapToolIdentify):
@@ -15,7 +15,7 @@ class SelectTool(QgsMapToolIdentify):
         self.queryLayer = queryLayer
         self.parent = parent
 
-        small_image = plugin_dir + IMAGE_SMALL_CURSOR
+        small_image = plugin_dir + UI_SMALL_CURSOR_PATH
 
         self.cursor = QCursor(
             QPixmap(small_image)
