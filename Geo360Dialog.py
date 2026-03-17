@@ -50,10 +50,12 @@ from . import config
 from .geom.transformgeom import TransformGeometry
 from .gui.UiOrbitalDialog import UiOrbitalDialog
 from .utils.qgsutils import qgsutils
-from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
-from qgis.PyQt.QtWebKit import QWebSettings
+# from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
+# from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore
-from PyQt5 import QtNetwork
+# from PyQt5 import QtNetwork
+
+from .modules.viewer_widget import ViewerWidget
 
 from math import sin, cos, sqrt, atan2, radians
 import shutil
@@ -62,20 +64,6 @@ try:
     from pydevd import *
 except ImportError:
     None
-
-
-class _ViewerPage(QWebPage):
-    obj = []  # synchronous
-    newData = pyqtSignal(list)  # asynchronous
-
-    def emitSignal(self):
-        self.newData.emit(list())
-
-    def javaScriptConsoleMessage(self, msg, line, source):
-        l = msg.split(",")
-        if 'yaw' in l[0]:
-            self.obj = l
-            self.newData.emit(l)
 
 
 class Geo360Dialog(QDockWidget, UiOrbitalDialog):
@@ -113,31 +101,17 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         QDockWidget.__init__(self)
 
-        self.use_layer = name_layer
-
         self.setupUi(self)
 
-        self.DEFAULT_URL = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/viewer.html"
-        )
-        self.DEFAULT_EMPTY = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/none.html"
-        )
-        self.DEFAULT_BLANK = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/blank.html"
-        )
-
-        # opcja setFullScreen
-        self.is_window_full_screen = False
-        self.normal_window_state = None
-
-        # stworzenie okna Street View (okna ze zdjeciem)
-        self.createViewer()
-
-        self.plugin_path = os.path.dirname(os.path.realpath(__file__))
+        # zapisanie danych z konstruktora
         self.iface = iface
-        self.canvas = self.iface.mapCanvas()
+        self.features_id = features_id
+        self.layer = layer
+        self.use_layer = name_layer
         self.parent = parent
+        
+        self.plugin_path = os.path.dirname(os.path.realpath(__file__))
+        self.canvas = self.iface.mapCanvas()
 
         # kierunek zdjęcia
         self.bearing = None
@@ -147,13 +121,20 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.old_bering = None
         self.new_bering = None
 
-        self.layer = layer
-        self.features_id = features_id
+        # dane zdjecia
+        self.data_wykonania = "" 
+        self.nr_drogi = ""
+        self.nazwa_ulicy = "NULL"
+        self.numer_odcinka = ""
+        self.kilometraz = ""
 
+        # opcja FullScreen
+        self.is_window_full_screen = False
+        self.normal_window_state = None
+        
+        # elementy rysowania obserwatora na mapie (podgląd kierunku)
         self.actual_point_dx = None
         self.actual_point_sx = None
-        self.actual_point_orientation = None
-
         self.actual_point_orientation = QgsRubberBand(
             self.iface.mapCanvas(), QgsWkbTypes.LineGeometry
         )
@@ -169,27 +150,28 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         self.selected_features = qgsutils.getToFeature(self.layer, self.features_id)
 
+        self.gl_widget = None
 
-        # otrzymanie ściezki do zdjęcia
+        # otrzymanie ściezki do zdjęcia z warstwy  
         self.current_image = self.getImage()
-        # sprawdzenie czy istnieje ścieżka do zdjęcia
+
         if os.path.exists(self.current_image) is False:
             qgsutils.showUserAndLogMessage(
                 u"Informacja: ",
                 u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
-            self.resetQgsRubberBand()
-            self.changeUrlViewer(self.DEFAULT_EMPTY)
-            return
+            self.current_image = os.path.join(self.plugin_path, "viewer", "noImage.png") 
 
-        # skopiowanie zdjęcia na serwer lokalny
-        self.copyFile(self.current_image)
+        # pobranie danych z warstwy potrzebnych do wyświetlenia dymka
+        self.copyInfoAboutFile()
 
+        # dodanie okna Street View (okna ze zdjeciem) do Layout'u ui_orbitalDialog'u
+        self.updateViewer()
+        
         # ustawienie RubberBand
         self.resetQgsRubberBand()
-        # self.updateOrientation()
         self.setPosition()
-        
+    
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
 
@@ -201,6 +183,62 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.updateOrientation(yaw=newYaw)
         except:
             None
+
+    def updateViewerDialog(self, features_id=None, layer=None, name_layer=""):
+        self.use_layer = name_layer
+        self.layer = layer
+        self.features_id = features_id
+        self.selected_features = qgsutils.getToFeature(self.layer, self.features_id)
+        # ustawienie RubberBand
+        self.resetQgsRubberBand()
+        # self.UpdateOrientation()
+        self.setPosition()
+
+        # otrzymanie ściezki do zdjęcia
+        self.current_image = self.getImage()
+        
+        if os.path.exists(self.current_image):
+            # stworzenie okna Street View (okna ze zdjeciem)
+            self.copyInfoAboutFile()
+            self.updateViewer()
+        else:
+            qgsutils.showUserAndLogMessage(
+                u"Information: ", u"There is no associated image."
+            )
+            self.resetQgsRubberBand()
+            self.current_image = os.path.join(self.plugin_path, "viewer", "noImage.png")
+            self.updateViewer()
+
+    def updateViewer(self):
+        """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
+
+        # TODO Komunikat na nasze
+        qgsutils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
+
+        if self.gl_widget is not None: 
+            # Wczytanie danych dla dymka
+            self.gl_widget.setDataAboutPhoto(
+                self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
+            ) 
+            # Ustawienie danych geometrycznych i wymuszenie aktualizacji okna
+            self.gl_widget.updateViewerWigdet(
+                374.3174, 0.0, 20.383704648699087, 53.099860443387755
+            )
+        else:
+            # Utworzenie widgetu wraz ze wszystkimi danymi potrzebnymi do poprawnego wyswietlenia
+            self.gl_widget = ViewerWidget(
+                self, self.iface,
+                374.3174, 0.0, 20.383704648699087, 53.099860443387755,
+                self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
+            )
+            self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
+
+        # TODO Komunikat na nasze
+        QgsMessageLog.logMessage(
+                "Zaktualizowano Widget OpenGL",
+                "PhotoViewer360",
+                level=Qgis.Info
+            )
 
     def createViewer(self):
         """Funkcja odpowiadająca za załadowanie okna Street View (okna ze zdjęciem)"""
@@ -233,6 +271,34 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             os.remove(self.plugin_path + "/viewer/image.jpg")
         except OSError:
             pass
+
+    def copyInfoAboutFile(self):
+        """ 
+        Pobieranie danych o zdjęciu z warstwy do zmiennych klasy.
+                
+        """
+
+        qgsutils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
+
+        # Copy image in local folder
+        a = self.current_image
+        name_img = basename(a)
+        QgsMessageLog.logMessage("copyInfoAboutFile.basename: "+name_img,"PhotoViewer360",level=Qgis.Info)
+       
+        # zebranie danych potrzebnych do wyświetlenia informacji o zdjęciu
+        self.data_wykonania = "" 
+        self.nr_drogi = ""
+        self.nazwa_ulicy = "NULL"
+        self.numer_odcinka = ""
+        self.kilometraz = ""
+        for feature in self.layer.getFeatures():
+            if feature.attributes()[2] == name_img.replace(".jpg",""):
+                dateTime = feature.attributes()[7]
+                self.data_wykonania = str(dateTime.toString(Qt.DateFormat.ISODate)).replace("T", " ")
+                self.nr_drogi = str(feature.attributes()[8])
+                self.nazwa_ulicy = str(feature.attributes()[9])
+                self.numer_odcinka = str(feature.attributes()[10])
+                self.kilometraz = str(feature.attributes()[11])
 
     def copyFile(self, src):
         """Funkcja do kopiowania zdjęcia na serwer lokalny"""
@@ -383,8 +449,17 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 # kąt self.yaw_actual jest liczony od kąta północy (sprowadzenie do układu globalnego) 
 
             # dodanie parametrów do listy (potem wysłanej do Java Scriptu)
-            list_of_attribute_list.append(str(x) + ' ' + str(y) + ' ' + azymut_metadane + ' ' + str(index_feature) + ' ' + str(azymut_obliczony) + ' ' + str(distance) + ' ' + str(self.yaw_actual*(math.pi/180)).replace(",","."))
-            
+            # list_of_attribute_list.append(str(x) + ' ' + str(y) + ' ' + azymut_metadane + ' ' + str(index_feature) + ' ' + str(azymut_obliczony) + ' ' + str(distance) + ' ' + str(self.yaw_actual*(math.pi/180)).replace(",","."))
+            list_of_attribute_list.append({
+                    'x' : x,
+                    'y' : y,
+                    'azymut' : azymut*(math.pi/180),
+                    'fid' : index_feature,
+                    'azymut_obliczony' : azymut_obliczony*(math.pi/180),
+                    'distance' : distance,
+                    'yaw_actual' : self.yaw_actual*(math.pi/180)
+                })
+
             # wyzerowanie kąta o jaki mamy obrócić zdjęcie od północy
             self.yaw_actual = 0
 
@@ -392,7 +467,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.layer.removeSelection() 
 
         # połączenie z Java Scriptem oraz przekazanie parametrów potrzebnych do wyświetlenia hotspotów
-        self.setXYId(coordinates=list_of_attribute_list)
+        # self.setXYId(coordinates=list_of_attribute_list)
+        if self.gl_widget is not None: 
+            # Wczytanie danych dla dymka
+            self.gl_widget.setHotSpots(coordinates=list_of_attribute_list)
 
         # przypisanie do zmiennej "self.old_bering" azumtu poprzedniego punktu z hotspot'a
         self.old_bering  = self.new_bering
@@ -509,16 +587,16 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def setFullScreen(self):
         """Funkcja odpowiedzialna za przycisk do przeglądania zdjęć w trybie pełnoekranowym"""
 
-        if not self.is_window_full_screen:
+        if not self.isWindowFullScreen:
             self.setFloating(True)
             self.normal_window_state = self.windowState()
-            self.setWindowState(Qt.WindowFullScreen)
-            self.cef_widget.showFullScreen()
+            self.setWindowState(Qt.WindowState.WindowFullScreen)
+            self.gl_widget.showFullScreen()
             self.is_window_full_screen = True
 
         else:
-            self.cef_widget.showNormal()
-            self.setWindowState(self.normal_window_state)
+            self.gl_widget.showNormal()
+            self.setWindowState(self.normalWindowState)
             self.setFloating(False)
             self.is_window_full_screen = False
 
@@ -536,7 +614,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         if not image_path:
             return
 
-        pixmap = self.cef_widget.grab()
+        pixmap = self.gl_widget.grab()
         pixmap.save(image_path)
         os.startfile(image_path)
         #image.show()
@@ -571,7 +649,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             QgsWkbTypes.LineGeometry,
         )
 
-        self.actual_point_orientation.setColor(Qt.magenta)
+        if hasattr(Qt, "GlobalColor"):
+            self.actual_point_orientation.setColor(Qt.GlobalColor.magenta)
+        else:
+            self.actual_point_orientation.setColor(Qt.magenta)
         self.actual_point_orientation.setWidth(3)
 
         # zdefiniowanie punktów radaru
@@ -756,7 +837,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.position_int.setWidth(5)
         self.position_int.setIcon(QgsRubberBand.ICON_CIRCLE)
         self.position_int.setIconSize(3)
-        self.position_int.setColor(Qt.white)
+        if hasattr(Qt, "GlobalColor"):
+            self.position_int.setColor(Qt.GlobalColor.white)
+        else:
+            self.position_int.setColor(Qt.white)
 
         self.position_dx.addPoint(self.actual_point_dx)
         self.position_sx.addPoint(self.actual_point_dx)

@@ -848,15 +848,22 @@ class Geo360:
         self.features_id = features_id
         self.canvas.refresh()
 
-        self.orbital_viewer = Geo360Dialog(
-            self.iface,
-            features_id=features_id,
+        if self.orbital_viewer is not None:
+            self.orbital_viewer.updateViewerDialog(features_id=features_id,
             layer=layer,
-            name_layer=self.use_layer,
-            parent=self,
-        )
-
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbital_viewer)
+            name_layer=self.use_layer)
+        else:
+            self.orbital_viewer = Geo360Dialog(
+                self.iface,
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+                parent=self,
+            )
+        if hasattr(Qt, 'DockWidgetArea'):      
+            self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.orbital_viewer) # Qt6
+        else:
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbital_viewer) # Qt5
 
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
