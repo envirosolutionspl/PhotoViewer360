@@ -27,17 +27,14 @@ from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication,
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
 from qgis.core import *
-from PyQt5 import QtWidgets, QtCore
-from PyQt5 import uic
+from qgis.PyQt import QtWidgets, QtCore, uic
 import processing
 
 from . import plugin_dir, temp_dir
-from .utils import MessageUtils
+from .utils import MessageUtils, QtCompat
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from . import config
-from .utils.log import log
-from .utils.qgsutils import qgsutils
 from functools import partial
 from collections import defaultdict
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -46,7 +43,7 @@ import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
-from PyQt5.QtWidgets import QDialog, QComboBox
+from qgis.PyQt.QtWidgets import QDialog, QComboBox
 from qgis.utils import iface
 import importlib.util
 
@@ -237,8 +234,6 @@ class Geo360:
 
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
-
-        log.initLogging()
 
         # Dodanie narzędzia PhotoViewer360
         self.action = self.addAction(
@@ -736,14 +731,21 @@ class Geo360:
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
-            msgBox = QMessageBox(QMessageBox.Information, "Informacja",
-                                 "Plik już istnieje.\n"
-                                 "Czy chcesz stworzyć nowy plik (stary plik GPKG zostanie usunięty)?\n"
-                                 "Czy chcesz dopisać dane do starego pliku?")
+            msgBox = QMessageBox(self.iface.mainWindow())
+            msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
+            msgBox.setWindowTitle("Informacja")
+            msgBox.setText(
+                "Plik już istnieje.\n"
+                "Czy chcesz stworzyć nowy plik (stary plik GPKG zostanie usunięty)?\n"
+                "Czy chcesz dopisać dane do starego pliku?"
+            )
 
-            nowy_plik_button = msgBox.addButton("Nowy plik", QtWidgets.QMessageBox.ApplyRole)
-            dopisanie_plik_button = msgBox.addButton("Dopisanie do pliku", QtWidgets.QMessageBox.ApplyRole)
-            anuluj_button = msgBox.addButton("Anuluj", QtWidgets.QMessageBox.ResetRole)
+            zatwierdz_role = QtCompat.qmessageboxApplyRole(QtWidgets)
+            anuluj_role = QtCompat.qmessageboxResetRole(QtWidgets)
+
+            nowy_plik_button = msgBox.addButton("Nowy plik", zatwierdz_role)
+            dopisanie_plik_button = msgBox.addButton("Dopisanie do pliku", zatwierdz_role)
+            anuluj_button = msgBox.addButton("Anuluj", anuluj_role)
             msgBox.exec_()
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
@@ -856,7 +858,8 @@ class Geo360:
             parent=self,
         )
 
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbital_viewer)
+        pozycja_dockwidget = QtCompat.rightDockwidgetArea(Qt)
+        self.iface.addDockWidget(pozycja_dockwidget, self.orbital_viewer)
 
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
