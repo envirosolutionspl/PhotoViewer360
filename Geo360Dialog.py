@@ -579,15 +579,13 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
         if event.key() == Qt.Key_Escape:
-            self.cef_widget.showNormal()  # po przyciśnięciu ESC, wychodzimy z trybu FullSreen
-            self.setWindowState(self.normal_window_state)
-            self.setFloating(False)
-            self.is_window_full_screen = False
+            self.setFullScreen()
+            self.btn_fullScreen.setChecked(False)
 
     def setFullScreen(self):
         """Funkcja odpowiedzialna za przycisk do przeglądania zdjęć w trybie pełnoekranowym"""
 
-        if not self.isWindowFullScreen:
+        if not self.is_window_full_screen:
             self.setFloating(True)
             self.normal_window_state = self.windowState()
             self.setWindowState(Qt.WindowState.WindowFullScreen)
@@ -596,7 +594,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         else:
             self.gl_widget.showNormal()
-            self.setWindowState(self.normalWindowState)
+            self.setWindowState(self.normal_window_state)
             self.setFloating(False)
             self.is_window_full_screen = False
 
@@ -604,7 +602,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""
 
         image_path, extencion = QFileDialog.getSaveFileName(
-            self.cef_widget,
+            self.gl_widget,
             "Wskaż lokalizacje zrzutu ekranu",
             "",
             "PNG(*.png);;JPEG(*.jpg)",
