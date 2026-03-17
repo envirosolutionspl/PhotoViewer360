@@ -747,14 +747,6 @@ class QgsMapUtils(object):
         return False
 
     @staticmethod
-    def showUserAndLogMessage(
-        before, text="", level=Qgis.Info, duration=3, onlyLog=False
-    ):
-        """Show user & log info/warning/error messages"""
-        if not onlyLog and iface:
-            iface.messageBar().popWidget()
-            iface.messageBar().pushMessage(before, text, level=level, duration=duration)
-    @staticmethod
     def getToFeature(layer, ide):
         """Get To feature by ID"""
         if layer:

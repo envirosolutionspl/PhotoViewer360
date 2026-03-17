@@ -49,7 +49,7 @@ from qgis.PyQt.QtGui import QColor
 from . import config
 from .geom.transformgeom import transformGeometry
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
-from .utils import QgsMapUtils
+from .utils import QgsMapUtils, MessageUtils
 from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
 from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore
@@ -173,9 +173,9 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.current_image = self.GetImage()
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
-            QgsMapUtils.showUserAndLogMessage(
-                u"Informacja: ",
-                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
+            MessageUtils.pushWarning(
+                self.iface,
+                "Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
             self.resetQgsRubberBand()
             self.ChangeUrlViewer(self.DEFAULT_EMPTY)
@@ -204,7 +204,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def CreateViewer(self):
         """Funkcja odpowiadająca za załadowanie okna Street View (okna ze zdjęciem)"""
 
-        QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
+        MessageUtils.pushLogInfo("Create viewer")
 
         self.cef_widget = QWebView()
         self.cef_widget.setContextMenuPolicy(Qt.NoContextMenu)
@@ -235,7 +235,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
     def CopyFile(self, src):
         """Funkcja do kopiowania zdjęcia na serwer lokalny"""
-        QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
+        MessageUtils.pushLogInfo("Copying image")
 
         src_dir = src
         dst_dir = self.plugin_path + "/viewer"
@@ -413,10 +413,10 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
                 path = os.path.normpath(os.path.join(path_project, path))
 
         except Exception:
-            QgsMapUtils.showUserAndLogMessage(u"Information: ", u"Column not found.")
+            MessageUtils.pushWarning(self.iface, "Nie znaleziono wymaganej kolumny atrybutów.")
             return
 
-        QgsMapUtils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
+        MessageUtils.pushLogInfo(str(path))
         
         return path
         
@@ -476,9 +476,9 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         self.current_image = self.GetImage()
         # sprawdzenie czy istnieje ścieżka do zdjęcia
         if os.path.exists(self.current_image) is False:
-            QgsMapUtils.showUserAndLogMessage(
-                u"Informacja: ",
-                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
+            MessageUtils.pushWarning(
+                self.iface,
+                "Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
             )
             self.ChangeUrlViewer(self.DEFAULT_EMPTY)
             self.resetQgsRubberBand()
