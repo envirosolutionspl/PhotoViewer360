@@ -46,10 +46,27 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor
+from .constants import (
+    IP,
+    PORT,
+    COLUMN_YAW,
+    COLUMN_NAME,
+    HOTSPOT_BUFFER_RADIUS_M,
+    CRS_EPSG_2180,
+    CRS_EPSG_4326,
+    CRS_2180_PROJ_OPERATION,
+    VIEWER_FILES,
+    VIEWER_CURRENT_IMAGE_FILENAME,
+    SERVER_DIRECTORY,
+    EARTH_RADIUS_KM,
+)
+from . import PLUGIN_NAME as plugin_name
 from . import config
 from .geom.transformgeom import TransformGeometry
+
 from .gui.ui_orbitalDialog import Ui_orbitalDialog
 from .utils import QgsMapUtils, MessageUtils
+
 from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
 from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore
@@ -117,15 +134,10 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         self.setupUi(self)
 
-        self.DEFAULT_URL = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/viewer.html"
-        )
-        self.DEFAULT_EMPTY = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/none.html"
-        )
-        self.DEFAULT_BLANK = (
-                "http://" + config.IP + ":" + str(config.PORT) + "/blank.html"
-        )
+        base_url = f"http://{IP}:{PORT}"
+        self.DEFAULT_URL = base_url + VIEWER_FILES["VIEWER"]
+        self.DEFAULT_EMPTY = base_url + VIEWER_FILES["NONE"]
+        self.DEFAULT_BLANK = base_url + VIEWER_FILES["BLANK"]
 
         # opcja setFullScreen
         self.is_window_full_screen = False
@@ -230,7 +242,8 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def removeImage(self):
         """Usunięcie zdjęcia z serwera lokalnego"""
         try:
-            os.remove(self.plugin_path + "/viewer/image.jpg")
+            image_path = os.path.join(self.plugin_path, SERVER_DIRECTORY.strip("/"), VIEWER_CURRENT_IMAGE_FILENAME)
+            os.remove(image_path)
         except OSError:
             pass
 
@@ -239,12 +252,12 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         MessageUtils.pushLogInfo("Copying image")
 
         src_dir = src
-        dst_dir = self.plugin_path + "/viewer"
+        dst_dir = os.path.join(self.plugin_path, SERVER_DIRECTORY.strip("/"))
 
         # Copy image in local folder
         a = self.current_image
         name_img = basename(a)
-        dst_dir = dst_dir + "/" + "image.jpg"
+        dst_dir = os.path.join(dst_dir, VIEWER_CURRENT_IMAGE_FILENAME)
 
         try:
             os.remove(dst_dir)
@@ -256,18 +269,19 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         except OSError:
             QgsMessageLog.logMessage(
                 "Błąd podczas importowania zdjęcia do okna przeglądarki.",
-                "PhotoViewer360",
+                plugin_name,
                 level=Qgis.Critical
             )
             self.iface.messageBar().pushMessage(
-                "PhotoViewer360",
+                plugin_name,
                 "Błąd podczas importowania zdjęcia do okna przeglądarki.",
                 level=Qgis.Critical,
                 duration=10
             )
 
         # utworzenie pliku html z danymi potrzebnymi do wyświetlenia informacji o zdjęciu
-        with open(self.plugin_path + "/viewer/file_metadata.html", "w") as file_metadata:
+        metadata_path = os.path.join(self.plugin_path, SERVER_DIRECTORY.strip("/"), VIEWER_FILES["METADATA"].strip("/"))
+        with open(metadata_path, "w") as file_metadata:
 
             # zebranie danych potrzebnych do wyświetlenia informacji o zdjęciu
             date_time = "Brak daty"  # domyślna wartość
@@ -321,8 +335,8 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
                     featureLimit=-1,
                     geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid
                 ),
-                'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:2180'),
-                'OPERATION': '+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=tmerc +lat_0=0 +lon_0=19 +k=0.9993 +x_0=500000 +y_0=-5300000 +ellps=GRS80',
+                'TARGET_CRS': QgsCoordinateReferenceSystem(CRS_EPSG_2180),
+                'OPERATION': CRS_2180_PROJ_OPERATION,
                 'OUTPUT': 'TEMPORARY_OUTPUT'
             }
         )
@@ -331,7 +345,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         bufor_2180 = processing.run(
             "native:buffer", {
                 'INPUT': list(selected_feature_2180.values())[0],
-                'DISTANCE': 15,
+                'DISTANCE': HOTSPOT_BUFFER_RADIUS_M,
                 'SEGMENTS': 5,
                 'END_CAP_STYLE': 0,
                 'JOIN_STYLE': 0,
@@ -400,14 +414,14 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
     def getImage(self):
         """Funkcja odpowiedzialna za znalezienie ścieżki do zdjęcia"""
 
-        self.new_bering = self.selected_features.attribute(config.COLUMN_YAW)
+        self.new_bering = self.selected_features.attribute(COLUMN_YAW)
 
         self.getPointsToHotspot()
 
         try:
             path = QgsMapUtils.getAttributeFromFeature(
                 self.selected_features,
-                config.COLUMN_NAME,
+                COLUMN_NAME,
             )
             if not os.path.isabs(path):  # Relative Path to Project
                 path_project = QgsProject.instance().readPath("./")
@@ -428,12 +442,11 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         lon1 = radians(float(lon1))
         lat2 = radians(float(lat2))
         lon2 = radians(float(lon2))
-        R = 6373.0
         dlon = lon2 - lon1
         dlat = lat2 - lat1
         a = (sin(dlat/2))**2 + cos(lat1) * cos(lat2) * (sin(dlon/2))**2
         c = 2 * atan2(sqrt(a), sqrt(1-a))
-        distance = R * c * 1000
+        distance = EARTH_RADIUS_KM * c * 1000
 
         return distance
 
@@ -546,7 +559,7 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
         if self.current_direction is not None: # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
             self.bearing = str(self.bearing_current * -180 / math.pi)
         else: # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
-            self.bearing = self.selected_features.attribute(config.COLUMN_YAW)
+            self.bearing = self.selected_features.attribute(COLUMN_YAW)
 
         original_point = self.selected_features.geometry().asPoint()
 
@@ -718,10 +731,11 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
 
         # Transform Point
         original_point = self.selected_features.geometry().asPoint()
+
+        self.actual_point_dx = QgsMapUtils.convertProjection(
             original_point.x(),
             original_point.y(),
-        self.actual_point_dx = QgsMapUtils.convertProjection(
-            "EPSG:4326",
+            CRS_EPSG_4326,  
             self.canvas.mapSettings().destinationCrs().authid(),
         )
 
@@ -776,6 +790,6 @@ class Geo360Dialog(QDockWidget, Ui_orbitalDialog):
             self.position_int.reset()
             self.position_dx.reset()
             self.actual_point_orientation.reset()
-        except Exception:
-            print("exception remove rubbeband")
-            None
+        except Exception as exc:
+            log.warning(f"Exception while removing rubberband: {exc}")
+

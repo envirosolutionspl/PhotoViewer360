@@ -1,5 +1,7 @@
 from datetime import datetime
 
+ENV_MENU_NAME = "EnviroSolutions"
+
 DEFAULT_ENCODING = 'utf-8'
 
 # url do sprawdzania połączenia z internetem
@@ -37,8 +39,6 @@ DEFAULT_REDIRECT_POLICY = 1
 ERR_TIMEOUT = 'TimeoutError'
 ERR_NONE = 'NoError'
 ERR_CANCELED = 'OperationCanceledError'
-STATUS_SUCCESS = 'brak_bledow'
-STATUS_CANCELED = 'anulowano'
 
 # Komunikaty sieciowe
 MSG_DOWNLOAD_CANCELED = "Pobieranie zostało anulowane."
@@ -50,13 +50,6 @@ MSG_FILE_WRITE_ERROR = "Błąd zapisu do pliku: {}"
 MSG_JSON_DECODE_ERROR = "Błąd JSON: {}"
 MSG_NO_CONNECTION = "Brak połączenia z internetem."
 # =============================
-
-# minimalny rozmiar pliku do pobrania danych (~9KB)
-MIN_FILE_SIZE = 9000
-
-CURRENT_YEAR = datetime.now().year
-MIN_YEAR_BUILDINGS_3D = 1970
-OKRES_DOSTEPNYCH_DANYCH_LOD = range(MIN_YEAR_BUILDINGS_3D, CURRENT_YEAR + 1)
 
 FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
 
@@ -75,3 +68,87 @@ INDUSTRIES = {
     "it": "IT",
     "n": "Nieruchomości"
 }
+
+# Properties
+COLUMN_NAME = "sciezka_zdjecie"
+COLUMN_YAW = "azymut"
+
+# Server
+SERVER_DIRECTORY = "/viewer"
+VIEWER_FILES = {
+    "VIEWER": "/viewer.html",
+    "NONE": "/none.html",
+    "BLANK": "/blank.html",
+    "METADATA": "/file_metadata.html",
+}
+VIEWER_CURRENT_IMAGE_FILENAME = "image.jpg"
+
+# Images
+UI_PLUGIN_ICON_PATH = "/images/ikona_wtyczki.svg"
+UI_TARGET_ICON_PATH = "/images/target.png"
+UI_SMALL_CURSOR_PATH = "/images/small_celownik.png"
+
+# Panorama Viewer
+IP = "127.0.0.1"
+PORT = 1520
+
+TEMPORATORY_FILES_LIST = (
+    'overwrite.gpkg',
+    'duplicates.gpkg',
+    'no_duplicates.gpkg'
+)
+
+GPKP_COLUMNS_DELETE_LIST = (
+    'altitude',
+    'rotation'
+)
+
+GPKP_COLUMNS_ADD_LIST = (
+    'nr_drogi',
+    'nazwa_ulicy',
+    'numer_odcinka',
+    'kilometraz'
+)
+
+GPKP_COLUMNS_CHANGE_DICT = {
+    "photo": 'sciezka_zdjecie',
+    "filename": 'nazwa_zdjecia',
+    "directory": "nazwa_folderu",
+    "direction": 'azymut',
+    "longitude": 'dlugosc_geog',
+    "latitude": 'szerokosc_geog',
+    "timestamp": 'data_wykonania'
+}
+
+GPKG_FILTER_EXTENSION = "geoPackage(*.gpkg)"
+
+DEFAULT_YAW_DEGREES = 310
+HOTSPOT_BUFFER_RADIUS_M = 15
+DUPLICATES_PREVIEW_LIMIT = 20
+
+PROGRESS = {
+    "IMPORT_START": 5,
+    "IMPORT_AFTER_TOOL": 40,
+    "IMPORT_ATTRIBUTES_DONE": 95,
+    "DUPLICATES_BEFORE_MERGE": 96,
+    "DUPLICATES_AFTER_MERGE": 98,
+    "COMPLETE": 100,
+}
+
+# CRS codes
+CRS_EPSG_2180 = "EPSG:2180"
+CRS_EPSG_4326 = "EPSG:4326"
+CRS_2180_PROJ_OPERATION = (
+    "+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad "
+    "+step +proj=tmerc +lat_0=0 +lon_0=19 +k=0.9993 "
+    "+x_0=500000 +y_0=-5300000 +ellps=GRS80"
+)
+
+EARTH_RADIUS_KM = 6373.0
+
+QGIS_SETTINGS_KEYS = {
+    "PARALLEL_RENDERING": "/qgis/parallel_rendering",
+    "OPENCL_ENABLED": "/core/OpenClEnabled",
+}
+
+QGIS_FEED_MIN_VERSION_INT = 31000
