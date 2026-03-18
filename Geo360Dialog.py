@@ -25,6 +25,7 @@ import math
 import processing
 import os
 from os.path import basename
+import time
 from qgis.core import (
     QgsPointXY,
     QgsProject,
@@ -56,6 +57,7 @@ from qgis.PyQt import QtCore
 # from PyQt5 import QtNetwork
 
 from .modules.viewer_widget import ViewerWidget
+from .utils import MessageUtils
 
 from math import sin, cos, sqrt, atan2, radians
 import shutil
@@ -153,14 +155,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.gl_widget = None
 
         # otrzymanie ściezki do zdjęcia z warstwy  
-        self.current_image = self.getImage()
+        self.is_current_image_exists = False
+        self.current_image, self.is_current_image_exists = self.getImagePathFromLayer()
 
-        if os.path.exists(self.current_image) is False:
-            qgsutils.showUserAndLogMessage(
-                u"Informacja: ",
-                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
-            )
-            self.current_image = os.path.join(self.plugin_path, "viewer", "noImage.png") 
+        if self.is_current_image_exists is False:
+            MessageUtils.pushLogInfo("Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.")
 
         # pobranie danych z warstwy potrzebnych do wyświetlenia dymka
         self.copyInfoAboutFile()
@@ -170,44 +169,34 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         
         # ustawienie RubberBand
         self.resetQgsRubberBand()
-        self.setPosition()
+        self.setQgsRubberBandPosition()
     
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
-
         self.resetQgsRubberBand()
 
-    def onNewData(self, data):
-        try:
-            newYaw = float(data[0].replace("yaw=",""))
-            self.updateOrientation(yaw=newYaw)
-        except:
-            None
-
     def updateViewerDialog(self, features_id=None, layer=None, name_layer=""):
+        """
+        Aktualizacja okna viewera po wybraniu nowego źródła danych
+        """
         self.use_layer = name_layer
         self.layer = layer
         self.features_id = features_id
         self.selected_features = qgsutils.getToFeature(self.layer, self.features_id)
-        # ustawienie RubberBand
-        self.resetQgsRubberBand()
-        # self.UpdateOrientation()
-        self.setPosition()
 
-        # otrzymanie ściezki do zdjęcia
-        self.current_image = self.getImage()
+        # resetowanie RubberBand
+        self.resetQgsRubberBand()
+
+        # otrzymanie ściezki do zdjęcia i zaczytanie nowych danych
+        self.current_image, self.is_current_image_exists = self.getImagePathFromLayer()
+        self.copyInfoAboutFile()
+
+        # ustawienie RubberBand jeśli ma się co wyświetlać
+        if self.is_current_image_exists:
+            self.setQgsRubberBandPosition()
+
+        self.updateViewer()
         
-        if os.path.exists(self.current_image):
-            # stworzenie okna Street View (okna ze zdjeciem)
-            self.copyInfoAboutFile()
-            self.updateViewer()
-        else:
-            qgsutils.showUserAndLogMessage(
-                u"Information: ", u"There is no associated image."
-            )
-            self.resetQgsRubberBand()
-            self.current_image = os.path.join(self.plugin_path, "viewer", "noImage.png")
-            self.updateViewer()
 
     def updateViewer(self):
         """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
@@ -215,62 +204,36 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         # TODO Komunikat na nasze
         qgsutils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
 
+        geom = self.selected_features.geometry()
+        x = geom.asPoint().x()
+        y = geom.asPoint().y()
+        azymut = self.selected_features.attributes()[4]
+
         if self.gl_widget is not None: 
-            # Wczytanie danych dla dymka
+            # Wgranie do widgetu danych dla dymka
             self.gl_widget.setDataAboutPhoto(
                 self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
             ) 
+            self.getPointsToHotspot()
             # Ustawienie danych geometrycznych i wymuszenie aktualizacji okna
             self.gl_widget.updateViewerWigdet(
-                374.3174, 0.0, 20.383704648699087, 53.099860443387755
+                azymut, 0.0, x, y
             )
+            
         else:
             # Utworzenie widgetu wraz ze wszystkimi danymi potrzebnymi do poprawnego wyswietlenia
             self.gl_widget = ViewerWidget(
                 self, self.iface,
-                374.3174, 0.0, 20.383704648699087, 53.099860443387755,
+                azymut, 0.0, x, y,
                 self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
             )
+            # while self.gl_widget.is_widget_loaded:
+            #    time.sleep(10)
+            self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
 
-        # TODO Komunikat na nasze
-        QgsMessageLog.logMessage(
-                "Zaktualizowano Widget OpenGL",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-
-    def createViewer(self):
-        """Funkcja odpowiadająca za załadowanie okna Street View (okna ze zdjęciem)"""
-
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
-
-        self.cef_widget = QWebView()
-        self.cef_widget.setContextMenuPolicy(Qt.NoContextMenu)
-
-        self.cef_widget.settings().setAttribute(QWebSettings.JavascriptEnabled, True)
-        pano_view_settings = self.cef_widget.settings()
-        pano_view_settings.setAttribute(QWebSettings.WebGLEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.Accelerated2dCanvasEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.JavascriptEnabled, True)
-
-        """ połaczenie z javascriptem"""
-
-        self.page = _ViewerPage()
-        self.page.mainFrame().addToJavaScriptWindowObject("pythonSlot", self)
-        self.page.newData.connect(self.onNewData)
-        self.cef_widget.setPage(self.page)
-
-        self.cef_widget.load(QUrl(self.DEFAULT_URL))
-        self.ViewerLayout.addWidget(self.cef_widget, 1, 0)
-
-    def removeImage(self):
-        """Usunięcie zdjęcia z serwera lokalnego"""
-        try:
-            os.remove(self.plugin_path + "/viewer/image.jpg")
-        except OSError:
-            pass
+        MessageUtils.pushLogInfo("Zaktualizowano Widget OpenGL.'")
+                
 
     def copyInfoAboutFile(self):
         """ 
@@ -278,13 +241,12 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 
         """
 
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
+        MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy...")
 
         # Copy image in local folder
         a = self.current_image
         name_img = basename(a)
-        QgsMessageLog.logMessage("copyInfoAboutFile.basename: "+name_img,"PhotoViewer360",level=Qgis.Info)
-       
+        
         # zebranie danych potrzebnych do wyświetlenia informacji o zdjęciu
         self.data_wykonania = "" 
         self.nr_drogi = ""
@@ -299,73 +261,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 self.nazwa_ulicy = str(feature.attributes()[9])
                 self.numer_odcinka = str(feature.attributes()[10])
                 self.kilometraz = str(feature.attributes()[11])
-
-    def copyFile(self, src):
-        """Funkcja do kopiowania zdjęcia na serwer lokalny"""
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Copying image", onlyLog=True)
-
-        src_dir = src
-        dst_dir = self.plugin_path + "/viewer"
-
-        # Copy image in local folder
-        a = self.current_image
-        name_img = basename(a)
-        dst_dir = dst_dir + "/" + "image.jpg"
-
-        try:
-            os.remove(dst_dir)
-        except OSError:
-            pass
-
-        try:
-            shutil.copy(src_dir, dst_dir)
-        except OSError:
-            QgsMessageLog.logMessage(
-                "Błąd podczas importowania zdjęcia do okna przeglądarki.",
-                "PhotoViewer360",
-                level=Qgis.Critical
-            )
-            self.iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Błąd podczas importowania zdjęcia do okna przeglądarki.",
-                level=Qgis.Critical,
-                duration=10
-            )
-
-        # utworzenie pliku html z danymi potrzebnymi do wyświetlenia informacji o zdjęciu
-        with open(self.plugin_path + "/viewer/file_metadata.html", "w") as file_metadata:
-
-            # zebranie danych potrzebnych do wyświetlenia informacji o zdjęciu
-            date_time = "Brak daty"  # domyślna wartość
-            for feature in self.layer.getFeatures():
-
-                if feature.attributes()[2] == name_img.replace(".jpg",""):
-                    date_time = feature.attributes()[7]
-                    date_time = str(date_time.toString(Qt.ISODate)).replace("T", " ")
-                    nr_drogi = str(feature.attributes()[8])
-                    nazwa_ulicy = str(feature.attributes()[9])
-                    numer_odcinka = str(feature.attributes()[10])
-                    kilometraz = str(feature.attributes()[11])
-
-            # uzupełnienie pliku "file_metadata.html" odpowiednią strukturą HTML (zawiera dane o zdjęciu oraz styl wyświetlenia tych danych)
-            if nazwa_ulicy == "NULL":
-                file_metadata.write(
-                    '<!DOCTYPE html>' + '\n' + '<html lang="pl">' + '\n' + '<head>' + '\n' + '   <meta charset="UTF-8">' + '\n' + '  <title>Photos metadata</title>' + '\n' + '</head>' + '\n' + '<body>' + '\n' + ' <div id="photo_data" style="position: absolute; top: 0; left: 0px; padding-top: 0px;width: 250px; max-height: 100%; overflow: hidden; margin-left: 0; background-color: rgba(58,68,84,0.8); color:white; font-family: Calibri; line-height: 0.7;">' + '\n')
-                file_metadata.write('<p style="margin-left: 5px;">' + "<b>" + "Numer drogi: " + "</b>" + "</p>")
-                file_metadata.write('<p style="margin-left: 5px;">' + nr_drogi + "</p>")
-            else:
-                file_metadata.write(
-                    '<!DOCTYPE html>' + '\n' + '<html lang="pl">' + '\n' + '<head>' + '\n' + '   <meta charset="UTF-8">' + '\n' + '  <title>Photos metadata</title>' + '\n' + '</head>' + '\n' + '<body>' + '\n' + ' <div id="photo_data" style="position: absolute; top: 0; left: 0px; padding-top: 0px;width: 220px; max-height: 100%; overflow: hidden; margin-left: 0; background-color: rgba(58,68,84,0.8); color:white; font-family: Calibri; line-height: 0.7;">' + '\n')
-                file_metadata.write('<p style="margin-left: 5px;">' + "<b>" + "Numer drogi: " + "</b>" + nr_drogi + "</p>")
-                file_metadata.write(
-                    '<p style="margin-left: 5px;">' + "<b>" + "Nazwa ulicy: " + "</b>" + nazwa_ulicy + "</p>")
-                file_metadata.write(
-                    '<p style="margin-left: 5px;">' + "<b>" + "Numer odcinka: " + "</b>" + numer_odcinka + "</p>")
-                file_metadata.write('<p style="margin-left: 5px;">' + "<b>" + "Kilometraż: " + "</b>" + kilometraz + "</p>")
-
-            file_metadata.write('<p style="margin-left: 5px;">' + "<b>" + "Data: " + "</b>" + date_time + "</p>")
-            file_metadata.write("</div>" + "\n" + "    </div>" + "\n" + "</body>" + "\n" + "</html>")
-
+        if self.nazwa_ulicy == "NULL":
+            MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy... Dane niekompletne.")
+        else:
+            MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy... Sukces.")
 
     def getPointsToHotspot(self):
         """Wybranie z warstwy hotspotów na podstawie utworzonego 15 metrowego buforu"""
@@ -475,12 +374,15 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         # przypisanie do zmiennej "self.old_bering" azumtu poprzedniego punktu z hotspot'a
         self.old_bering  = self.new_bering
 
-    def getImage(self):
-        """Funkcja odpowiedzialna za znalezienie ścieżki do zdjęcia"""
+    def getImagePathFromLayer(self):
+        """
+        Funkcja pobiera ścieżkę do pliku z wybranej warstwy QGIS
+
+        Returns:
+            (str, boolean): Zwraca nazwę pliku z warstwy oraz informację, czy plik istnieje  
+        """
 
         self.new_bering = self.selected_features.attribute(config.COLUMN_YAW)
-
-        self.getPointsToHotspot()
 
         try:
             path = qgsutils.getAttributeFromFeature(
@@ -496,8 +398,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             return
 
         qgsutils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
-        
-        return path
+        path_exists = os.path.exists(path)
+        return path, path_exists
         
     def distanceFunction(self, lat1, lat2, lon1, lon2):
         """Funkcja obliczająca dystans punktami"""
@@ -515,71 +417,40 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         return distance
 
-    def changeUrlViewer(self, new_url):
-        """Funkcja odpowiadająca za załadowanie odpowiedniego pliku HTML"""
-        self.cef_widget.load(QUrl(new_url))
+    def reloadView(self, new_id):
+        """
+        Odświeżenie widoku zdjęcia po kliknięciu Hot Spota
+        
+        Parameters:
+            int: FeatureID, dla którego zostanie zaktualizowany widok
+        """
 
-    def reloadView(self, newId):
-        """Odświeżenie widoku zdjęcia (okna Street View)"""
-
-        # czyszczenie obiektów cef_widget i page (zapobieganie nadpisania obiektów w pamięci)
-        self.cef_widget.deleteLater()
-        self.page.deleteLater()
-
-        self.cef_widget = QWebView()
-        self.cef_widget.setContextMenuPolicy(Qt.NoContextMenu)
-
-        self.cef_widget.settings().setAttribute(QWebSettings.JavascriptEnabled, True)
-        pano_view_settings = self.cef_widget.settings()
-        pano_view_settings.setAttribute(QWebSettings.WebGLEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.DeveloperExtrasEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.Accelerated2dCanvasEnabled, True)
-        pano_view_settings.setAttribute(QWebSettings.JavascriptEnabled, True)
-
-        """ połaczenie z javascriptem"""
-
-        self.page = _ViewerPage()
-        self.page.mainFrame().addToJavaScriptWindowObject("pythonSlot", self)
-        self.page.newData.connect(self.onNewData)
-        self.cef_widget.setPage(self.page)
-
-
-        self.cef_widget.load(QUrl(self.DEFAULT_URL))
-        self.ViewerLayout.addWidget(self.cef_widget, 1, 0)
-
-        self.selected_features = qgsutils.getToFeature(self.layer, newId)
+        self.features_id = new_id
+        self.selected_features = qgsutils.getToFeature(self.layer, new_id)
 
         # przypisanie danych z poprzedniego hotspotu do nowych zmiennych
         self.current_direction = self.bearing_current # w celu zachowania kierunku radaru
-
-        self.current_image = self.getImage()
-        # sprawdzenie czy istnieje ścieżka do zdjęcia
-        if os.path.exists(self.current_image) is False:
-            qgsutils.showUserAndLogMessage(
-                u"Informacja: ",
-                u"Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.",
-            )
-            self.changeUrlViewer(self.DEFAULT_EMPTY)
-            self.resetQgsRubberBand()
-            return
-
-        # ustawienie RubberBand
+        
+        # resetowanie RubberBand
         self.resetQgsRubberBand()
-        self.updateOrientation()
-        self.setPosition()
 
-        # skopiowanie zdjęcia na dysk lokalny
-        self.copyFile(self.current_image)
+        # otrzymanie ściezki do zdjęcia i zaczytanie nowych danych
+        self.current_image, self.is_current_image_exists = self.getImagePathFromLayer()
+        self.copyInfoAboutFile()
 
-        self.changeUrlViewer(self.DEFAULT_URL)
+        # ustawienie RubberBand jeśli ma się co wyświetlać
+        if self.is_current_image_exists:
+            self.setQgsRubberBandPosition()
+
+        self.updateViewer()
 
         # zoom do punktu po wybraniu hotspot'u
-        qgsutils.zoomToFeature(self.canvas, self.layer, newId)
+        qgsutils.zoomToFeature(self.canvas, self.layer, new_id)
 
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
         if event.key() == Qt.Key_Escape:
-            self.cef_widget.showNormal()  # po przyciśnięciu ESC, wychodzimy z trybu FullSreen
+            self.gl_widget.showNormal()  # po przyciśnięciu ESC, wychodzimy z trybu FullSreen
             self.setWindowState(self.normal_window_state)
             self.setFloating(False)
             self.is_window_full_screen = False
@@ -604,7 +475,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""
 
         image_path, extencion = QFileDialog.getSaveFileName(
-            self.cef_widget,
+            self.gl_widget,
             "Wskaż lokalizacje zrzutu ekranu",
             "",
             "PNG(*.png);;JPEG(*.jpg)",
@@ -613,8 +484,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         # gdy użytkownik nie wskaże pliku -> nic nie rób
         if not image_path:
             return
-
+        
+        self.gl_widget.setScreenShotMode(True)
         pixmap = self.gl_widget.grab()
+        self.gl_widget.setScreenShotMode(False)
         pixmap.save(image_path)
         os.startfile(image_path)
         #image.show()
@@ -797,7 +670,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.dumLayer
         )
 
-    def setPosition(self):
+    def setQgsRubberBandPosition(self):
         """ustawienie pozycji RubberBand (rysunku łuku)"""
 
         # Transform Point
@@ -853,7 +726,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.canvas.refresh()
         self.iface.actionPan().trigger()
         self.parent.orbital_viewer = None
-        self.removeImage()
 
     def resetQgsRubberBand(self):
         """Usunięcie łuku wskazującego kierunek zdjęcia"""

@@ -1,5 +1,6 @@
 import math
 import os
+import time
 
 from OpenGL.GL import (
     GL_COLOR_BUFFER_BIT,
@@ -141,7 +142,7 @@ class ViewerWidget(QOpenGLWidget):
         QSurfaceFormat.setDefaultFormat(format)
         
         super().__init__(parent)
-        self.showDescription = True
+        self.show_description = True
         self.iface = iface
         self.x = x
         self.y = y
@@ -162,7 +163,9 @@ class ViewerWidget(QOpenGLWidget):
         self.new_image_description_data = None
         
         self.is_widget_loaded = False
+        self.is_screen_shot_mode_activated = False
         self.is_texture_loaded = False
+
         try:
             self.image = Image.open(self.nazwa_pliku)
         except Exception:
@@ -170,7 +173,7 @@ class ViewerWidget(QOpenGLWidget):
                 "Unable to load the image, please verify image's source",
                 level=Qgis.Info,
             )
-        self.image_width, self.image_height = self.image.size
+            
         self.yaw = 90 - (direction - ((450 - angle_degrees) % 360))
         self.pitch = 0
         self.sensitivity = 1
@@ -190,6 +193,8 @@ class ViewerWidget(QOpenGLWidget):
         """
         self.is_texture_loaded = False
         self.nazwa_pliku = nazwa_pliku
+        if os.path.exists(nazwa_pliku) is False:
+            nazwa_pliku = os.path.join(plugin_dir, "images", "no_image.jpg")
         try:
             # Wczytywanie zdjęcia equiprostokątnego do pamięci
             image = Image.open(nazwa_pliku)
@@ -251,7 +256,10 @@ class ViewerWidget(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         self.renderScene()
-        self.parent.updateOrientation(self.yaw-90.0)
+
+        # wyzwalanie aktualizacji QgsRubberBand jeśli ma to sens
+        if self.parent.is_current_image_exists:
+            self.parent.updateOrientation(self.yaw-90.0)
 
         # zmienna zapobiegająca ładowaniu obiektów do OpenGL przed końcem inicjacji
         self.is_widget_loaded = True
@@ -266,7 +274,7 @@ class ViewerWidget(QOpenGLWidget):
         self.drawSphere()
         self.drawHotSpots() # obniża hotspoty
         glPopMatrix()
-        if self.showDescription:
+        if self.show_description:
             self.drawDescriptionBalloom()
             pass
 
@@ -303,7 +311,10 @@ class ViewerWidget(QOpenGLWidget):
             glRasterPos(0, 260) # lub glRasterPos(0, 207) - na niektórych konfiguracjach było przesunięcie
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
+            if self.is_screen_shot_mode_activated:
+                glDrawPixels(300, 260, GL_RGB, GL_UNSIGNED_BYTE, self.image_description_data)
+            else:
+                glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
             glDisable(GL_BLEND)
 
             glPopMatrix()
@@ -384,7 +395,10 @@ class ViewerWidget(QOpenGLWidget):
             draw.text((10, 212), "Data:", fill=(0, 0, 0), font=font_bold)
             draw.text((10, 228), data_wykonania, fill=(0, 0, 0), font=font_regular)
 
-        self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
+        if self.is_screen_shot_mode_activated:
+            self.new_image_description_data = image.tobytes("raw", "RGB", 0, -1)
+        else:
+            self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
         return True
 
     def setHotSpots(self, coordinates):
@@ -477,6 +491,12 @@ class ViewerWidget(QOpenGLWidget):
         self.fov -= delta * 0.1
         self.fov = max(30, min(self.fov, 90))
         self.sensitivity = self.fov / 60
+        self.update()
+
+    def setScreenShotMode(self, state):
+        self.is_screen_shot_mode_activated = state
+        self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
+        self.image_description_data = self.new_image_description_data
         self.update()
 
     def recalculate_coordinates(self, x, y, angle, distance):
