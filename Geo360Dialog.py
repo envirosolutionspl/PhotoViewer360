@@ -45,7 +45,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     pyqtSignal
 )
-from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
+from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog, QSizePolicy
 from qgis.PyQt.QtGui import QColor
 from . import config
 from .geom.transformgeom import TransformGeometry
@@ -227,8 +227,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 azymut, 0.0, x, y,
                 self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
             )
-            # while self.gl_widget.is_widget_loaded:
-            #    time.sleep(10)
             self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
 
@@ -277,6 +275,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             x_punktu = geom.asPoint().x()
             y_punktu = geom.asPoint().y()
 
+        """  
         # przeliczenie do układu EPSG: 2180
         selected_feature_2180 = processing.run(
             "native:reprojectlayer", {
@@ -291,6 +290,21 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 'OUTPUT': 'TEMPORARY_OUTPUT'
             }
         )
+        """
+        # testowo system ustawiamy na EPSG:4326, na EPSG:2180 nie działa poza Polską
+        selected_feature_2180 = processing.run(
+            "native:reprojectlayer", {
+                'INPUT': QgsProcessingFeatureSourceDefinition(
+                    self.layer.name(),
+                    selectedFeaturesOnly=True,
+                    featureLimit=-1,
+                    geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid
+                ),
+                'TARGET_CRS':QgsCoordinateReferenceSystem('EPSG:4326'),
+                'CONVERT_CURVED_GEOMETRIES':False,
+                'OPERATION':'+proj=noop',
+                'OUTPUT':'TEMPORARY_OUTPUT'
+            })
 
         # stworzenie bufora o promieniu 15m
         bufor_2180 = processing.run(
@@ -362,8 +376,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             # wyzerowanie kąta o jaki mamy obrócić zdjęcie od północy
             self.yaw_actual = 0
 
-            # usunięcie zaznaczenia selekcji
-            self.layer.removeSelection() 
+        # usunięcie zaznaczenia selekcji
+        self.layer.removeSelection() 
 
         # połączenie z Java Scriptem oraz przekazanie parametrów potrzebnych do wyświetlenia hotspotów
         # self.setXYId(coordinates=list_of_attribute_list)
@@ -450,10 +464,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
         if event.key() == Qt.Key_Escape:
-            # self.gl_widget.showNormal()  # po przyciśnięciu ESC, wychodzimy z trybu FullSreen
-            # self.setWindowState(self.normal_window_state)
-            # self.setFloating(False)
-            # self.is_window_full_screen = False
             self.setFullScreen()
             self.btn_fullScreen.setChecked(False)
 

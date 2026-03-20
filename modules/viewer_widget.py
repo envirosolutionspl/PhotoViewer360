@@ -1,16 +1,14 @@
 import math
 import os
-import time
 
 from OpenGL.GL import (
     GL_COLOR_BUFFER_BIT,
     GL_DEPTH_BUFFER_BIT,
     GL_BLEND,
     GL_LINEAR,
-    GL_LINES,
     GL_MODELVIEW,
-    GL_ONE_MINUS_SRC_ALPHA,
     GL_PROJECTION,
+    GL_ONE_MINUS_SRC_ALPHA,
     GL_RGBA,
     GL_RGB,
     GL_SRC_ALPHA,
@@ -26,13 +24,12 @@ from OpenGL.GL import (
     glClearColor,
     glColor3f,
     glVertex3fv,
-    glColor3fv,
+    glColor3ub,
     glEnable,
     glDisable,
     glEnd,
     glGenerateMipmap,
     glGenTextures,
-    glLineWidth,
     glLoadIdentity,
     glMatrixMode,
     glPopMatrix,
@@ -40,11 +37,17 @@ from OpenGL.GL import (
     glRotatef,
     glTexImage2D,
     glTexParameteri,
-    glTranslatef,
-    glVertex2f,
     glViewport,
     glRasterPos,
-    glDrawPixels
+    glDrawPixels,
+
+    # do wykrywania hotspotów
+    GL_FRAMEBUFFER_SRGB,
+    glGetIntegerv,
+    GL_VIEWPORT,
+    glReadPixels,
+    
+
 )
 
 from OpenGL.GLU import (
@@ -54,15 +57,15 @@ from OpenGL.GLU import (
     gluQuadricTexture,
     gluSphere,
 )
-from PIL import Image
-from PIL import ImageFont, ImageDraw
+
+from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
 
 if int(QtCore.qVersion().split('.')[0]) > 5:
     from PyQt6.QtGui import QSurfaceFormat
     from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 else:
-    from PyQt5.QtGui import QSurfaceFormat
+    from PyQt5.QtGui import QSurfaceFormat, QColorSpace 
     from PyQt5.QtWidgets import QOpenGLWidget
 
 from ..utils import MessageUtils
@@ -71,11 +74,9 @@ from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
-    QgsGeometry,
     QgsPointXY,
     QgsProject,
     QgsUnitTypes,
-    QgsVectorLayer
 )
 
 from .. import plugin_dir
@@ -88,8 +89,6 @@ class ViewerWidget(QOpenGLWidget):
     _QtCore_Qt_CursorShape_OpenHandCursor = None
     _QtCore_Qt_CursorShape_ClosedHandCursor = None
     _QtCore_Qt_CursorShape_WaitCursor = None
-
-    _QtCore_Qt_QSurfaceFormat_OpenGLContextProfile_CompatibilityProfile = None
 
     mouse_x = 0
     mouse_y = 0
@@ -116,14 +115,6 @@ class ViewerWidget(QOpenGLWidget):
         else:
             self._QtCore_Qt_CursorShape_WaitCursor = QtCore.Qt.WaitCursor #Qt5  
 
-        if hasattr(QSurfaceFormat, "OpenGLContextProfile"):
-            self._QtCore_Qt_QSurfaceFormat_OpenGLContextProfile_CompatibilityProfile = \
-                QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile # Qt6
-        else:
-            self._QtCore_Qt_QSurfaceFormat_OpenGLContextProfile_CompatibilityProfile = \
-                QSurfaceFormat.CompatibilityProfile # Qt5
-            
-
     def __init__(
         self, parent, iface,
         direction, angle_degrees, x, y,
@@ -138,9 +129,9 @@ class ViewerWidget(QOpenGLWidget):
         self._obslugaQt5iQt6()
 
         format = QSurfaceFormat()
-        format.setProfile(self._QtCore_Qt_QSurfaceFormat_OpenGLContextProfile_CompatibilityProfile)
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
         QSurfaceFormat.setDefaultFormat(format)
-        
         super().__init__(parent)
         self.show_description = True
         self.iface = iface
@@ -185,6 +176,11 @@ class ViewerWidget(QOpenGLWidget):
         self.coordinates = None
         self.vertices_group = None
         self.faces_group = None
+        self.hotspot_fid = None
+        self.hot_spot_test = False
+        self.hot_spot_last_rgb = 0
+        self.viewport = []
+
         
     def loadTexture(self, nazwa_pliku):
         """
@@ -232,6 +228,8 @@ class ViewerWidget(QOpenGLWidget):
         """
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glEnable(GL_TEXTURE_2D)
+        glEnable(GL_FRAMEBUFFER_SRGB)
+        
         self.loadTexture(self.nazwa_pliku)
         self.setupProjection()
         self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
@@ -247,6 +245,7 @@ class ViewerWidget(QOpenGLWidget):
         gluPerspective(90, self.width() / self.height(), 0.1, 1000)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
+        self.viewport = glGetIntegerv(GL_VIEWPORT)
 
     def paintGL(self):
         """
@@ -256,8 +255,7 @@ class ViewerWidget(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         self.renderScene()
-
-        # wyzwalanie aktualizacji QgsRubberBand jeśli ma to sens
+        # wyzwalanie aktualizacji QgsRubberBand jeśli poprawnie wczytano zdjęcie
         if self.parent.is_current_image_exists:
             self.parent.updateOrientation(self.yaw-90.0)
 
@@ -272,11 +270,15 @@ class ViewerWidget(QOpenGLWidget):
         glPushMatrix()
         self.applyRotation()    
         self.drawSphere()
-        self.drawHotSpots() # obniża hotspoty
+        
+        if self.hot_spot_test:
+            self.drawHotSpotsForTest()
+        else:
+            self.drawHotSpots()
         glPopMatrix()
+        glLoadIdentity()
         if self.show_description:
             self.drawDescriptionBalloom()
-            pass
 
     def applyRotation(self):
         glRotatef(self.pitch, 1, 0, 0)
@@ -285,29 +287,37 @@ class ViewerWidget(QOpenGLWidget):
         glRotatef(90, 0, 0, 1)
 
     def drawSphere(self):
+        glEnable(GL_TEXTURE_2D)
         if hasattr(self, "texture_id") and self.is_texture_loaded:
             glBindTexture(GL_TEXTURE_2D, self.texture_id)
         else:
             print("No texture loaded, drawing without texture.")
         sphere = gluNewQuadric()
         gluQuadricTexture(sphere, True)
-        gluSphere(sphere, 10, 100, 100)
+        gluSphere(sphere, 15, 100, 100)
+        glDisable(GL_TEXTURE_2D)
 
     def drawDescriptionBalloom(self):
         """
-        Rysuje dymek z opisem na oknie OpenGL
+        Rysuje dymek z opisem na oknie OpenGL i testuje kliknięcie w hot spot
         """
         if self.image_description_data is not None:
+            hot_spot_selected = -1
+
             glMatrixMode(GL_PROJECTION)
             glPushMatrix()
             glLoadIdentity()
-            gluOrtho2D(0, self.width(), self.height(), 0)
+
+            gluOrtho2D(0, self.viewport[2], self.viewport[3], 0)
             glMatrixMode(GL_MODELVIEW)
             glPushMatrix()
-            glLoadIdentity()       
+            glLoadIdentity()    
+
+            # aktualizacja danych o wymiarach viewport - przydaje się przy przerzucaniu okna między monitorami o różnym skalowaniu
+            self.viewport = glGetIntegerv(GL_VIEWPORT)   
 
             # Rysowanie dymka z informacjami
-            glColor3fv([1, 1, 1]) 
+            glColor3f(1, 1, 1) 
             glRasterPos(0, 260) # lub glRasterPos(0, 207) - na niektórych konfiguracjach było przesunięcie
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -317,13 +327,39 @@ class ViewerWidget(QOpenGLWidget):
                 glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
             glDisable(GL_BLEND)
 
+            # wykrywanie hotSpotów wewnątrz operacji na bitmapach
+            # obsługa skalowania okien w windows
+            dpi_window_scale = float(self.viewport[3])/float(self.height())
+            p_x = int(float(self.mouse_x) * dpi_window_scale)
+            p_y = int(float(self.mouse_y) * dpi_window_scale)
+
+            # pobranie punktu to testu
+            # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
+            rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
+            if rgb[0] == rgb[1] and rgb[0] == rgb[2]: # interesuje nasz idealny szary
+                # interesuje nas para 215 i 220+index, 215 to kolor hotspotów
+                if rgb[0] == 215 and self.hot_spot_last_rgb in range(220, 220+len(self.hotspot_fid)):
+                    hot_spot_selected = self.hotspot_fid[self.hot_spot_last_rgb-220]
+                elif self.hot_spot_last_rgb == 215 and rgb[0] in range(220, 220+len(self.hotspot_fid)):
+                    hot_spot_selected = self.hotspot_fid[rgb[0]-220]
+                self.hot_spot_last_rgb = rgb[0]
+            else:
+                self.hot_spot_last_rgb = 0
+
+            # finalizacja GL
+            glColor3f(1, 1, 1) 
             glPopMatrix()
             glMatrixMode(GL_PROJECTION)
             glPopMatrix()
-            # glMatrixMode(GL_MODELVIEW)
-            # glMatrixMode(GL_PROJECTION)
-            glLoadIdentity()
-            gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
+            
+            if self.hot_spot_test:
+                self.hot_spot_test = False
+                self.update()
+
+            if hot_spot_selected != -1:
+                self.parent.reloadView(hot_spot_selected)
+                self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
+                MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))
 
             return True
         else:
@@ -336,12 +372,12 @@ class ViewerWidget(QOpenGLWidget):
             self.x = x
             self.y = y
             self.loadTexture(nazwa_pliku)
-            self.setDataAboutPhoto(nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz)
-            self.image_description_data = self.new_image_description_data
+            if self.setDataAboutPhoto(nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
+                self.image_description_data = self.new_image_description_data
             self.update()
             return True
         else:
-            # TODO Komunikat
+            MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
             return False    
         
     def updateViewerWigdet(self, direction, angle_degrees, x, y):
@@ -355,7 +391,7 @@ class ViewerWidget(QOpenGLWidget):
             self.update()
             return True
         else:
-            # TODO Komunikat
+            MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
             return False 
 
     def setDataAboutPhoto(self, nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
@@ -372,13 +408,13 @@ class ViewerWidget(QOpenGLWidget):
         try:
             image = Image.open(os.path.join(plugin_dir, "images", "desc_balloon.png"))
         except Exception:
-            # TODO Komunikat
+            MessageUtils.pushLogCritical("Nie znaleziono ścieżki /images/desc_balloon.png")
             return False
         try:
             font_regular = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Regular.ttf"), 15)
             font_bold = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Bold.ttf"), 15)
         except Exception:
-            # TODO Komunikat
+            MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
             return False
 
         # Generowanie opisu na dymku
@@ -411,9 +447,10 @@ class ViewerWidget(QOpenGLWidget):
             # wczytywanie obiektów hotspotów do pamięci
             self.vertices_group = []
             self.faces_group = []
+            self.hotspot_fid = []
             scale = 0.104 # skalowanie dystansu od obserwatora dla widoku OpenGL
             for hotspot in self.coordinates:
-                if hotspot['distance'] < 0.01:
+                if hotspot['distance'] < 0.01 or hotspot['distance'] > 16.0:
                     continue
                 vertices = []
                 faces = []
@@ -433,6 +470,8 @@ class ViewerWidget(QOpenGLWidget):
                             faces.append(face)
                 self.vertices_group.append(vertices)
                 self.faces_group.append(faces)
+                self.hotspot_fid.append(hotspot['fid'])
+                            
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -448,9 +487,12 @@ class ViewerWidget(QOpenGLWidget):
 
     def mouseReleaseEvent(self, event):
         if not self.moving:
-            # TODO Dodać obsługę kliknięcia w hotSpoty
-            self.update()
             
+            # przeprowadzenie testu kliknięcia w hot spot
+            self.show_description = True # operacje testujące znajdują się w drawDescriptionBalloom()
+            self.hot_spot_test = True
+            self.update()
+
         if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
             self.setCursor(self._QtCore_Qt_CursorShape_OpenHandCursor)
 
@@ -474,18 +516,35 @@ class ViewerWidget(QOpenGLWidget):
         self.prev_dy = dy
 
     def drawHotSpots(self):
+        """
+        Rysowanie hot spotów w kolorze domyślnym
+        """
         if self.vertices_group is not None and self.faces_group is not None:
             for i in range(0, len(self.vertices_group)):
-                
                 if self.vertices_group[i] is not None and self.faces_group[i] is not None:
                     glBegin(GL_TRIANGLES)
+                    glColor3ub(215, 215, 215) # kolor ściśle związany z wykrywaniem kliknięcia
                     for face in self.faces_group[i]:
                         for vertex in face:
-                            glColor3fv([0.7, 0.7, 0.7]) 
                             glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
-                    glColor3fv([1, 1, 1]) 
-                    glEnd()        
+                    glColor3f(1, 1, 1) 
+                    glEnd()   
 
+    def drawHotSpotsForTest(self):
+        """
+        Rysowanie hot spotów w kolorze identyfikującym
+        """
+        if self.vertices_group is not None and self.faces_group is not None:
+            for i in range(0, len(self.vertices_group)):
+                if self.vertices_group[i] is not None and self.faces_group[i] is not None:
+                    glBegin(GL_TRIANGLES)
+                    glColor3ub(220+i, 220+i, 220+i) # kolor ściśle związany z wykrywaniem kliknięcia
+                    for face in self.faces_group[i]:
+                        for vertex in face:
+                            glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
+                    glColor3f(1, 1, 1) 
+                    glEnd()  
+   
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
         self.fov -= delta * 0.1
