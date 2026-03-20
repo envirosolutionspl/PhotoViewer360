@@ -479,6 +479,17 @@ class ViewerWidget(QOpenGLWidget):
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
 
+    def updateRotationData(self, d_rotation, d_zoom, d_pitch):
+        self.yaw += d_rotation
+        self.pitch -= d_pitch
+        self.pitch = min(max(self.pitch, -90), 90)
+        self.fov -= d_zoom
+        self.fov = max(30, min(self.fov, 90))
+        self.direction += d_rotation
+        self.update()
+
+
+
     def mousePressEvent(self, event):
         if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
             self.moving = False

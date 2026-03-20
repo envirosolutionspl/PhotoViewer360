@@ -25,14 +25,12 @@ import math
 import processing
 import os
 from os.path import basename
-import time
 from qgis.core import (
     QgsPointXY,
     QgsProject,
     QgsFeatureRequest,
     QgsVectorLayer,
     QgsWkbTypes,
-    QgsMessageLog,
     QgsProcessingFeatureSourceDefinition,
     QgsCoordinateReferenceSystem,
     Qgis,
@@ -41,9 +39,7 @@ from qgis.core import (
 from qgis.gui import QgsRubberBand
 
 from qgis.PyQt.QtCore import (
-    QUrl,
-    Qt,
-    pyqtSignal
+    Qt, QTimer
 )
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog, QSizePolicy
 from qgis.PyQt.QtGui import QColor
@@ -123,6 +119,14 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.old_bering = None
         self.new_bering = None
 
+        # obracanie zdjęcia
+        self.kierunek_obrotu = 0
+        self.predkosc_obrotu = 0
+        self.kierunek_podnoszenia = 0
+        self.predkosc_podnoszenia = 0
+        self.kierunek_przyblizania = 0
+        self.predkosc_przyblizania = 0
+
         # dane zdjecia
         self.data_wykonania = "" 
         self.nr_drogi = ""
@@ -170,6 +174,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         # ustawienie RubberBand
         self.resetQgsRubberBand()
         self.setQgsRubberBandPosition()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.viewAnimation)
+        self.timer.start(30)
     
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
@@ -483,6 +491,60 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.setFloating(False)
             self.is_window_full_screen = False
 
+    def turnLeft(self):
+        self.kierunek_obrotu = -1
+
+    def turnRight(self):
+        self.kierunek_obrotu = 1
+
+    def turnStop(self):
+        self.kierunek_obrotu = 0
+
+    def zoomIn(self):
+        self.kierunek_przyblizania= 1
+
+    def zoomOut(self):
+        self.kierunek_przyblizania= -1
+
+    def zoomStop(self):
+        self.kierunek_przyblizania= 0
+
+    def lookUp(self):
+        self.kierunek_podnoszenia= 1
+
+    def lookDown(self):
+        self.kierunek_podnoszenia= -1
+
+    def lookStop(self):
+        self.kierunek_podnoszenia= 0
+
+    def viewAnimation(self):
+        if self.kierunek_obrotu != 0 and abs(self.predkosc_obrotu) < 2:
+            self.predkosc_obrotu = self.kierunek_obrotu*0.1+self.predkosc_obrotu
+        elif self.predkosc_obrotu != 0:
+            self.predkosc_obrotu -= 0.15*self.predkosc_obrotu/abs(self.predkosc_obrotu)
+            if abs(self.predkosc_obrotu) < 0.1:
+                self.predkosc_obrotu = 0
+
+        if self.kierunek_przyblizania != 0 and abs(self.predkosc_przyblizania) < 2:
+            self.predkosc_przyblizania = self.kierunek_przyblizania*0.1+self.predkosc_przyblizania
+        elif self.predkosc_przyblizania != 0:
+            self.predkosc_przyblizania -=  0.15*self.predkosc_przyblizania/abs(self.predkosc_przyblizania)
+            if abs(self.predkosc_przyblizania) < 0.1:
+                self.predkosc_przyblizania = 0
+
+        if self.kierunek_podnoszenia != 0 and abs(self.predkosc_podnoszenia) < 2:
+            self.predkosc_podnoszenia = self.kierunek_podnoszenia*0.1+self.predkosc_podnoszenia
+        elif self.predkosc_podnoszenia != 0:
+            self.predkosc_podnoszenia -= 0.15*self.predkosc_podnoszenia/abs(self.predkosc_podnoszenia)
+            if abs(self.predkosc_podnoszenia) < 0.1:
+                self.predkosc_podnoszenia = 0
+
+        if self.gl_widget is not None:
+            self.gl_widget.updateRotationData(self.predkosc_obrotu, self.predkosc_przyblizania,  self.predkosc_podnoszenia)
+
+        pass
+
     def getScreenShot(self):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""
 
@@ -733,6 +795,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
     def closeEvent(self, _):
         """Zamknięcie okna ze zdjęciem (street view)"""
+
+        if self.timer.isActive():
+            self.timer.stop()
 
         self.resetQgsRubberBand()
         self.canvas.refresh()
