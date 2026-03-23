@@ -581,15 +581,12 @@ class Geo360:
     def usuniecieWartosciGpkg(self, gpkg_path):
         """Usunięcie wszystkich obiektów w warstwie"""
 
-        lys = self.project.mapLayers().values()
-
-        for layer in lys:
-            if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
-                layer.startEditing()
-
-                for feat in layer.getFeatures():
-                    layer.deleteFeature(feat.id())
-                layer.commitChanges()
+        vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
+        if vlayer.isValid():
+            vlayer.startEditing()
+            for feat in vlayer.getFeatures():
+                vlayer.deleteFeature(feat.id())
+            vlayer.commitChanges()
 
         try:
             self.progress.setValue(5)
@@ -599,24 +596,23 @@ class Geo360:
     def polaczenieWarstw(self, gpkg_path, overwrite):
         """Połączenie dwóch Geopaczek (starego gpkg i gpkg z nowymi obiektami)"""
 
-        lys = self.project.mapLayers().values()
-        for layer in lys:
-            if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
-                layer.startEditing()
+        vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
+        if not vlayer.isValid():
+            return
 
-                for sourcefeat in overwrite.getFeatures():
-                    newfeat = QgsFeature()
-                    newfeat.setGeometry(sourcefeat.geometry())
-                    newfeat.setAttributes(sourcefeat.attributes())
-                    idx = overwrite.fields().indexFromName("fid")
+        vlayer.startEditing()
+        for sourcefeat in overwrite.getFeatures():
+            newfeat = QgsFeature()
+            newfeat.setGeometry(sourcefeat.geometry())
+            newfeat.setAttributes(sourcefeat.attributes())
+            idx = overwrite.fields().indexFromName("fid")
 
-                    if idx is not None:  # check if there is an "fid" attribute
-                        newfeat[idx] = None  # clear attribute
+            if idx != -1:
+                newfeat[idx] = None
 
-                    layer.addFeature(newfeat)
-                layer.commitChanges()
-
-                self.use_layer = str(layer.name())
+            vlayer.addFeature(newfeat)
+        vlayer.commitChanges()
+        self.use_layer = str(vlayer.name())
 
     def dopisaniePlikButtonClicked(self, photo_path, gpkg_path):
         """Obsługa wyboru przycisku dopisania danych do GeoPaczki"""
@@ -726,7 +722,7 @@ class Geo360:
             try:
                 os.rename(gpkg_path, gpkg_path)
             except OSError as e:
-                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
+                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.\nAby dokonać operacji, usuń warstwę z projektu QGIS")
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
