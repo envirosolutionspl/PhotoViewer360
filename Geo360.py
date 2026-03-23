@@ -582,11 +582,13 @@ class Geo360:
         """Usunięcie wszystkich obiektów w warstwie"""
 
         vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
-        if vlayer.isValid():
-            vlayer.startEditing()
-            for feat in vlayer.getFeatures():
-                vlayer.deleteFeature(feat.id())
-            vlayer.commitChanges()
+        vlayer.startEditing()
+        if not vlayer.isEditable():
+            return
+
+        for feat in vlayer.getFeatures():
+            vlayer.deleteFeature(feat.id())
+        vlayer.commitChanges()
 
         try:
             self.progress.setValue(5)
