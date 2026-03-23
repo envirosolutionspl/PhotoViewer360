@@ -45,9 +45,7 @@ from OpenGL.GL import (
     GL_FRAMEBUFFER_SRGB,
     glGetIntegerv,
     GL_VIEWPORT,
-    glReadPixels,
-    
-
+    glReadPixels
 )
 
 from OpenGL.GLU import (
@@ -60,15 +58,11 @@ from OpenGL.GLU import (
 
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
-
+from qgis.PyQt.QtGui import QSurfaceFormat
 if int(QtCore.qVersion().split('.')[0]) > 5:
-    from PyQt6.QtGui import QSurfaceFormat
-    from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+    from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
 else:
-    from PyQt5.QtGui import QSurfaceFormat, QColorSpace 
-    from PyQt5.QtWidgets import QOpenGLWidget
-
-from ..utils import MessageUtils
+    from qgis.PyQt.QtWidgets import QOpenGLWidget
 
 from qgis.core import (
     Qgis,
@@ -79,6 +73,7 @@ from qgis.core import (
     QgsUnitTypes,
 )
 
+from ..utils import MessageUtils
 from .. import plugin_dir
 
 class ViewerWidget(QOpenGLWidget):
@@ -170,7 +165,6 @@ class ViewerWidget(QOpenGLWidget):
         self.sensitivity = 1
         self.fov = 60
         self.moving = False
-        self.direction = angle_degrees
 
         # system hotspotow
         self.coordinates = None
@@ -203,23 +197,17 @@ class ViewerWidget(QOpenGLWidget):
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexImage2D(
-                GL_TEXTURE_2D,
-                0,
-                GL_RGBA,
-                image.width,
-                image.height,
-                0,
-                GL_RGBA,
-                GL_UNSIGNED_BYTE,
+                GL_TEXTURE_2D,  0, GL_RGBA,
+                image.width, image.height,
+                0, GL_RGBA, GL_UNSIGNED_BYTE,
                 image_data,
             )
             glGenerateMipmap(GL_TEXTURE_2D)
             self.is_texture_loaded = True
-
-        except Exception as e:
-            # dodać komunikat dla użytkownika
-            # print(f"Texture loading error: {e}")
-            pass
+        except FileNotFoundError:
+            MessageUtils.pushLogCritical("Nie znaleziono pliku zdjęcia.")
+        except Exception:
+            MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia.")
 
     def initializeGL(self):
         """
@@ -270,11 +258,7 @@ class ViewerWidget(QOpenGLWidget):
         glPushMatrix()
         self.applyRotation()    
         self.drawSphere()
-        
-        if self.hot_spot_test:
-            self.drawHotSpotsForTest()
-        else:
-            self.drawHotSpots()
+        self.drawHotSpots(self.hot_spot_test)
         glPopMatrix()
         glLoadIdentity()
         if self.show_description:
@@ -352,6 +336,7 @@ class ViewerWidget(QOpenGLWidget):
             glMatrixMode(GL_PROJECTION)
             glPopMatrix()
             
+            # obsługa hotspotów
             if self.hot_spot_test:
                 self.hot_spot_test = False
                 self.update()
@@ -365,14 +350,21 @@ class ViewerWidget(QOpenGLWidget):
         else:
             return False
 
-    def updateViewerWigdet(self, direction, angle_degrees, x, y, nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""):
+    def updateViewerWigdet(
+            self, direction, angle_degrees, x, y,
+            nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
+        ):
+
+
         if self.is_widget_loaded:
             self.direction = direction
             self.angle_degrees = angle_degrees
             self.x = x
             self.y = y
+
             self.loadTexture(nazwa_pliku)
             if self.setDataAboutPhoto(nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
+                # aktualizacja obrazu w przypadku powodzenia
                 self.image_description_data = self.new_image_description_data
             self.update()
             return True
@@ -386,6 +378,7 @@ class ViewerWidget(QOpenGLWidget):
             self.angle_degrees = angle_degrees
             self.x = x
             self.y = y
+
             self.loadTexture(self.nazwa_pliku)
             self.image_description_data = self.new_image_description_data
             self.update()
@@ -407,14 +400,19 @@ class ViewerWidget(QOpenGLWidget):
 
         try:
             image = Image.open(os.path.join(plugin_dir, "images", "desc_balloon.png"))
-        except Exception:
+        except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono ścieżki /images/desc_balloon.png")
+        except Exception:
+            MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia /images/desc_balloon.png")
             return False
+        
         try:
             font_regular = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Regular.ttf"), 15)
             font_bold = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Bold.ttf"), 15)
-        except Exception:
+        except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
+        except Exception:
+            MessageUtils.pushLogCritical("Błąd podczas wczytywania plików czczionek.")
             return False
 
         # Generowanie opisu na dymku
@@ -448,26 +446,34 @@ class ViewerWidget(QOpenGLWidget):
             self.vertices_group = []
             self.faces_group = []
             self.hotspot_fid = []
-            scale = 0.104 # skalowanie dystansu od obserwatora dla widoku OpenGL
+            scale = 0.104 # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
+            spectator_angle  = 0
             for hotspot in self.coordinates:
-                if hotspot['distance'] < 0.01 or hotspot['distance'] > 16.0:
+                if hotspot['distance'] < 0.01:
+                    spectator_angle = hotspot['azymut']
+            for hotspot in self.coordinates:
+                # pomijamy punkt obserwatora
+                if hotspot['distance'] < 0.01:
                     continue
+
                 vertices = []
                 faces = []
                 with open(os.path.join(plugin_dir, "images", "hotspot.obj"), 'r') as f:
                     for line in f:
                         if line.startswith('v '):
                             ver = list(map(float, line.strip().split()[1:]))
+
                             # wyliczanie przesunięcia wierchołków na podstawie kąta i dystansu hotspota
                             # x = r*cos(kat_w_radianach)
                             # y = r*sin(kat_w_radianach), r= scale*distance, kat_w_radianach= azymut_obliczony
-                            ver[0] = ver[0]+scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'])
-                            ver[1] = ver[1]+scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'])
-                            ver[2] = ver[2]+0.3
+                            ver[0] += scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                            ver[1] += scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                            ver[2] += 0.3
                             vertices.append(ver)
                         elif line.startswith('f '):
                             face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
                             faces.append(face)
+
                 self.vertices_group.append(vertices)
                 self.faces_group.append(faces)
                 self.hotspot_fid.append(hotspot['fid'])
@@ -485,7 +491,6 @@ class ViewerWidget(QOpenGLWidget):
         self.pitch = min(max(self.pitch, -90), 90)
         self.fov -= d_zoom
         self.fov = max(30, min(self.fov, 90))
-        self.direction += d_rotation
         self.update()
 
 
@@ -520,41 +525,29 @@ class ViewerWidget(QOpenGLWidget):
         self.pitch -= dy * self.sensitivity
         self.pitch = min(max(self.pitch, -90), 90)
         self.mouse_x, self.mouse_y = event.pos().x(), event.pos().y()
-        self.direction += dx
         self.update()
 
         self.prev_dx = dx
         self.prev_dy = dy
 
-    def drawHotSpots(self):
+    def drawHotSpots(self, test_color=False):
         """
-        Rysowanie hot spotów w kolorze domyślnym
+        Rysowanie hot spotów w kolorze domyślnym lub do identyfikacji
         """
         if self.vertices_group is not None and self.faces_group is not None:
             for i in range(0, len(self.vertices_group)):
+                if test_color:
+                    color = 220 + i # kolor ściśle związany z wykrywaniem kliknięcia
+                else:
+                    color = 215 # kolor ściśle związany z wykrywaniem kliknięcia
                 if self.vertices_group[i] is not None and self.faces_group[i] is not None:
                     glBegin(GL_TRIANGLES)
-                    glColor3ub(215, 215, 215) # kolor ściśle związany z wykrywaniem kliknięcia
+                    glColor3ub(color, color, color)
                     for face in self.faces_group[i]:
                         for vertex in face:
                             glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
                     glColor3f(1, 1, 1) 
                     glEnd()   
-
-    def drawHotSpotsForTest(self):
-        """
-        Rysowanie hot spotów w kolorze identyfikującym
-        """
-        if self.vertices_group is not None and self.faces_group is not None:
-            for i in range(0, len(self.vertices_group)):
-                if self.vertices_group[i] is not None and self.faces_group[i] is not None:
-                    glBegin(GL_TRIANGLES)
-                    glColor3ub(220+i, 220+i, 220+i) # kolor ściśle związany z wykrywaniem kliknięcia
-                    for face in self.faces_group[i]:
-                        for vertex in face:
-                            glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
-                    glColor3f(1, 1, 1) 
-                    glEnd()  
    
     def wheelEvent(self, event):
         delta = event.angleDelta().y()

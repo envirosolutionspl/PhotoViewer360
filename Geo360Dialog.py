@@ -47,16 +47,26 @@ from . import config
 from .geom.transformgeom import TransformGeometry
 from .gui.UiOrbitalDialog import UiOrbitalDialog
 from .utils.qgsutils import qgsutils
-# from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
-# from qgis.PyQt.QtWebKit import QWebSettings
 from qgis.PyQt import QtCore
-# from PyQt5 import QtNetwork
 
 from .modules.viewer_widget import ViewerWidget
 from .utils import MessageUtils
+from .constants import (
+    MAX_HOTSPOT_DISTANCE,
+    ANIMATION_DEFAULT,
+    ANIMATION_STOP,
+    ANIMATION_TURN_LEFT,
+    ANIMATION_TURN_RIGHT,
+    ANIMATION_ZOOM_IN,
+    ANIMATION_ZOOM_OUT,
+    ANIMATION_LOOK_UP,
+    ANIMATION_LOOK_DOWN,
+    ANIMATION_ACCELERATION_FACTOR,
+    ANIMATION_DECELERATION_FACTOR,
+    ANIMATION_MAX_SPEED
+)
 
 from math import sin, cos, sqrt, atan2, radians
-import shutil
 
 try:
     from pydevd import *
@@ -116,16 +126,16 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.bearing_current = None
         self.current_direction = None
         self.yaw = None
-        self.old_bering = None
+        self.old_bering = 0
         self.new_bering = None
 
         # obracanie zdjęcia
-        self.kierunek_obrotu = 0
-        self.predkosc_obrotu = 0
-        self.kierunek_podnoszenia = 0
-        self.predkosc_podnoszenia = 0
-        self.kierunek_przyblizania = 0
-        self.predkosc_przyblizania = 0
+        self.kierunek_obrotu = ANIMATION_DEFAULT
+        self.predkosc_obrotu = ANIMATION_DEFAULT
+        self.kierunek_podnoszenia = ANIMATION_DEFAULT
+        self.predkosc_podnoszenia = ANIMATION_DEFAULT
+        self.kierunek_przyblizania = ANIMATION_DEFAULT
+        self.predkosc_przyblizania = ANIMATION_DEFAULT
 
         # dane zdjecia
         self.data_wykonania = "" 
@@ -177,7 +187,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.viewAnimation)
-        self.timer.start(30)
+        self.timer.start(1000)
     
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
@@ -209,9 +219,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def updateViewer(self):
         """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
 
-        # TODO Komunikat na nasze
-        qgsutils.showUserAndLogMessage(u"Information: ", u"Create viewer", onlyLog=True)
-
         geom = self.selected_features.geometry()
         x = geom.asPoint().x()
         y = geom.asPoint().y()
@@ -238,7 +245,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
 
-        MessageUtils.pushLogInfo("Zaktualizowano Widget OpenGL.'")
+        MessageUtils.pushLogInfo("Zaktualizowano Widget OpenGL.")
                 
 
     def copyInfoAboutFile(self):
@@ -276,6 +283,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         """Wybranie z warstwy hotspotów na podstawie utworzonego 15 metrowego buforu"""
 
         self.layer.select(self.selected_features.id())
+        x_punktu = 0
+        y_punktu = 0
 
         features = self.layer.selectedFeatures()
         for feat in features:
@@ -283,9 +292,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             x_punktu = geom.asPoint().x()
             y_punktu = geom.asPoint().y()
 
-        """  
-        # przeliczenie do układu EPSG: 2180
-        selected_feature_2180 = processing.run(
+        # przeliczenie do układu EPSG:3857, (EPSG:2180 nie działa najlepiej poza Polską)
+        selected_feature_3857 = processing.run(
             "native:reprojectlayer", {
                 'INPUT': QgsProcessingFeatureSourceDefinition(
                     self.layer.name(),
@@ -293,32 +301,19 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                     featureLimit=-1,
                     geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid
                 ),
-                'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:2180'),
-                'OPERATION': '+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=tmerc +lat_0=0 +lon_0=19 +k=0.9993 +x_0=500000 +y_0=-5300000 +ellps=GRS80',
-                'OUTPUT': 'TEMPORARY_OUTPUT'
-            }
-        )
-        """
-        # testowo system ustawiamy na EPSG:4326, na EPSG:2180 nie działa poza Polską
-        selected_feature_2180 = processing.run(
-            "native:reprojectlayer", {
-                'INPUT': QgsProcessingFeatureSourceDefinition(
-                    self.layer.name(),
-                    selectedFeaturesOnly=True,
-                    featureLimit=-1,
-                    geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid
-                ),
-                'TARGET_CRS':QgsCoordinateReferenceSystem('EPSG:4326'),
-                'CONVERT_CURVED_GEOMETRIES':False,
-                'OPERATION':'+proj=noop',
+                'TARGET_CRS':QgsCoordinateReferenceSystem('EPSG:3857'),
                 'OUTPUT':'TEMPORARY_OUTPUT'
             })
 
-        # stworzenie bufora o promieniu 15m
-        bufor_2180 = processing.run(
+        # dodajemy kompensację mercatora dla ustalenia dystansu odsiewowego
+        mercator_scalar = 1.0 / math.cos(math.radians(y_punktu))
+        buffer_distance = (MAX_HOTSPOT_DISTANCE+5) * mercator_scalar
+
+        # stworzenie bufora o promieniu max_distance metrów
+        bufor_3857 = processing.run(
             "native:buffer", {
-                'INPUT': list(selected_feature_2180.values())[0],
-                'DISTANCE': 15,
+                'INPUT': list(selected_feature_3857.values())[0],
+                'DISTANCE': buffer_distance,
                 'SEGMENTS': 5,
                 'END_CAP_STYLE': 0,
                 'JOIN_STYLE': 0,
@@ -334,16 +329,13 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             {
                 'INPUT': self.layer.name(),
                 'PREDICATE': 0,
-                'INTERSECT': list(bufor_2180.values())[0],
+                'INTERSECT': list(bufor_3857.values())[0],
                 'METHOD': 0
             }
         )
 
-        """Pobranie współrzędnych dla zdjęcia oraz dla punktów znajdujących się w buforze (hotspotów)"""
-        # współrzędne w układzie EPSG:4326
-
+        # przygotowanie listy atrybutów z hotspotami do wyświetlenia
         list_of_attribute_list = []
-
         for feat in self.layer.selectedFeatures():
             geom = feat.geometry()
             x = geom.asPoint().x()
@@ -351,26 +343,20 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
             azymut = feat.attributes()[4]
             index_feature = feat.id()
-            azymut_metadane = str(azymut).replace(",",".")
-
+            
             # obliczenie azymutu na podstawie, którego będziemy identyfikować czy punkt jest aktualnie wyświetlanym zdjęciem
             centr = QgsPointXY(float(x), float(y))
             pkt = QgsPointXY(float(x_punktu), float(y_punktu))
-            azymut_obliczony = centr.azimuth(pkt)
+            azymut_obliczony = pkt.azimuth(centr)
 
             # obliczenie dystansu pomiędzy zdjeciem a punktami w buforze
             distance = self.distanceFunction(y_punktu, y, x_punktu, x)
 
-            # ustawienie pod jakim kątem ma się wyświetlać zdjęcie w js
-            # jeśli jest to pierwszy kliknięty hotspot to zdjęcie będzie miało kierunek jazdy samochodu
-            if self.yaw is None:
-                self.yaw_actual = 0
-            else:
-                self.yaw_actual = 0 + self.old_bering - self.new_bering + self.yaw * (-180/math.pi)
-                # kąt self.yaw_actual jest liczony od kąta północy (sprowadzenie do układu globalnego) 
+            # odrzuć Hot Spoty, które są za daleko. 
+            if distance > MAX_HOTSPOT_DISTANCE:
+                continue
 
-            # dodanie parametrów do listy (potem wysłanej do Java Scriptu)
-            # list_of_attribute_list.append(str(x) + ' ' + str(y) + ' ' + azymut_metadane + ' ' + str(index_feature) + ' ' + str(azymut_obliczony) + ' ' + str(distance) + ' ' + str(self.yaw_actual*(math.pi/180)).replace(",","."))
+            # dodanie parametrów do listy
             list_of_attribute_list.append({
                     'x' : x,
                     'y' : y,
@@ -378,17 +364,12 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                     'fid' : index_feature,
                     'azymut_obliczony' : azymut_obliczony*(math.pi/180),
                     'distance' : distance,
-                    'yaw_actual' : self.yaw_actual*(math.pi/180)
                 })
-
-            # wyzerowanie kąta o jaki mamy obrócić zdjęcie od północy
-            self.yaw_actual = 0
-
+            
         # usunięcie zaznaczenia selekcji
         self.layer.removeSelection() 
 
-        # połączenie z Java Scriptem oraz przekazanie parametrów potrzebnych do wyświetlenia hotspotów
-        # self.setXYId(coordinates=list_of_attribute_list)
+        # przesłanie do Widgetu parametrów potrzebnych do wyświetlenia hotspotów
         if self.gl_widget is not None: 
             # Wczytanie danych dla dymka
             self.gl_widget.setHotSpots(coordinates=list_of_attribute_list)
@@ -414,12 +395,12 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             if not os.path.isabs(path):  # Relative Path to Project
                 path_project = QgsProject.instance().readPath("./")
                 path = os.path.normpath(os.path.join(path_project, path))
-
+        except KeyError:
+            MessageUtils.pushLogCritical(f"Nie znaleziono kolumny: {config.COLUMN_NAME}")
         except Exception:
-            qgsutils.showUserAndLogMessage(u"Information: ", u"Column not found.")
-            return
+            MessageUtils.pushLogCritical("Błąd podczas pobierania nazwy pliku z warstwy.")
+            return "", False
 
-        qgsutils.showUserAndLogMessage(u"Information: ", str(path), onlyLog=True)
         path_exists = os.path.exists(path)
         return path, path_exists
         
@@ -492,58 +473,74 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.is_window_full_screen = False
 
     def turnLeft(self):
-        self.kierunek_obrotu = -1
+        self.kierunek_obrotu = ANIMATION_TURN_LEFT
+        self.timer.setInterval(30)
 
     def turnRight(self):
-        self.kierunek_obrotu = 1
+        self.kierunek_obrotu = ANIMATION_TURN_RIGHT
+        self.timer.setInterval(30)
 
     def turnStop(self):
-        self.kierunek_obrotu = 0
+        self.kierunek_obrotu = ANIMATION_STOP
 
     def zoomIn(self):
-        self.kierunek_przyblizania= 1
+        self.kierunek_przyblizania= ANIMATION_ZOOM_IN
+        self.timer.setInterval(30)
 
     def zoomOut(self):
-        self.kierunek_przyblizania= -1
+        self.kierunek_przyblizania= ANIMATION_ZOOM_OUT
+        self.timer.setInterval(30)
 
     def zoomStop(self):
-        self.kierunek_przyblizania= 0
+        self.kierunek_przyblizania= ANIMATION_STOP
 
     def lookUp(self):
-        self.kierunek_podnoszenia= 1
+        self.kierunek_podnoszenia= ANIMATION_LOOK_UP
+        self.timer.setInterval(30)
 
     def lookDown(self):
-        self.kierunek_podnoszenia= -1
+        self.kierunek_podnoszenia= ANIMATION_LOOK_DOWN
+        self.timer.setInterval(30)
 
     def lookStop(self):
-        self.kierunek_podnoszenia= 0
+        self.kierunek_podnoszenia= ANIMATION_STOP
+
+    def countRotationSpeed(self, kierunek, predkosc):
+        """
+        Oblicza nową prędkość obrotu dla animacji
+
+        Parameters:
+            kierunek - kierunek obrotu 
+        Return:
+            float - nowa prędkość
+        """
+        if kierunek != ANIMATION_STOP and abs(predkosc) < ANIMATION_MAX_SPEED:
+            predkosc += ANIMATION_ACCELERATION_FACTOR * kierunek
+        elif predkosc != 0.0:
+            predkosc -= ANIMATION_DECELERATION_FACTOR * predkosc/abs(predkosc)
+            if abs(predkosc) < ANIMATION_DECELERATION_FACTOR:
+                predkosc = 0.0
+        
+        return predkosc
+
 
     def viewAnimation(self):
-        if self.kierunek_obrotu != 0 and abs(self.predkosc_obrotu) < 2:
-            self.predkosc_obrotu = self.kierunek_obrotu*0.1+self.predkosc_obrotu
-        elif self.predkosc_obrotu != 0:
-            self.predkosc_obrotu -= 0.15*self.predkosc_obrotu/abs(self.predkosc_obrotu)
-            if abs(self.predkosc_obrotu) < 0.1:
-                self.predkosc_obrotu = 0
+        """ Obliczenia prędkości obrotu i wyzwala aktualizację OpenGL """
 
-        if self.kierunek_przyblizania != 0 and abs(self.predkosc_przyblizania) < 2:
-            self.predkosc_przyblizania = self.kierunek_przyblizania*0.1+self.predkosc_przyblizania
-        elif self.predkosc_przyblizania != 0:
-            self.predkosc_przyblizania -=  0.15*self.predkosc_przyblizania/abs(self.predkosc_przyblizania)
-            if abs(self.predkosc_przyblizania) < 0.1:
-                self.predkosc_przyblizania = 0
+        # aktualizacja prędkości obrotu dla każdego kierunku
+        self.predkosc_obrotu = self.countRotationSpeed(self.kierunek_obrotu, self.predkosc_obrotu)
+        self.predkosc_przyblizania = self.countRotationSpeed(self.kierunek_przyblizania, self.predkosc_przyblizania)
+        self.predkosc_podnoszenia = self.countRotationSpeed(self.kierunek_podnoszenia, self.predkosc_podnoszenia)
 
-        if self.kierunek_podnoszenia != 0 and abs(self.predkosc_podnoszenia) < 2:
-            self.predkosc_podnoszenia = self.kierunek_podnoszenia*0.1+self.predkosc_podnoszenia
-        elif self.predkosc_podnoszenia != 0:
-            self.predkosc_podnoszenia -= 0.15*self.predkosc_podnoszenia/abs(self.predkosc_podnoszenia)
-            if abs(self.predkosc_podnoszenia) < 0.1:
-                self.predkosc_podnoszenia = 0
-
+        # wgrywamy nowe parametry do clasy OpenGL
         if self.gl_widget is not None:
             self.gl_widget.updateRotationData(self.predkosc_obrotu, self.predkosc_przyblizania,  self.predkosc_podnoszenia)
 
-        pass
+        # zmniejszamy częstotliwość aktualizacji animacji w celu oszczędzania CPU
+        if self.predkosc_obrotu == 0 \
+            and self.predkosc_przyblizania == 0 \
+            and self.predkosc_podnoszenia == 0:
+            self.timer.setInterval(1000)
 
     def getScreenShot(self):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""

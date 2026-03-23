@@ -40,7 +40,6 @@ from .utils.log import log
 from .utils.qgsutils import qgsutils
 from functools import partial
 from collections import defaultdict
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import time, os, sys
 from pathlib import Path
@@ -58,11 +57,6 @@ try:
     from pydevd import *
 except ImportError:
     None
-
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
 
 class Geo360:
     """QGIS Plugin Implementation."""
@@ -97,10 +91,8 @@ class Geo360:
         # OpenCL acceleration
         QSettings().setValue("/core/OpenClEnabled", True)
         self.orbital_viewer = None
-        self.server = None
         self.actions = []
-        # self.makeServer()
-
+        
         self.dlg = FirstWindowGeo360Dialog()
         self.settings = QgsSettings()
         self.use_layer = ""
@@ -305,8 +297,6 @@ class Geo360:
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
-        
-        self.closeServer()
 
         # usuwanie katalogu plików tymczasowych
         for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
@@ -317,45 +307,7 @@ class Geo360:
 
         # remove the toolbar
         del self.toolbar
-
-    def closeServer(self):
-        """Close Local server"""
-
-        # Close server
-        if self.server is not None:
-            self.server.shutdown()
-            time.sleep(1)
-            self.server.server_close()
-            while self.server_thread.is_alive():
-                self.server_thread.join()
-            self.server = None
-            MessageUtils.pushLogInfo(f"Serwer usługi zatrzymany.")
-            
-    def makeServer(self):
-        """Create Local server"""
-
-        # Close server
-        self.closeServer()
-
-        # Create Server
-        directory = plugin_dir.replace("\\", "/") + config.SERVER_DIRECTORY
-
-        try:
-            self.server = ThreadingHTTPServer(
-                (config.IP, config.PORT),
-                partial(QuietHandler, directory=directory),
-            )
-            self.server_thread = Thread(
-                target=self.server.serve_forever,
-                name="http_server",
-            )
-            self.server_thread.daemon = True
-            time.sleep(1)
-            self.server_thread.start()
-            MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
-        except Exception:
-            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porcie: {config.PORT}")
-
+        
     def run(self):
         """Run after pressing the plugin"""
         # Sprawdzenie dostępności biblioteki 'exifread'
