@@ -1,53 +1,7 @@
 import math
 import os
 
-from OpenGL.GL import (
-    GL_COLOR_BUFFER_BIT,
-    GL_DEPTH_BUFFER_BIT,
-    GL_BLEND,
-    GL_LINEAR,
-    GL_MODELVIEW,
-    GL_PROJECTION,
-    GL_ONE_MINUS_SRC_ALPHA,
-    GL_RGBA,
-    GL_RGB,
-    GL_SRC_ALPHA,
-    GL_TEXTURE_2D,
-    GL_TEXTURE_MAG_FILTER,
-    GL_TEXTURE_MIN_FILTER,
-    GL_TRIANGLES,
-    GL_UNSIGNED_BYTE,
-    glBegin,
-    glBindTexture,
-    glBlendFunc,
-    glClear,
-    glClearColor,
-    glColor3f,
-    glVertex3fv,
-    glColor3ub,
-    glEnable,
-    glDisable,
-    glEnd,
-    glGenerateMipmap,
-    glGenTextures,
-    glLoadIdentity,
-    glMatrixMode,
-    glPopMatrix,
-    glPushMatrix,
-    glRotatef,
-    glTexImage2D,
-    glTexParameteri,
-    glViewport,
-    glRasterPos,
-    glDrawPixels,
-
-    # do wykrywania hotspotów
-    GL_FRAMEBUFFER_SRGB,
-    glGetIntegerv,
-    GL_VIEWPORT,
-    glReadPixels
-)
-
+from OpenGL.GL import *
 from OpenGL.GLU import (
     gluNewQuadric,
     gluOrtho2D,
@@ -473,7 +427,6 @@ class ViewerWidget(QOpenGLWidget):
                         elif line.startswith('f '):
                             face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
                             faces.append(face)
-
                 self.vertices_group.append(vertices)
                 self.faces_group.append(faces)
                 self.hotspot_fid.append(hotspot['fid'])
@@ -562,24 +515,4 @@ class ViewerWidget(QOpenGLWidget):
         self.image_description_data = self.new_image_description_data
         self.update()
 
-    def recalculate_coordinates(self, x, y, angle, distance):
-        angle_rad = math.radians(angle)
-        point = QgsPointXY(x, y)
-        if QgsProject.instance().crs().mapUnits() == QgsUnitTypes.DistanceDegrees:
-            src_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-            dst_crs = QgsCoordinateReferenceSystem("EPSG:3857")
-            transform = QgsCoordinateTransform(src_crs, dst_crs, QgsProject.instance())
-            untransform = QgsCoordinateTransform(
-                dst_crs, src_crs, QgsProject.instance()
-            )
-            point = transform.transform(point)
-
-        x_new = point.x() + (distance * math.cos(angle_rad))
-        y_new = point.y() + (distance * math.sin(angle_rad))
-        if QgsProject.instance().crs().mapUnits() == QgsUnitTypes.DistanceDegrees:
-            point = QgsPointXY(x_new, y_new)
-            point = untransform.transform(point)
-            x_new = point.x()
-            y_new = point.y()
-        return x_new, y_new
 

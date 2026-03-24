@@ -16,12 +16,6 @@ from qgis.core import (
 )
 from .log import log
 
-try:
-    from pydevd import *
-except ImportError:
-    None
-
-
 class qgsutils(object):
     @staticmethod
     def convertProjection(x, y, from_crs, to_crs):

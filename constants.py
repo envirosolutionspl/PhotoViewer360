@@ -28,8 +28,8 @@ NETWORK_ATTRS = {
     'TIMEOUT': 'TimeoutAttribute'
 }
 
-# HotSpots
-MAX_HOTSPOT_DISTANCE = 15.0
+# Dystans rysowania hotspotów wyrażony w metrach
+MAX_HOTSPOT_DISTANCE = 8.0
 
 # Animacja
 ANIMATION_DEFAULT = 0.0

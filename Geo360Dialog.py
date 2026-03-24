@@ -22,6 +22,7 @@
 """
 
 import math
+from math import sin, cos, sqrt, atan2, radians
 import processing
 import os
 from os.path import basename
@@ -33,8 +34,6 @@ from qgis.core import (
     QgsWkbTypes,
     QgsProcessingFeatureSourceDefinition,
     QgsCoordinateReferenceSystem,
-    Qgis,
-    QgsCoordinateTransform
 )
 from qgis.gui import QgsRubberBand
 
@@ -65,14 +64,6 @@ from .constants import (
     ANIMATION_DECELERATION_FACTOR,
     ANIMATION_MAX_SPEED
 )
-
-from math import sin, cos, sqrt, atan2, radians
-
-try:
-    from pydevd import *
-except ImportError:
-    None
-
 
 class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     """Geo360 Dialog Class"""

@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+import os
 
 from qgis.gui import QgsMapToolIdentify
 from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
@@ -38,25 +38,17 @@ from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from . import config
 from .utils.log import log
 from .utils.qgsutils import qgsutils
-from functools import partial
 from collections import defaultdict
-from threading import Thread
-import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
-from PyQt5.QtWidgets import QDialog, QComboBox
+from PyQt5.QtWidgets import QDialog
 from qgis.utils import iface
 import importlib.util
 
 
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
-
-try:
-    from pydevd import *
-except ImportError:
-    None
 
 class Geo360:
     """QGIS Plugin Implementation."""

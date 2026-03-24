@@ -20,17 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-import sys, os
+import os
 import tempfile
-
-try:
-    sys.path.append(r"C:\eclipse\plugins\org.python.pydev.core_8.3.0.202104101217\pysrc")
-    sys.path.append(
-        "/home/fragalop/eclipse/plugins/org.python.pydev.core_8.3.0.202104101217/pysrc"
-    )
-    from pydevd import *
-except ImportError:
-    None
 
 plugin_dir = os.path.dirname(__file__)
 temp_dir = tempfile.gettempdir()
