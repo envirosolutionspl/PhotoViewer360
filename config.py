@@ -2,13 +2,6 @@
 COLUMN_NAME = "sciezka_zdjecie"
 COLUMN_YAW = "azymut"
 
-# Server
-SERVER_DIRECTORY = "/viewer"
-
-# Panorama Viewer
-IP = "127.0.0.1"
-PORT = 1520
-
 TEMPORATORY_FILES_LIST = (
     'overwrite.gpkg',
     'duplicates.gpkg',

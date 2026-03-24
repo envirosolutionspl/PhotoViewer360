@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+import os
 
 from qgis.gui import QgsMapToolIdentify
 from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
@@ -38,31 +38,17 @@ from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from . import config
 from .utils.log import log
 from .utils.qgsutils import qgsutils
-from functools import partial
 from collections import defaultdict
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
-import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
-from PyQt5.QtWidgets import QDialog, QComboBox
+from PyQt5.QtWidgets import QDialog
 from qgis.utils import iface
 import importlib.util
 
 
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
-
-try:
-    from pydevd import *
-except ImportError:
-    None
-
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
 
 class Geo360:
     """QGIS Plugin Implementation."""
@@ -97,10 +83,8 @@ class Geo360:
         # OpenCL acceleration
         QSettings().setValue("/core/OpenClEnabled", True)
         self.orbital_viewer = None
-        self.server = None
         self.actions = []
-        self.makeServer()
-
+        
         self.dlg = FirstWindowGeo360Dialog()
         self.settings = QgsSettings()
         self.use_layer = ""
@@ -305,8 +289,6 @@ class Geo360:
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
-        
-        self.closeServer()
 
         # usuwanie katalogu plików tymczasowych
         for nazwa_pliku_tymczasowego in config.TEMPORATORY_FILES_LIST:
@@ -317,45 +299,7 @@ class Geo360:
 
         # remove the toolbar
         del self.toolbar
-
-    def closeServer(self):
-        """Close Local server"""
-
-        # Close server
-        if self.server is not None:
-            self.server.shutdown()
-            time.sleep(1)
-            self.server.server_close()
-            while self.server_thread.is_alive():
-                self.server_thread.join()
-            self.server = None
-            MessageUtils.pushLogInfo(f"Serwer usługi zatrzymany.")
-            
-    def makeServer(self):
-        """Create Local server"""
-
-        # Close server
-        self.closeServer()
-
-        # Create Server
-        directory = plugin_dir.replace("\\", "/") + config.SERVER_DIRECTORY
-
-        try:
-            self.server = ThreadingHTTPServer(
-                (config.IP, config.PORT),
-                partial(QuietHandler, directory=directory),
-            )
-            self.server_thread = Thread(
-                target=self.server.serve_forever,
-                name="http_server",
-            )
-            self.server_thread.daemon = True
-            time.sleep(1)
-            self.server_thread.start()
-            MessageUtils.pushLogInfo(f"Serwer usługi uruchomiony na porcie: {self.server.server_address[1]}")
-        except Exception:
-            MessageUtils.pushLogCritical(f"Nie udało się uruchomić serwera usługi na porcie: {config.PORT}")
-
+        
     def run(self):
         """Run after pressing the plugin"""
         # Sprawdzenie dostępności biblioteki 'exifread'
@@ -402,7 +346,6 @@ class Geo360:
         """Obsługa przycisku "Przeglądaj" do wybrania warstwy z projektu QGIS"""
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
         good_layer = False
         layer_name = self.dlg.mapLayerComboBox.currentText()
         self.use_layer = layer_name
@@ -421,12 +364,14 @@ class Geo360:
                 self.dlg.hide()
                 self.clickPointOnMapFeature()
             else:
-                MessageUtils.pushWarning(self.iface, "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
+                MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
                 return False
 
         except IndexError:
-            MessageUtils.pushWarning(self.iface, "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
             return False
+        
+        self.action_activate.setEnabled(True)
 
     def createGpkg(self, photo_path, gpkg_path):
         """Stworzenie GeoPaczki na bazie wskazanego folderu ze zdjęciami oraz późniejsza jej modyfikacja"""
@@ -689,7 +634,6 @@ class Geo360:
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         photo_path = self.dlg.mQgsFileWidget_search_photo.filePath()
         if not self.checkSavePath(photo_path):
@@ -704,7 +648,7 @@ class Geo360:
             rozszerzenia.append(rozszerzenie[-1])
 
         if ("jpg" not in rozszerzenia):
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
@@ -718,7 +662,7 @@ class Geo360:
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
             return False
         
         # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
@@ -726,7 +670,7 @@ class Geo360:
             try:
                 os.rename(gpkg_path, gpkg_path)
             except OSError as e:
-                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
+                MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
@@ -810,13 +754,14 @@ class Geo360:
 
             self.dlg.hide()
             self.clickPointOnMapFeature()
+            
+        self.action_activate.setEnabled(True)
 
     def browseGpkg(self):
         """Obsługa przycisku "Przeglądaj" do wczytania już istniejącej GeoPaczki nie wczytanej w projekcie QGIS 
         (GeoPaczka musi być utworzona przez tą wtyczkę) """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         gpkg_path = os.path.join(self.dlg.mQgsFileWidget_search_gpkg.filePath())
         if not self.checkSavePath(gpkg_path):
@@ -833,6 +778,7 @@ class Geo360:
         self.use_layer = vlayer.name()
         self.dlg.hide()
         self.clickPointOnMapFeature()
+        self.action_activate.setEnabled(True)
 
     def renameNameField(self, rlayer, oldname, newname):
         """Funkcja zmieniająca nazwy atrybutów w warstwie"""
@@ -848,15 +794,22 @@ class Geo360:
         self.features_id = features_id
         self.canvas.refresh()
 
-        self.orbital_viewer = Geo360Dialog(
-            self.iface,
-            features_id=features_id,
+        if self.orbital_viewer is not None:
+            self.orbital_viewer.updateViewerDialog(features_id=features_id,
             layer=layer,
-            name_layer=self.use_layer,
-            parent=self,
-        )
-
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbital_viewer)
+            name_layer=self.use_layer)
+        else:
+            self.orbital_viewer = Geo360Dialog(
+                self.iface,
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+                parent=self,
+            )
+        if hasattr(Qt, 'DockWidgetArea'):      
+            self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.orbital_viewer) # Qt6
+        else:
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbital_viewer) # Qt5
 
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
@@ -878,10 +831,10 @@ class Geo360:
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
             return False
         elif not os.path.exists(path):
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
             return False
         else:
             return True
