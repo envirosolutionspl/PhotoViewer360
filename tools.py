@@ -1,7 +1,9 @@
 from . import plugin_dir
 from qgis.gui import QgsMapToolIdentify
-from PyQt5.QtGui import QCursor, QPixmap
-from .utils.qgsutils import qgsutils
+
+from qgis.PyQt.QtGui import QCursor, QPixmap
+from .utils import QgsMapUtils
+from .constants import UI_SMALL_CURSOR_PATH
 
 class SelectTool(QgsMapToolIdentify):
     """Obsługa wybrania zdjęcia z mapy projektu (wybór punktu)"""
@@ -13,7 +15,7 @@ class SelectTool(QgsMapToolIdentify):
         self.query_layer = query_layer
         self.parent = parent
 
-        small_image = plugin_dir + "/images/small_celownik.png"
+        small_image = plugin_dir + UI_SMALL_CURSOR_PATH
 
         self.cursor = QCursor(
             QPixmap(small_image)
@@ -30,5 +32,5 @@ class SelectTool(QgsMapToolIdentify):
 
             feature = found_features[0].mFeature
             # Zoom To Feature
-            qgsutils.zoomToFeature(self.canvas, self.query_layer, feature.id())
+            QgsMapUtils.zoomToFeature(self.canvas, self.query_layer, feature.id())
             self.parent.createNewViewer(features_id=feature.id(), layer=self.query_layer)

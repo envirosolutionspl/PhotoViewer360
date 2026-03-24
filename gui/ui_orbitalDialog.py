@@ -2,13 +2,13 @@
 
 # Form implementation generated from reading ui file 'ui/UiOrbitalDialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.14.1
+# Adapted for Qt5 / Qt6 compatibility using QtCompat
 #
-# WARNING! All changes made in this file will be lost!
+# WARNING! Manual compatibility adjustments added.
 
-
-from PyQt5 import QtCore, QtGui, QtWidgets
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 from .. import plugin_dir
+from ..utils import QtCompat
 
 
 class UiOrbitalDialog(object):
@@ -18,19 +18,20 @@ class UiOrbitalDialog(object):
         orbitalDialog.setObjectName("orbitalDialog")
         orbitalDialog.resize(563, 375)
         sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+            QtCompat.qsizepolicyExpanding(QtWidgets),
+            QtCompat.qsizepolicyExpanding(QtWidgets),
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(orbitalDialog.sizePolicy().hasHeightForWidth())
         orbitalDialog.setSizePolicy(sizePolicy)
 
-        # dodanie okna ze zdjęciem 
+        # dodanie okna ze zdjęciem
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/ikona_wtyczki.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         orbitalDialog.setWindowIcon(icon)
         orbitalDialog.setFeatures(QtWidgets.QDockWidget.AllDockWidgetFeatures)
@@ -46,7 +47,10 @@ class UiOrbitalDialog(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
 
         spacerItem = QtWidgets.QSpacerItem(
-            5, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            5,
+            20,
+            QtCompat.qsizepolicyExpanding(QtWidgets),
+            QtCompat.qsizepolicyMinimum(QtWidgets),
         )
         self.horizontalLayout.addItem(spacerItem)
 
@@ -57,11 +61,11 @@ class UiOrbitalDialog(object):
         icon8 = QtGui.QIcon()
         icon8.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/look_up.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_look_up.setIcon(icon8)
-        self.btn_look_up.setObjectName("btn_screenshot")
+        self.btn_look_up.setObjectName("btn_look_up")
         self.horizontalLayout.addWidget(self.btn_look_up)
 
         # dodanie przycisku służącego do patrzenia w dół
@@ -71,13 +75,12 @@ class UiOrbitalDialog(object):
         icon9 = QtGui.QIcon()
         icon9.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/look_down.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_look_down.setIcon(icon9)
-        self.btn_look_down.setObjectName("btn_screenshot")
+        self.btn_look_down.setObjectName("btn_look_down")
         self.horizontalLayout.addWidget(self.btn_look_down)
-
 
         # dodanie przycisku służącego do obracania w lewo
         self.btn_turn_left = QtWidgets.QPushButton(self.dockWidgetContents)
@@ -86,11 +89,11 @@ class UiOrbitalDialog(object):
         icon4 = QtGui.QIcon()
         icon4.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/turn_left.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_turn_left.setIcon(icon4)
-        self.btn_turn_left.setObjectName("btn_screenshot")
+        self.btn_turn_left.setObjectName("btn_turn_left")
         self.horizontalLayout.addWidget(self.btn_turn_left)
 
         # dodanie przycisku służącego do zrobienia raportu graficznego
@@ -100,27 +103,27 @@ class UiOrbitalDialog(object):
         icon1 = QtGui.QIcon()
         icon1.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/camera.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_screenshot.setIcon(icon1)
         self.btn_screenshot.setObjectName("btn_screenshot")
         self.horizontalLayout.addWidget(self.btn_screenshot)
 
-        # dodanie przycisku służącego do obsługi setFullScreen'a
-        self.btn_fullScreen = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_fullScreen.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.btn_fullScreen.setText("")
+        # dodanie przycisku służącego do obsługi fullscreen'a
+        self.btn_fullscreen = QtWidgets.QPushButton(self.dockWidgetContents)
+        self.btn_fullscreen.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_fullscreen.setText("")
         icon3 = QtGui.QIcon()
         icon3.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/full_screen.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
-        self.btn_fullScreen.setIcon(icon3)
-        self.btn_fullScreen.setCheckable(True)
-        self.btn_fullScreen.setObjectName("btn_fullScreen")
-        self.horizontalLayout.addWidget(self.btn_fullScreen)
+        self.btn_fullscreen.setIcon(icon3)
+        self.btn_fullscreen.setCheckable(True)
+        self.btn_fullscreen.setObjectName("btn_fullscreen")
+        self.horizontalLayout.addWidget(self.btn_fullscreen)
 
         # dodanie przycisku służącego do obracania w prawo
         self.btn_turn_right = QtWidgets.QPushButton(self.dockWidgetContents)
@@ -129,11 +132,11 @@ class UiOrbitalDialog(object):
         icon5 = QtGui.QIcon()
         icon5.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/turn_right.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_turn_right.setIcon(icon5)
-        self.btn_turn_right.setObjectName("btn_screenshot")
+        self.btn_turn_right.setObjectName("btn_turn_right")
         self.horizontalLayout.addWidget(self.btn_turn_right)
 
         # dodanie przycisku służącego do przybliżania
@@ -143,11 +146,11 @@ class UiOrbitalDialog(object):
         icon6 = QtGui.QIcon()
         icon6.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/zoom_in.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_zoom_in.setIcon(icon6)
-        self.btn_zoom_in.setObjectName("btn_screenshot")
+        self.btn_zoom_in.setObjectName("btn_zoom_in")
         self.horizontalLayout.addWidget(self.btn_zoom_in)
 
         # dodanie przycisku służącego do oddalania
@@ -157,15 +160,18 @@ class UiOrbitalDialog(object):
         icon7 = QtGui.QIcon()
         icon7.addPixmap(
             QtGui.QPixmap(plugin_dir + "/images/zoom_out.svg"),
-            QtGui.QIcon.Normal,
-            QtGui.QIcon.Off,
+            QtCompat.qiconModeNormal(QtGui),
+            QtCompat.qiconStateOff(QtGui),
         )
         self.btn_zoom_out.setIcon(icon7)
-        self.btn_zoom_out.setObjectName("btn_screenshot")
+        self.btn_zoom_out.setObjectName("btn_zoom_out")
         self.horizontalLayout.addWidget(self.btn_zoom_out)
 
         spacerItem1 = QtWidgets.QSpacerItem(
-            5, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            5,
+            20,
+            QtCompat.qsizepolicyExpanding(QtWidgets),
+            QtCompat.qsizepolicyMinimum(QtWidgets),
         )
         self.horizontalLayout.addItem(spacerItem1)
 
@@ -173,9 +179,9 @@ class UiOrbitalDialog(object):
         orbitalDialog.setWidget(self.dockWidgetContents)
 
         self.retranslateUi(orbitalDialog)
-        
+
         # obsługa wciśnięć przycisków w oknie przeglądania zdjęć
-        self.btn_fullScreen.clicked["bool"].connect(orbitalDialog.setFullScreen)
+        self.btn_fullscreen.clicked["bool"].connect(orbitalDialog.fullScreen)
         self.btn_screenshot.clicked.connect(orbitalDialog.getScreenShot)
 
         self.btn_turn_left.pressed.connect(orbitalDialog.turnLeft)
@@ -192,10 +198,9 @@ class UiOrbitalDialog(object):
         self.btn_look_down.pressed.connect(orbitalDialog.lookDown)
         self.btn_look_up.released.connect(orbitalDialog.lookStop)
         self.btn_look_down.released.connect(orbitalDialog.lookStop)
+
         QtCore.QMetaObject.connectSlotsByName(orbitalDialog)
 
     def retranslateUi(self, orbitalDialog):
         _translate = QtCore.QCoreApplication.translate
-        orbitalDialog.setWindowTitle(
-            _translate("orbitalDialog", "PhotoViewer360")
-        )
+        orbitalDialog.setWindowTitle(_translate("orbitalDialog", "PhotoViewer360"))

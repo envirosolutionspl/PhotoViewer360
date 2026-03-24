@@ -22,48 +22,55 @@
 """
 
 import math
-from math import sin, cos, sqrt, atan2, radians
-import processing
 import os
+import processing
+from math import sin, cos, sqrt, atan2, radians
 from os.path import basename
+
 from qgis.core import (
-    QgsPointXY,
-    QgsProject,
+    QgsCoordinateReferenceSystem,
     QgsFeatureRequest,
+    QgsMessageLog,
+    QgsPointXY,
+    QgsProcessingFeatureSourceDefinition,
+    QgsProject,
     QgsVectorLayer,
     QgsWkbTypes,
-    QgsProcessingFeatureSourceDefinition,
-    QgsCoordinateReferenceSystem,
+    Qgis,
 )
 from qgis.gui import QgsRubberBand
 
-from qgis.PyQt.QtCore import (
-    Qt, QTimer
-)
-from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog, QSizePolicy
+from qgis.PyQt.QtCore import QTimer, Qt
+from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor
-from . import config
-from .geom.transformgeom import TransformGeometry
-from .gui.UiOrbitalDialog import UiOrbitalDialog
-from .utils.qgsutils import qgsutils
 from qgis.PyQt import QtCore
 
-from .modules.viewer_widget import ViewerWidget
-from .utils import MessageUtils
+from . import PLUGIN_NAME as plugin_name
 from .constants import (
-    MAX_HOTSPOT_DISTANCE,
+    ANIMATION_ACCELERATION_FACTOR,
+    ANIMATION_DECELERATION_FACTOR,
     ANIMATION_DEFAULT,
+    ANIMATION_LOOK_DOWN,
+    ANIMATION_LOOK_UP,
+    ANIMATION_MAX_SPEED,
     ANIMATION_STOP,
     ANIMATION_TURN_LEFT,
     ANIMATION_TURN_RIGHT,
     ANIMATION_ZOOM_IN,
     ANIMATION_ZOOM_OUT,
-    ANIMATION_LOOK_UP,
-    ANIMATION_LOOK_DOWN,
-    ANIMATION_ACCELERATION_FACTOR,
-    ANIMATION_DECELERATION_FACTOR,
-    ANIMATION_MAX_SPEED
+    COLUMN_NAME,
+    COLUMN_YAW,
+    CRS_EPSG_3857,
+    CRS_EPSG_4326,
+    EARTH_RADIUS_KM,
+    HOTSPOT_MERCATOR_EXTRA_M,
+    MAX_HOTSPOT_DISTANCE,
 )
+from .geom.transformgeom import TransformGeometry
+from .gui.ui_orbitalDialog import UiOrbitalDialog
+from .modules.viewer_widget import ViewerWidget
+from .utils import MessageUtils, QgsMapUtils, QtCompat
+
 
 class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     """Geo360 Dialog Class"""
@@ -93,8 +100,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
     def clickHotspot(self, coordinate_hotspot):
         """Odbiór sygnału po kliknięciu w Hotspot"""
-        newId = int(coordinate_hotspot[2])
-        self.reloadView(newId)
+        new_id = int(coordinate_hotspot[2])
+        self.reloadView(new_id)
 
     def __init__(self, iface, features_id=None, layer=None, name_layer="", parent = None):
 
@@ -155,7 +162,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
         )
 
-        self.selected_features = qgsutils.getToFeature(self.layer, self.features_id)
+        self.selected_features = QgsMapUtils.getToFeature(self.layer, self.features_id)
 
         self.gl_widget = None
 
@@ -164,9 +171,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.current_image, self.is_current_image_exists = self.getImagePathFromLayer()
 
         if self.is_current_image_exists is False:
-            MessageUtils.pushLogInfo("Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem.")
+            MessageUtils.pushLogInfo(
+                "Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem."
+            )
 
-        # pobranie danych z warstwy potrzebnych do wyświetlenia dymka
         self.copyInfoAboutFile()
 
         # dodanie okna Street View (okna ze zdjeciem) do Layout'u ui_orbitalDialog'u
@@ -174,7 +182,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         
         # ustawienie RubberBand
         self.resetQgsRubberBand()
-        self.setQgsRubberBandPosition()
+        self.setPosition()
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.viewAnimation)
@@ -191,7 +199,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.use_layer = name_layer
         self.layer = layer
         self.features_id = features_id
-        self.selected_features = qgsutils.getToFeature(self.layer, self.features_id)
+        self.selected_features = QgsMapUtils.getToFeature(self.layer, self.features_id)
 
         # resetowanie RubberBand
         self.resetQgsRubberBand()
@@ -202,7 +210,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         # ustawienie RubberBand jeśli ma się co wyświetlać
         if self.is_current_image_exists:
-            self.setQgsRubberBandPosition()
+            self.setPosition()
 
         self.updateViewer()
         
@@ -218,20 +226,31 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         if self.gl_widget is not None: 
             # Wgranie do widgetu danych dla dymka
             self.gl_widget.setDataAboutPhoto(
-                self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
-            ) 
-            self.getPointsToHotspot()
-            # Ustawienie danych geometrycznych i wymuszenie aktualizacji okna
-            self.gl_widget.updateViewerWigdet(
-                azymut, 0.0, x, y
+                self.current_image,
+                self.data_wykonania,
+                self.nr_drogi,
+                self.nazwa_ulicy,
+                self.numer_odcinka,
+                self.kilometraz,
             )
-            
+            self.getPointsToHotspot()
+            self.gl_widget.updateViewerWigdet(azymut, 0.0, x, y)
+
         else:
             # Utworzenie widgetu wraz ze wszystkimi danymi potrzebnymi do poprawnego wyswietlenia
             self.gl_widget = ViewerWidget(
-                self, self.iface,
-                azymut, 0.0, x, y,
-                self.current_image, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz
+                self,
+                self.iface,
+                azymut,
+                0.0,
+                x,
+                y,
+                self.current_image,
+                self.data_wykonania,
+                self.nr_drogi,
+                self.nazwa_ulicy,
+                self.numer_odcinka,
+                self.kilometraz,
             )
             self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
@@ -257,21 +276,24 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.nazwa_ulicy = "NULL"
         self.numer_odcinka = ""
         self.kilometraz = ""
+        iso_fmt = QtCompat.dateFormatISODate(Qt)
         for feature in self.layer.getFeatures():
-            if feature.attributes()[2] == name_img.replace(".jpg",""):
-                dateTime = feature.attributes()[7]
-                self.data_wykonania = str(dateTime.toString(Qt.DateFormat.ISODate)).replace("T", " ")
+            if feature.attributes()[2] == name_img.replace(".jpg", ""):
+                date_time = feature.attributes()[7]
+                self.data_wykonania = str(date_time.toString(iso_fmt)).replace("T", " ")
                 self.nr_drogi = str(feature.attributes()[8])
                 self.nazwa_ulicy = str(feature.attributes()[9])
                 self.numer_odcinka = str(feature.attributes()[10])
                 self.kilometraz = str(feature.attributes()[11])
         if self.nazwa_ulicy == "NULL":
-            MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy... Dane niekompletne.")
+            MessageUtils.pushLogInfo(
+                "Wczytywanie danych punktu z warstwy... Dane niekompletne."
+            )
         else:
             MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy... Sukces.")
 
     def getPointsToHotspot(self):
-        """Wybranie z warstwy hotspotów na podstawie utworzonego 15 metrowego buforu"""
+        """Wybranie z warstwy hotspotów na podstawie utworzonego buforu"""
 
         self.layer.select(self.selected_features.id())
         x_punktu = 0
@@ -285,20 +307,24 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         # przeliczenie do układu EPSG:3857, (EPSG:2180 nie działa najlepiej poza Polską)
         selected_feature_3857 = processing.run(
-            "native:reprojectlayer", {
-                'INPUT': QgsProcessingFeatureSourceDefinition(
+            "native:reprojectlayer",
+            {
+                "INPUT": QgsProcessingFeatureSourceDefinition(
                     self.layer.name(),
                     selectedFeaturesOnly=True,
                     featureLimit=-1,
-                    geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid
+                    geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid,
                 ),
-                'TARGET_CRS':QgsCoordinateReferenceSystem('EPSG:3857'),
-                'OUTPUT':'TEMPORARY_OUTPUT'
-            })
+                "TARGET_CRS": QgsCoordinateReferenceSystem(CRS_EPSG_3857),
+                "OUTPUT": "TEMPORARY_OUTPUT",
+            },
+        )
 
         # dodajemy kompensację mercatora dla ustalenia dystansu odsiewowego
         mercator_scalar = 1.0 / math.cos(math.radians(y_punktu))
-        buffer_distance = (MAX_HOTSPOT_DISTANCE+5) * mercator_scalar
+        buffer_distance = (
+            MAX_HOTSPOT_DISTANCE + HOTSPOT_MERCATOR_EXTRA_M
+        ) * mercator_scalar
 
         # stworzenie bufora o promieniu max_distance metrów
         bufor_3857 = processing.run(
@@ -376,20 +402,22 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             (str, boolean): Zwraca nazwę pliku z warstwy oraz informację, czy plik istnieje  
         """
 
-        self.new_bering = self.selected_features.attribute(config.COLUMN_YAW)
+        self.new_bering = self.selected_features.attribute(COLUMN_YAW)
 
         try:
-            path = qgsutils.getAttributeFromFeature(
+            path = QgsMapUtils.getAttributeFromFeature(
                 self.selected_features,
-                config.COLUMN_NAME,
+                COLUMN_NAME,
             )
             if not os.path.isabs(path):  # Relative Path to Project
                 path_project = QgsProject.instance().readPath("./")
                 path = os.path.normpath(os.path.join(path_project, path))
         except KeyError:
-            MessageUtils.pushLogCritical(f"Nie znaleziono kolumny: {config.COLUMN_NAME}")
+            MessageUtils.pushLogCritical(f"Nie znaleziono kolumny: {COLUMN_NAME}")
         except Exception:
-            MessageUtils.pushLogCritical("Błąd podczas pobierania nazwy pliku z warstwy.")
+            MessageUtils.pushLogCritical(
+                "Błąd podczas pobierania nazwy pliku z warstwy."
+            )
             return "", False
 
         path_exists = os.path.exists(path)
@@ -402,12 +430,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         lon1 = radians(float(lon1))
         lat2 = radians(float(lat2))
         lon2 = radians(float(lon2))
-        R = 6373.0
         dlon = lon2 - lon1
         dlat = lat2 - lat1
         a = (sin(dlat/2))**2 + cos(lat1) * cos(lat2) * (sin(dlon/2))**2
         c = 2 * atan2(sqrt(a), sqrt(1-a))
-        distance = R * c * 1000
+        distance = EARTH_RADIUS_KM * c * 1000
 
         return distance
 
@@ -420,7 +447,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         """
 
         self.features_id = new_id
-        self.selected_features = qgsutils.getToFeature(self.layer, new_id)
+        self.selected_features = QgsMapUtils.getToFeature(self.layer, new_id)
 
         # przypisanie danych z poprzedniego hotspotu do nowych zmiennych
         self.current_direction = self.bearing_current # w celu zachowania kierunku radaru
@@ -434,26 +461,28 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         # ustawienie RubberBand jeśli ma się co wyświetlać
         if self.is_current_image_exists:
-            self.setQgsRubberBandPosition()
+            self.setPosition()
 
         self.updateViewer()
 
-        # zoom do punktu po wybraniu hotspot'u
-        qgsutils.zoomToFeature(self.canvas, self.layer, new_id)
+        QgsMapUtils.zoomToFeature(self.canvas, self.layer, new_id)
 
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
         if event.key() == Qt.Key_Escape:
-            self.setFullScreen()
-            self.btn_fullScreen.setChecked(False)
+            self.fullScreen()
+            self.btn_fullscreen.setChecked(False)
 
-    def setFullScreen(self):
+    def fullScreen(self):
         """Funkcja odpowiedzialna za przycisk do przeglądania zdjęć w trybie pełnoekranowym"""
+
+        if self.gl_widget is None:
+            return
 
         if not self.is_window_full_screen:
             self.setFloating(True)
             self.normal_window_state = self.windowState()
-            self.setWindowState(Qt.WindowState.WindowFullScreen)
+            self.setWindowState(QtCompat.windowStateFullScreen(Qt))
             self.gl_widget.showFullScreen()
             self.is_window_full_screen = True
 
@@ -518,25 +547,38 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def viewAnimation(self):
         """ Obliczenia prędkości obrotu i wyzwala aktualizację OpenGL """
 
-        # aktualizacja prędkości obrotu dla każdego kierunku
-        self.predkosc_obrotu = self.countRotationSpeed(self.kierunek_obrotu, self.predkosc_obrotu)
-        self.predkosc_przyblizania = self.countRotationSpeed(self.kierunek_przyblizania, self.predkosc_przyblizania)
-        self.predkosc_podnoszenia = self.countRotationSpeed(self.kierunek_podnoszenia, self.predkosc_podnoszenia)
+        self.predkosc_obrotu = self.countRotationSpeed(
+            self.kierunek_obrotu, self.predkosc_obrotu
+        )
+        self.predkosc_przyblizania = self.countRotationSpeed(
+            self.kierunek_przyblizania, self.predkosc_przyblizania
+        )
+        self.predkosc_podnoszenia = self.countRotationSpeed(
+            self.kierunek_podnoszenia, self.predkosc_podnoszenia
+        )
 
         # wgrywamy nowe parametry do clasy OpenGL
         if self.gl_widget is not None:
-            self.gl_widget.updateRotationData(self.predkosc_obrotu, self.predkosc_przyblizania,  self.predkosc_podnoszenia)
+            self.gl_widget.updateRotationData(
+                self.predkosc_obrotu,
+                self.predkosc_przyblizania,
+                self.predkosc_podnoszenia,
+            )
 
-        # zmniejszamy częstotliwość aktualizacji animacji w celu oszczędzania CPU
-        if self.predkosc_obrotu == 0 \
-            and self.predkosc_przyblizania == 0 \
-            and self.predkosc_podnoszenia == 0:
+        if (
+            self.predkosc_obrotu == 0
+            and self.predkosc_przyblizania == 0
+            and self.predkosc_podnoszenia == 0
+        ):
             self.timer.setInterval(1000)
 
     def getScreenShot(self):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""
 
-        image_path, extencion = QFileDialog.getSaveFileName(
+        if self.gl_widget is None:
+            return
+
+        image_path, _ext = QFileDialog.getSaveFileName(
             self.gl_widget,
             "Wskaż lokalizacje zrzutu ekranu",
             "",
@@ -562,11 +604,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         if self.current_direction is not None: # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
             self.bearing = str(self.bearing_current * -180 / math.pi)
         else: # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
-            self.bearing = self.selected_features.attribute(config.COLUMN_YAW)
+            self.bearing = self.selected_features.attribute(COLUMN_YAW)
 
         original_point = self.selected_features.geometry().asPoint()
 
-        self.actual_point_dx = qgsutils.convertProjection(
+        self.actual_point_dx = QgsMapUtils.convertProjection(
             original_point.x(),
             original_point.y(),
             self.layer.crs().authid(),
@@ -584,10 +626,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             QgsWkbTypes.LineGeometry,
         )
 
-        if hasattr(Qt, "GlobalColor"):
-            self.actual_point_orientation.setColor(Qt.GlobalColor.magenta)
-        else:
-            self.actual_point_orientation.setColor(Qt.magenta)
+        self.actual_point_orientation.setColor(QtCompat.setGlobalColor(Qt, "magenta"))
         self.actual_point_orientation.setWidth(3)
 
         # zdefiniowanie punktów radaru
@@ -691,7 +730,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         CS = self.canvas.mapUnitsPerPixel() * 18
         A666x = self.actual_point_dx.x() - CS * 0.75
         A666y = self.actual_point_dx.y() + CS * 1.25
-        self.actual_point_orientation.addPoint(QgsPointXY(float(A666x), float(A666y)))
+        self.actual_point_orientation.addPoint(
+            QgsPointXY(float(A666x), float(A666y))
+        )
 
         # punkt kończący strzałkę
         CS = self.canvas.mapUnitsPerPixel() * 18
@@ -709,7 +750,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         else:
             angle = float(self.bearing) * math.pi / -180
             self.bearing_current = float(self.bearing) * math.pi / -180
-        
+
         self.current_direction = None
 
         tmp_geom = self.actual_point_orientation.asGeometry()
@@ -717,30 +758,25 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.rotate_tool = TransformGeometry()
         epsg = self.canvas.mapSettings().destinationCrs().authid()
 
-        self.dumLayer = QgsVectorLayer(
+        dum_layer = QgsVectorLayer(
             "Point?crs=" + epsg,
             "temporary_points",
             "memory"
         )
 
         self.actual_point_orientation.setToGeometry(
-            self.rotate_tool.rotate(
-                tmp_geom,
-                self.actual_point_dx,
-                angle
-            ),
-            self.dumLayer
+            self.rotate_tool.rotate(tmp_geom, self.actual_point_dx, angle),
+            dum_layer,
         )
 
-    def setQgsRubberBandPosition(self):
+    def setPosition(self):
         """ustawienie pozycji RubberBand (rysunku łuku)"""
 
-        # Transform Point
         original_point = self.selected_features.geometry().asPoint()
-        self.actual_point_dx = qgsutils.convertProjection(
+        self.actual_point_dx = QgsMapUtils.convertProjection(
             original_point.x(),
             original_point.y(),
-            "EPSG:4326",
+            CRS_EPSG_4326,
             self.canvas.mapSettings().destinationCrs().authid(),
         )
 
@@ -772,10 +808,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.position_int.setWidth(5)
         self.position_int.setIcon(QgsRubberBand.ICON_CIRCLE)
         self.position_int.setIconSize(3)
-        if hasattr(Qt, "GlobalColor"):
-            self.position_int.setColor(Qt.GlobalColor.white)
-        else:
-            self.position_int.setColor(Qt.white)
+        self.position_int.setColor(QtCompat.setGlobalColor(Qt, "white"))
 
         self.position_dx.addPoint(self.actual_point_dx)
         self.position_sx.addPoint(self.actual_point_dx)
@@ -796,10 +829,17 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         """Usunięcie łuku wskazującego kierunek zdjęcia"""
 
         try:
-            self.position_sx.reset()
-            self.position_int.reset()
-            self.position_dx.reset()
-            self.actual_point_orientation.reset()
-        except Exception:
-            print("exception remove rubbeband")
-            None
+            if self.position_sx is not None:
+                self.position_sx.reset()
+            if self.position_int is not None:
+                self.position_int.reset()
+            if self.position_dx is not None:
+                self.position_dx.reset()
+            if self.actual_point_orientation is not None:
+                self.actual_point_orientation.reset()
+        except Exception as exc:
+            QgsMessageLog.logMessage(
+                f"Exception while removing rubberband: {exc}",
+                plugin_name,
+                level=Qgis.Warning,
+            )
