@@ -180,9 +180,6 @@
         <property name="storageMode">
          <enum>QgsFileWidget::GetDirectory</enum>
         </property>
-        <property name="options">
-         <set>QFileDialog::ShowDirsOnly</set>
-        </property>
        </widget>
       </item>
       <item>

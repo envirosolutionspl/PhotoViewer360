@@ -13,8 +13,12 @@ from OpenGL.GLU import (
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtGui import QSurfaceFormat
-if int(QtCore.qVersion().split('.')[0]) > 5:
-    from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
+
+if int(QtCore.qVersion().split(".")[0]) > 5:
+    try:
+        from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
+    except ModuleNotFoundError:
+        from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 else:
     from qgis.PyQt.QtWidgets import QOpenGLWidget
 
@@ -79,7 +83,16 @@ class ViewerWidget(QOpenGLWidget):
 
         format = QSurfaceFormat()
         format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
-        format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
+        # Qt5: QSurfaceFormat.ColorSpace enum; Qt6: setColorSpace(QColorSpace)
+        if hasattr(QSurfaceFormat, "ColorSpace"):
+            format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
+        else:
+            from qgis.PyQt.QtGui import QColorSpace
+
+            if hasattr(QColorSpace, "sRgb"):
+                format.setColorSpace(QColorSpace.sRgb())
+            else:
+                format.setColorSpace(QColorSpace(QColorSpace.NamedColorSpace.SRgb))
         QSurfaceFormat.setDefaultFormat(format)
         super().__init__(parent)
         self.show_description = True

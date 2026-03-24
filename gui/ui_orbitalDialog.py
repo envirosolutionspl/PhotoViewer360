@@ -34,7 +34,7 @@ class UiOrbitalDialog(object):
             QtCompat.qiconStateOff(QtGui),
         )
         orbitalDialog.setWindowIcon(icon)
-        orbitalDialog.setFeatures(QtWidgets.QDockWidget.AllDockWidgetFeatures)
+        orbitalDialog.setFeatures(QtCompat.qdockwidgetAllFeatures(QtWidgets))
         self.dockWidgetContents = QtWidgets.QWidget()
         self.dockWidgetContents.setObjectName("dockWidgetContents")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.dockWidgetContents)
@@ -43,7 +43,9 @@ class UiOrbitalDialog(object):
         self.ViewerLayout.setObjectName("ViewerLayout")
         self.verticalLayout_3.addLayout(self.ViewerLayout)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self.horizontalLayout.setSizeConstraint(
+            QtCompat.qlayoutSizeConstraintFixedSize(QtWidgets)
+        )
         self.horizontalLayout.setObjectName("horizontalLayout")
 
         spacerItem = QtWidgets.QSpacerItem(
@@ -56,7 +58,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do patrzenia w górę
         self.btn_look_up = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_look_up.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_look_up.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_look_up.setText("")
         icon8 = QtGui.QIcon()
         icon8.addPixmap(
@@ -70,7 +72,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do patrzenia w dół
         self.btn_look_down = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_look_down.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_look_down.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_look_down.setText("")
         icon9 = QtGui.QIcon()
         icon9.addPixmap(
@@ -84,7 +86,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do obracania w lewo
         self.btn_turn_left = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_turn_left.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_turn_left.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_turn_left.setText("")
         icon4 = QtGui.QIcon()
         icon4.addPixmap(
@@ -98,7 +100,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do zrobienia raportu graficznego
         self.btn_screenshot = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_screenshot.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_screenshot.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_screenshot.setText("")
         icon1 = QtGui.QIcon()
         icon1.addPixmap(
@@ -112,7 +114,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do obsługi fullscreen'a
         self.btn_fullscreen = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_fullscreen.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_fullscreen.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_fullscreen.setText("")
         icon3 = QtGui.QIcon()
         icon3.addPixmap(
@@ -127,7 +129,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do obracania w prawo
         self.btn_turn_right = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_turn_right.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_turn_right.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_turn_right.setText("")
         icon5 = QtGui.QIcon()
         icon5.addPixmap(
@@ -141,7 +143,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do przybliżania
         self.btn_zoom_in = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_zoom_in.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_zoom_in.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_zoom_in.setText("")
         icon6 = QtGui.QIcon()
         icon6.addPixmap(
@@ -155,7 +157,7 @@ class UiOrbitalDialog(object):
 
         # dodanie przycisku służącego do oddalania
         self.btn_zoom_out = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_zoom_out.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.btn_zoom_out.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
         self.btn_zoom_out.setText("")
         icon7 = QtGui.QIcon()
         icon7.addPixmap(

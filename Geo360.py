@@ -22,7 +22,6 @@
 """
 import os
 
-import logging
 from qgis.gui import QgsMapToolIdentify
 from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
@@ -74,8 +73,6 @@ import importlib.util
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
 
-
-log = logging.getLogger(__name__)
 
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -258,8 +255,6 @@ class Geo360:
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
 
-        log.initLogging()
-
         # Dodanie narzędzia PhotoViewer360
         self.action = self.addAction(
             icon_path=QIcon(plugin_dir + UI_PLUGIN_ICON_PATH),
@@ -348,7 +343,7 @@ class Geo360:
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
 
-        if self.qgisfeed_dialog.exec_() == QDialog.Accepted:
+        if QtCompat.dialogExec(self.qgisfeed_dialog) == QDialog.Accepted:
             self.selected_branch = self.qgisfeed_dialog.combo_box.currentText()
             
             #Zapis w QGIS3.ini
@@ -715,7 +710,7 @@ class Geo360:
         )
         self.progress = QProgressBar()
         self.progress.setMaximum(PROGRESS["COMPLETE"])
-        self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.progress.setAlignment(QtCompat.alignmentLeftVcenter(Qt))
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
             MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
@@ -751,7 +746,7 @@ class Geo360:
             nowy_plik_button = msgBox.addButton("Nowy plik", zatwierdz_role)
             dopisanie_plik_button = msgBox.addButton("Dopisanie do pliku", zatwierdz_role)
             anuluj_button = msgBox.addButton("Anuluj", anuluj_role)
-            msgBox.exec_()
+            QtCompat.dialogExec(msgBox)
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
                 progress_message_bar.layout().addWidget(self.progress)
@@ -859,16 +854,23 @@ class Geo360:
         self.features_id = features_id
         self.canvas.refresh()
 
-        self.orbital_viewer = Geo360Dialog(
-            self.iface,
-            features_id=features_id,
-            layer=layer,
-            name_layer=self.use_layer,
-            parent=self,
-        )
-
         pozycja_dockwidget = QtCompat.rightDockwidgetArea(Qt)
-        self.iface.addDockWidget(pozycja_dockwidget, self.orbital_viewer)
+
+        if self.orbital_viewer is not None:
+            self.orbital_viewer.updateViewerDialog(
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+            )
+        else:
+            self.orbital_viewer = Geo360Dialog(
+                self.iface,
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+                parent=self,
+            )
+            self.iface.addDockWidget(pozycja_dockwidget, self.orbital_viewer)
 
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""

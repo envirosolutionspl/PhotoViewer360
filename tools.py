@@ -25,8 +25,9 @@ class SelectTool(QgsMapToolIdentify):
         self.canvas.setCursor(self.cursor)
 
     def canvasReleaseEvent(self, event):
+        pp = event.pixelPoint()
         found_features = self.identify(
-            event.x(), event.y(), [self.query_layer], self.TopDownAll
+            pp.x(), pp.y(), [self.query_layer], self.TopDownAll
         )
         if len(found_features) > 0:
 

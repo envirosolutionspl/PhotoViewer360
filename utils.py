@@ -654,10 +654,19 @@ class QtCompat:
         return QMessageBox.No
 
     @staticmethod
+    def dialogExec(dialog):
+        exec_fn = getattr(dialog, "exec", None)
+        if callable(exec_fn):
+            return exec_fn()
+        return dialog.exec_()
+
+    @staticmethod
     def alignmentLeftVcenter(QtClass):
         if hasattr(QtClass, "AlignmentFlag"):
-            return QtClass.AlignmentFlag.AlignLeft or QtClass.AlignmentFlag.AlignVCenter
-        return QtClass.AlignLeft or QtClass.AlignVCenter
+            return (
+                QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
+            )
+        return QtClass.AlignLeft | QtClass.AlignVCenter
 
 
     @staticmethod
@@ -665,6 +674,18 @@ class QtCompat:
         if hasattr(QtClass, "DockWidgetArea"):
             return QtClass.DockWidgetArea.RightDockWidgetArea
         return QtClass.RightDockWidgetArea
+
+    @staticmethod
+    def qdockwidgetAllFeatures(qtwidgets_module):
+        dw = qtwidgets_module.QDockWidget
+        if hasattr(dw, "DockWidgetFeature"):
+            f = dw.DockWidgetFeature
+            return (
+                f.DockWidgetClosable
+                | f.DockWidgetMovable
+                | f.DockWidgetFloatable
+            )
+        return dw.AllDockWidgetFeatures
 
     @staticmethod
     def qmessageboxApplyRole(qtwidgets_module):
@@ -692,10 +713,23 @@ class QtCompat:
         return qtwidgets_module.QSizePolicy.Minimum
 
     @staticmethod
+    def qlayoutSizeConstraintFixedSize(qtwidgets_module):
+        lay = qtwidgets_module.QLayout
+        if hasattr(lay, "SizeConstraint"):
+            return lay.SizeConstraint.SetFixedSize
+        return lay.SetFixedSize
+
+    @staticmethod
     def qfiledialogShowDirsOnly(qtwidgets_module):
-        if hasattr(qtwidgets_module.QFileDialog, "Option"):
-            return qtwidgets_module.QFileDialog.Option.ShowDirsOnly
-        return qtwidgets_module.QFileDialog.ShowDirsOnly
+        fd = qtwidgets_module.QFileDialog
+        try:
+            return fd.Option.ShowDirsOnly
+        except AttributeError:
+            pass
+        try:
+            return fd.FileDialogOption.ShowDirsOnly
+        except AttributeError:
+            return fd.ShowDirsOnly
 
     @staticmethod
     def qiconModeNormal(qtgui_module):
@@ -727,6 +761,13 @@ class QtCompat:
         if hasattr(qtcore_module, "WindowState"):
             return qtcore_module.WindowState.WindowFullScreen
         return qtcore_module.WindowFullScreen
+
+    @staticmethod
+    def qcursorShapePointingHand(qtcore_module):
+        qt = qtcore_module.Qt
+        if hasattr(qt, "CursorShape"):
+            return qt.CursorShape.PointingHandCursor
+        return qt.PointingHandCursor
 
 class QgsMapUtils(object):
     @staticmethod
