@@ -137,6 +137,8 @@ class ViewerWidget(QOpenGLWidget):
         self.coordinates = None
         self.vertices_group = None
         self.faces_group = None
+        self.black_vertices_group = None
+        self.black_faces_group = None
         self.hotspot_fid = None
         self.hot_spot_test = False
         self.hot_spot_last_rgb = 0
@@ -222,14 +224,28 @@ class ViewerWidget(QOpenGLWidget):
         Rysowanie sceny
         """
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        # 3D: Rysowanie tła i ciemnych hotspotów
         glPushMatrix()
         self.applyRotation()    
         self.drawSphere()
+        self.drawBlackHotSpots(self.hot_spot_test)
+        glPopMatrix()
+
+        # 2D: Testowanie hotspotów i rysowanie opisu
+        glLoadIdentity()
+        self.testHotSpots()
+        if self.show_description:
+            self.drawDescriptionBalloom()
+
+        # 3D: Rysowanie białych hotspotów 
+        glLoadIdentity()
+        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
+        glPushMatrix()
+        self.applyRotation()
         self.drawHotSpots(self.hot_spot_test)
         glPopMatrix()
         glLoadIdentity()
-        if self.show_description:
-            self.drawDescriptionBalloom()
 
     def applyRotation(self):
         glRotatef(self.pitch, 1, 0, 0)
@@ -250,11 +266,9 @@ class ViewerWidget(QOpenGLWidget):
 
     def drawDescriptionBalloom(self):
         """
-        Rysuje dymek z opisem na oknie OpenGL i testuje kliknięcie w hot spot
+        Rysuje dymek z opisem na oknie OpenGL
         """
         if self.image_description_data is not None:
-            hot_spot_selected = -1
-
             glMatrixMode(GL_PROJECTION)
             glPushMatrix()
             glLoadIdentity()
@@ -278,44 +292,66 @@ class ViewerWidget(QOpenGLWidget):
                 glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
             glDisable(GL_BLEND)
 
-            # wykrywanie hotSpotów wewnątrz operacji na bitmapach
-            # obsługa skalowania okien w windows
-            dpi_window_scale = float(self.viewport[3])/float(self.height())
-            p_x = int(float(self.mouse_x) * dpi_window_scale)
-            p_y = int(float(self.mouse_y) * dpi_window_scale)
-
-            # pobranie punktu to testu
-            # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
-            rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
-            if rgb[0] == rgb[1] and rgb[0] == rgb[2]: # interesuje nasz idealny szary
-                # interesuje nas para 215 i 220+index, 215 to kolor hotspotów
-                if rgb[0] == 215 and self.hot_spot_last_rgb in range(220, 220+len(self.hotspot_fid)):
-                    hot_spot_selected = self.hotspot_fid[self.hot_spot_last_rgb-220]
-                elif self.hot_spot_last_rgb == 215 and rgb[0] in range(220, 220+len(self.hotspot_fid)):
-                    hot_spot_selected = self.hotspot_fid[rgb[0]-220]
-                self.hot_spot_last_rgb = rgb[0]
-            else:
-                self.hot_spot_last_rgb = 0
-
             # finalizacja GL
             glColor3f(1, 1, 1) 
             glPopMatrix()
             glMatrixMode(GL_PROJECTION)
             glPopMatrix()
-            
-            # obsługa hotspotów
-            if self.hot_spot_test:
-                self.hot_spot_test = False
-                self.update()
-
-            if hot_spot_selected != -1:
-                self.parent.reloadView(hot_spot_selected)
-                self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
-                MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))
-
             return True
         else:
             return False
+
+    def testHotSpots(self):
+        """
+        Funkcja testuje kliknięcie w hot spot oraz wyzwala przeładowanie w przypadku trafienia
+        """
+        hot_spot_selected = -1
+
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+
+        gluOrtho2D(0, self.viewport[2], self.viewport[3], 0)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()    
+
+        # aktualizacja danych o wymiarach viewport - przydaje się przy przerzucaniu okna między monitorami o różnym skalowaniu
+        self.viewport = glGetIntegerv(GL_VIEWPORT) 
+
+        # obsługa skalowania okien w Windows
+        dpi_window_scale = float(self.viewport[3])/float(self.height())
+        p_x = int(float(self.mouse_x) * dpi_window_scale)
+        p_y = int(float(self.mouse_y) * dpi_window_scale)
+
+        # pobranie punktu to testu
+        # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
+        rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
+        if rgb[0] == rgb[1] and rgb[0] == rgb[2]: # interesuje nasz idealny ciemny szary
+            # interesuje nas para 60 i 70+index, 60 to kolor spodu hotspotów
+            if rgb[0] == 60 and self.hot_spot_last_rgb in range(70, 70+len(self.hotspot_fid)):
+                hot_spot_selected = self.hotspot_fid[self.hot_spot_last_rgb-70]
+            elif self.hot_spot_last_rgb == 60 and rgb[0] in range(70, 70+len(self.hotspot_fid)):
+                hot_spot_selected = self.hotspot_fid[rgb[0]-70]
+            self.hot_spot_last_rgb = rgb[0]
+        else:
+            self.hot_spot_last_rgb = 0
+
+        # finalizacja GL
+        glPopMatrix()
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        
+        # obsługa hotspotów
+        if self.hot_spot_test:
+            self.hot_spot_test = False
+            # wyzwalanie odświeżenia, które spowoduje wygenerowanie klatki porównawczej
+            self.update()
+
+        if hot_spot_selected != -1:
+            self.parent.reloadView(hot_spot_selected)
+            self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
+            MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))
 
     def updateViewerWigdet(
             self, direction, angle_degrees, x, y,
@@ -369,6 +405,7 @@ class ViewerWidget(QOpenGLWidget):
             image = Image.open(os.path.join(plugin_dir, "images", "desc_balloon.png"))
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono ścieżki /images/desc_balloon.png")
+            return False
         except Exception:
             MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia /images/desc_balloon.png")
             return False
@@ -376,8 +413,12 @@ class ViewerWidget(QOpenGLWidget):
         try:
             font_regular = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Regular.ttf"), 15)
             font_bold = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Bold.ttf"), 15)
+            # font_regular = ImageFont.truetype("arial.ttf", 15) # tylko Windows
+            # font_bold = ImageFont.truetype("arialbd.ttf", 15)  # tylko Windows
+
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
+            return False
         except Exception:
             MessageUtils.pushLogCritical("Błąd podczas wczytywania plików czczionek.")
             return False
@@ -412,12 +453,15 @@ class ViewerWidget(QOpenGLWidget):
             # wczytywanie obiektów hotspotów do pamięci
             self.vertices_group = []
             self.faces_group = []
+            self.black_vertices_group = []
+            self.black_faces_group = []
             self.hotspot_fid = []
             scale = 0.104 # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
             spectator_angle  = 0
             for hotspot in self.coordinates:
                 if hotspot['distance'] < 0.01:
                     spectator_angle = hotspot['azymut']
+                    break
             for hotspot in self.coordinates:
                 # pomijamy punkt obserwatora
                 if hotspot['distance'] < 0.01:
@@ -425,6 +469,8 @@ class ViewerWidget(QOpenGLWidget):
 
                 vertices = []
                 faces = []
+                b_vertices = []
+                b_faces = []
                 with open(os.path.join(plugin_dir, "images", "hotspot.obj"), 'r') as f:
                     for line in f:
                         if line.startswith('v '):
@@ -440,8 +486,28 @@ class ViewerWidget(QOpenGLWidget):
                         elif line.startswith('f '):
                             face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
                             faces.append(face)
+
+
+                with open(os.path.join(plugin_dir, "images", "hotspot_black.obj"), 'r') as f:
+                    for line in f:
+                        if line.startswith('v '):
+                            ver = list(map(float, line.strip().split()[1:]))
+
+                            # wyliczanie przesunięcia wierchołków na podstawie kąta i dystansu hotspota
+                            # x = r*cos(kat_w_radianach)
+                            # y = r*sin(kat_w_radianach), r= scale*distance, kat_w_radianach= azymut_obliczony
+                            ver[0] += scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                            ver[1] += scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                            ver[2] += 0.301
+                            b_vertices.append(ver)
+                        elif line.startswith('f '):
+                            face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
+                            b_faces.append(face)
+
                 self.vertices_group.append(vertices)
                 self.faces_group.append(faces)
+                self.black_vertices_group.append(b_vertices)
+                self.black_faces_group.append(b_faces)
                 self.hotspot_fid.append(hotspot['fid'])
                             
 
@@ -459,8 +525,6 @@ class ViewerWidget(QOpenGLWidget):
         self.fov = max(30, min(self.fov, 90))
         self.update()
 
-
-
     def mousePressEvent(self, event):
         if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
             self.moving = False
@@ -471,13 +535,11 @@ class ViewerWidget(QOpenGLWidget):
         if not self.moving:
             
             # przeprowadzenie testu kliknięcia w hot spot
-            self.show_description = True # operacje testujące znajdują się w drawDescriptionBalloom()
             self.hot_spot_test = True
             self.update()
 
         if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
             self.setCursor(self._QtCore_Qt_CursorShape_OpenHandCursor)
-
 
     def mouseMoveEvent(self, event):
         self.moving = True
@@ -496,19 +558,35 @@ class ViewerWidget(QOpenGLWidget):
         self.prev_dx = dx
         self.prev_dy = dy
 
+    def drawBlackHotSpots(self, test_color=False):
+        """
+        Rysowanie ciemnych hot spotów w kolorze domyślnym lub do identyfikacji
+        """
+
+        if self.black_vertices_group is not None and self.black_faces_group is not None:
+            for i in range(0, len(self.black_vertices_group)):
+                if test_color:
+                    color = 70 + i # kolor ściśle związany z wykrywaniem kliknięcia
+                else:
+                    color = 60 # kolor ściśle związany z wykrywaniem kliknięcia
+                if self.black_vertices_group[i] is not None and self.black_faces_group[i] is not None:
+                    glBegin(GL_TRIANGLES)
+                    glColor3ub(color, color, color)
+                    for face in self.black_faces_group[i]:
+                        for vertex in face:
+                            glVertex3fv([self.black_vertices_group[i][vertex][0], self.black_vertices_group[i][vertex][1], self.black_vertices_group[i][vertex][2]])
+                    glColor3f(1, 1, 1) 
+                    glEnd()   
+
     def drawHotSpots(self, test_color=False):
         """
-        Rysowanie hot spotów w kolorze domyślnym lub do identyfikacji
+        Rysowanie jasnych hot spotów w kolorze domyślnym
         """
         if self.vertices_group is not None and self.faces_group is not None:
             for i in range(0, len(self.vertices_group)):
-                if test_color:
-                    color = 220 + i # kolor ściśle związany z wykrywaniem kliknięcia
-                else:
-                    color = 215 # kolor ściśle związany z wykrywaniem kliknięcia
                 if self.vertices_group[i] is not None and self.faces_group[i] is not None:
                     glBegin(GL_TRIANGLES)
-                    glColor3ub(color, color, color)
+                    glColor3ub(220, 220, 220)
                     for face in self.faces_group[i]:
                         for vertex in face:
                             glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
