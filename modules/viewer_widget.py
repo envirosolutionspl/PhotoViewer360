@@ -224,7 +224,7 @@ class ViewerWidget(QOpenGLWidget):
         Rysowanie sceny
         """
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
+
         # 3D: Rysowanie tła i ciemnych hotspotów
         glPushMatrix()
         self.applyRotation()    
@@ -232,11 +232,9 @@ class ViewerWidget(QOpenGLWidget):
         self.drawBlackHotSpots(self.hot_spot_test)
         glPopMatrix()
 
-        # 2D: Testowanie hotspotów i rysowanie opisu
+        # 2D: Testowanie hotspotów 
         glLoadIdentity()
         self.testHotSpots()
-        if self.show_description:
-            self.drawDescriptionBalloom()
 
         # 3D: Rysowanie białych hotspotów 
         glLoadIdentity()
@@ -245,6 +243,12 @@ class ViewerWidget(QOpenGLWidget):
         self.applyRotation()
         self.drawHotSpots(self.hot_spot_test)
         glPopMatrix()
+
+        # 2D: Rysowanie opisu
+        glLoadIdentity()
+        if self.show_description:
+            self.drawDescriptionBalloom()
+
         glLoadIdentity()
 
     def applyRotation(self):
