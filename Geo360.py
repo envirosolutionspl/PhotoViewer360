@@ -41,6 +41,7 @@ from .constants import (
     SERVER_DIRECTORY,
     IP,
     PORT,
+    GPKP_COLUMNS_CHECK,
     GPKP_COLUMNS_ADD_LIST,
     GPKP_COLUMNS_CHANGE_DICT,
     GPKP_COLUMNS_DELETE_LIST,
@@ -833,12 +834,32 @@ class Geo360:
                 level=Qgis.Critical,
             )
             return False
+        
+        # sprawdzanie poprawności GeoPaczki, pliki powstałe poza wtyczką są odrzucane
+        col_name = GPKP_COLUMNS_CHECK[0]
+        try:
+            for feature in vlayer.getFeatures():
+                for name in GPKP_COLUMNS_CHECK:
+                    col_name = name
+                    atrybut = feature.attribute(name)
+                break
+        except KeyError:
+            MessageUtils.pushLogWarning(f"W wybranym pliku GeoPaczki nie znaleziono wymaganego atrybutu: {col_name}")
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                "Ostrzeżenie",
+                "Wybrany plik nie zawiera wymaganych atrybutów.\n"
+                "Plik uszkodzony lub powstał przy użycia innego narzędzia.")
+            self.action_activate.setEnabled(False)
+            return False
 
         self.project.addMapLayer(vlayer)
 
         self.use_layer = vlayer.name()
         self.dlg.hide()
         self.clickPointOnMapFeature()
+
+        return True
 
     def renameNameField(self, rlayer, oldname, newname):
         """Funkcja zmieniająca nazwy atrybutów w warstwie"""
