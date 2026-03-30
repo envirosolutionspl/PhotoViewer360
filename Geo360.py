@@ -22,12 +22,18 @@
 """
 import os
 
-from qgis.gui import QgsMapToolIdentify
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication, QMetaType
-from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
+from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QDialog,
+    QMessageBox,
+    QProgressBar,
+    QToolBar,
+)
 from qgis.core import *
-from qgis.PyQt import QtWidgets, QtCore, uic
+from qgis.PyQt import QtWidgets
 import processing
 
 from . import plugin_dir, temp_dir
@@ -38,9 +44,6 @@ from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 from .constants import (
     GPKG_FILTER_EXTENSION,
     TEMPORATORY_FILES_LIST,
-    SERVER_DIRECTORY,
-    IP,
-    PORT,
     GPKP_COLUMNS_CHECK,
     GPKP_COLUMNS_ADD_LIST,
     GPKP_COLUMNS_CHANGE_DICT,
@@ -49,7 +52,6 @@ from .constants import (
     COLUMN_YAW,
     ENV_MENU_NAME,
     DEFAULT_YAW_DEGREES,
-    HOTSPOT_BUFFER_RADIUS_M,
     DUPLICATES_PREVIEW_LIMIT,
     PROGRESS,
     UI_PLUGIN_ICON_PATH,
@@ -58,16 +60,10 @@ from .constants import (
     QGIS_FEED_MIN_VERSION_INT,
 )
 
-from functools import partial
 from collections import defaultdict
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
-import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
-from qgis.PyQt.QtWidgets import QDialog, QComboBox
-from qgis.utils import iface
 import importlib.util
 
 
@@ -75,15 +71,11 @@ from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
 
 
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
 class Geo360:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
 
-        self.config = None
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
         self.project = QgsProject.instance()
@@ -117,14 +109,11 @@ class Geo360:
         # OpenCL acceleration
         QSettings().setValue(QGIS_SETTINGS_KEYS["OPENCL_ENABLED"], True)
         self.orbital_viewer = None
-        self.actions = []
-        
+
         self.dlg = FirstWindowGeo360Dialog()
-        self.settings = QgsSettings()
         self.use_layer = ""
         self.is_press_button = False
 
-        # Declare instance attributes
         self.actions = []
         self.menu = self.tr(f"&{ENV_MENU_NAME}")
         self.layer = None
@@ -249,7 +238,10 @@ class Geo360:
         else:
             from .libs.exifread_3_0_0.exifread import processFile
             MessageUtils.pushLogCritical("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
-            MessageUtils.pushCritical(self.iface, "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.")
+            MessageUtils.pushCritical(
+                self.iface,
+                "Biblioteka 'exifread' nie została odnaleziona — wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
+            )
             return False        
         
 

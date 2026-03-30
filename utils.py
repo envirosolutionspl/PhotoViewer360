@@ -25,7 +25,7 @@ except ImportError:
     None
 
 from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.PyQt.QtGui import QIcon, QColor
+from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
 from qgis.PyQt.QtCore import QUrl, QUrlQuery, QEventLoop, QTimer, QT_VERSION_STR
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
 from .constants import (
@@ -334,19 +334,17 @@ class NetworkUtils:
     def _getAttributeEnum(self, attr_name):
         """Pobiera atrybut QNetworkRequest"""
         if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
-            if hasattr(QNetworkRequest, 'Attribute'):
-                val = getattr(QNetworkRequest.Attribute, attr_name, None)
-                if val is not None:
-                    return val
+            val = QtCompat.qnetworkRequestAttributeEnum(attr_name)
+            if val is not None:
+                return val
         return getattr(QNetworkRequest, attr_name, None)
 
     def _getErrorEnum(self, attr_name):
         """Pobiera kod błędu QNetworkReply"""
         if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
-            if hasattr(QNetworkReply, 'NetworkError'):
-                val = getattr(QNetworkReply.NetworkError, attr_name, None)
-                if val is not None:
-                    return val
+            val = QtCompat.qnetworkReplyNetworkErrorEnum(attr_name)
+            if val is not None:
+                return val
         return getattr(QNetworkReply, attr_name, None)
 
     def _setAttributes(self, request, timeout_ms):
@@ -764,10 +762,49 @@ class QtCompat:
 
     @staticmethod
     def qcursorShapePointingHand(qtcore_module):
-        qt = qtcore_module.Qt
-        if hasattr(qt, "CursorShape"):
-            return qt.CursorShape.PointingHandCursor
-        return qt.PointingHandCursor
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.PointingHandCursor
+        return qtcore_module.Qt.PointingHandCursor
+
+    @staticmethod
+    def qtMouseButtonLeftButton(qtcore_module):
+        if hasattr(qtcore_module.Qt, "MouseButton"):
+            return qtcore_module.Qt.MouseButton.LeftButton
+        return qtcore_module.Qt.LeftButton
+
+    @staticmethod
+    def qtCursorShapeOpenHandCursor(qtcore_module):
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.OpenHandCursor
+        return qtcore_module.Qt.OpenHandCursor
+
+    @staticmethod
+    def qtCursorShapeClosedHandCursor(qtcore_module):
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.ClosedHandCursor
+        return qtcore_module.Qt.ClosedHandCursor
+
+    @staticmethod
+    def setSurfaceFormatColorSpaceSrgb(surface_format):
+        if hasattr(QSurfaceFormat, "ColorSpace"):
+            surface_format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
+        else:
+            if hasattr(QColorSpace, "sRgb"):
+                surface_format.setColorSpace(QColorSpace.sRgb())
+            else:
+                surface_format.setColorSpace(QColorSpace(QColorSpace.NamedColorSpace.SRgb))
+
+    @staticmethod
+    def qnetworkRequestAttributeEnum(attr_name):
+        if hasattr(QNetworkRequest, "Attribute"):
+            return getattr(QNetworkRequest.Attribute, attr_name, None)
+        return None
+
+    @staticmethod
+    def qnetworkReplyNetworkErrorEnum(attr_name):
+        if hasattr(QNetworkReply, "NetworkError"):
+            return getattr(QNetworkReply.NetworkError, attr_name, None)
+        return None
 
 class QgsMapUtils(object):
     @staticmethod
