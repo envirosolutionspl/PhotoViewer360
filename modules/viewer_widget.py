@@ -135,10 +135,12 @@ class ViewerWidget(QOpenGLWidget):
 
         # system hotspotow
         self.coordinates = None
-        self.vertices_group = None
-        self.faces_group = None
-        self.black_vertices_group = None
-        self.black_faces_group = None
+        self.obj_black_vertices = None
+        self.obj_black_faces = None
+        self.obj_white_vertices = None
+        self.obj_white_faces = None
+        self.obj_x = None
+        self.obj_y = None
         self.hotspot_fid = None
         self.hot_spot_test = False
         self.hot_spot_last_rgb = 0
@@ -178,6 +180,50 @@ class ViewerWidget(QOpenGLWidget):
         except Exception:
             MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia.")
 
+    def loadHotspotObjects(self):
+        """
+        Wczytuje objekty OBJ do pamięci OpenGL.
+
+        """
+        self.obj_black_vertices = []
+        self.obj_black_faces = []
+        self.obj_white_vertices = []
+        self.obj_white_faces = []
+
+        try:
+            with open(os.path.join(plugin_dir, "images", "hotspot_black.obj"), 'r') as f:
+                for line in f:
+                    if line.startswith('v '):
+                        ver = list(map(float, line.strip().split()[1:]))
+                        self.obj_black_vertices.append(ver)
+                    elif line.startswith('f '):
+                        face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
+                        self.obj_black_faces.append(face)
+        except FileNotFoundError:
+            MessageUtils.pushLogWarning("Nie znaleziono pliku hotspot_black.obj")
+            return False
+        except Exception:
+            MessageUtils.pushLogWarning("Błąd podczas odczytu pliku hotspot_black.obj")
+            return False
+
+        try:
+            with open(os.path.join(plugin_dir, "images", "hotspot.obj"), 'r') as f:
+                for line in f:
+                    if line.startswith('v '):
+                        ver = list(map(float, line.strip().split()[1:]))
+                        self.obj_white_vertices.append(ver)
+                    elif line.startswith('f '):
+                        face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
+                        self.obj_white_faces.append(face)
+        except FileNotFoundError:
+            MessageUtils.pushLogWarning("Nie znaleziono pliku hotspot.obj")
+            return False
+        except Exception:
+            MessageUtils.pushLogWarning("Błąd podczas odczytu pliku hotspot.obj")
+            return False
+
+        return True
+
     def initializeGL(self):
         """
         Funkcja inicjująca ustawienia OpenGL.
@@ -188,6 +234,7 @@ class ViewerWidget(QOpenGLWidget):
         glEnable(GL_FRAMEBUFFER_SRGB)
         
         self.loadTexture(self.nazwa_pliku)
+        self.loadHotspotObjects()
         self.setupProjection()
         self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
         self.image_description_data = self.new_image_description_data
@@ -305,6 +352,58 @@ class ViewerWidget(QOpenGLWidget):
         else:
             return False
 
+    def drawBlackHotSpots(self, test_color=False):
+        """
+        Rysowanie ciemnych hot spotów w kolorze domyślnym lub do identyfikacji
+        """
+
+        if self.hotspot_fid is None:
+            return
+        if self.obj_black_vertices is None or self.obj_black_faces is None:
+            return
+        if self.obj_x is None or self.obj_y is None:
+            return
+        
+        for i in range(0, len(self.hotspot_fid)):
+            if test_color:
+                color = 70 + i # kolor ściśle związany z wykrywaniem kliknięcia
+            else:
+                color = 60 # kolor ściśle związany z wykrywaniem kliknięcia
+            MessageUtils.pushLogInfo("hs: "+str(i))
+            glPushMatrix()
+            glTranslatef(self.obj_x[i], self.obj_y[i], 0.301)  # Move 
+            glBegin(GL_TRIANGLES)
+            glColor3ub(color, color, color)
+            for face in self.obj_black_faces:
+                for vertex in face:
+                    glVertex3fv([self.obj_black_vertices[vertex][0], self.obj_black_vertices[vertex][1], self.obj_black_vertices[vertex][2]])
+            glColor3f(1, 1, 1) 
+            glEnd() 
+            glPopMatrix()    
+
+    def drawHotSpots(self, test_color=False):
+        """
+        Rysowanie jasnych hot spotów w kolorze domyślnym
+        """
+        if self.hotspot_fid is None:
+            return
+        if self.obj_black_vertices is None or self.obj_black_faces is None:
+            return
+        if self.obj_x is None or self.obj_y is None:
+            return
+        
+        for i in range(0, len(self.hotspot_fid)):
+            glPushMatrix()
+            glTranslatef(self.obj_x[i], self.obj_y[i], 0.3)  # Move 
+            glBegin(GL_TRIANGLES)
+            glColor3ub(220, 220, 220)
+            for face in self.obj_white_faces:
+                for vertex in face:
+                    glVertex3fv([self.obj_white_vertices[vertex][0], self.obj_white_vertices[vertex][1], self.obj_white_vertices[vertex][2]])
+            glColor3f(1, 1, 1) 
+            glEnd() 
+            glPopMatrix() 
+    
     def testHotSpots(self):
         """
         Funkcja testuje kliknięcie w hot spot oraz wyzwala przeładowanie w przypadku trafienia
@@ -328,7 +427,7 @@ class ViewerWidget(QOpenGLWidget):
         p_x = int(float(self.mouse_x) * dpi_window_scale)
         p_y = int(float(self.mouse_y) * dpi_window_scale)
 
-        # pobranie punktu to testu
+        # pobranie punktu do testu
         # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
         rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
         if rgb[0] == rgb[1] and rgb[0] == rgb[2]: # interesuje nasz idealny ciemny szary
@@ -346,38 +445,15 @@ class ViewerWidget(QOpenGLWidget):
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         
-        # obsługa hotspotów
         if self.hot_spot_test:
             self.hot_spot_test = False
-            # wyzwalanie odświeżenia, które spowoduje wygenerowanie klatki porównawczej
+            # wyzwalanie odświeżenia, które spowoduje wygenerowanie drugiej klatki porównawczej
             self.update()
 
         if hot_spot_selected != -1:
             self.parent.reloadView(hot_spot_selected)
             self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
-            MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))
-
-    def updateViewerWigdet(
-            self, direction, angle_degrees, x, y,
-            nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
-        ):
-
-
-        if self.is_widget_loaded:
-            self.direction = direction
-            self.angle_degrees = angle_degrees
-            self.x = x
-            self.y = y
-
-            self.loadTexture(nazwa_pliku)
-            if self.setDataAboutPhoto(nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
-                # aktualizacja obrazu w przypadku powodzenia
-                self.image_description_data = self.new_image_description_data
-            self.update()
-            return True
-        else:
-            MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
-            return False    
+            MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))  
         
     def updateViewerWigdet(self, direction, angle_degrees, x, y):
         if self.is_widget_loaded:
@@ -454,66 +530,27 @@ class ViewerWidget(QOpenGLWidget):
         self.coordinates = coordinates            
 
         if self.coordinates is not None:
-            # wczytywanie obiektów hotspotów do pamięci
-            self.vertices_group = []
-            self.faces_group = []
-            self.black_vertices_group = []
-            self.black_faces_group = []
             self.hotspot_fid = []
+            self.obj_x = []
+            self.obj_y = []
             scale = 0.104 # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
             spectator_angle  = 0
+
+            # określenie azymutu obserwatora
             for hotspot in self.coordinates:
                 if hotspot['distance'] < 0.01:
                     spectator_angle = hotspot['azymut']
                     break
+
+            # tworzenie listy koordynatów hotspotów w przestrzeni OpenGl
             for hotspot in self.coordinates:
                 # pomijamy punkt obserwatora
                 if hotspot['distance'] < 0.01:
                     continue
 
-                vertices = []
-                faces = []
-                b_vertices = []
-                b_faces = []
-                with open(os.path.join(plugin_dir, "images", "hotspot.obj"), 'r') as f:
-                    for line in f:
-                        if line.startswith('v '):
-                            ver = list(map(float, line.strip().split()[1:]))
-
-                            # wyliczanie przesunięcia wierchołków na podstawie kąta i dystansu hotspota
-                            # x = r*cos(kat_w_radianach)
-                            # y = r*sin(kat_w_radianach), r= scale*distance, kat_w_radianach= azymut_obliczony
-                            ver[0] += scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[1] += scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[2] += 0.3
-                            vertices.append(ver)
-                        elif line.startswith('f '):
-                            face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
-                            faces.append(face)
-
-
-                with open(os.path.join(plugin_dir, "images", "hotspot_black.obj"), 'r') as f:
-                    for line in f:
-                        if line.startswith('v '):
-                            ver = list(map(float, line.strip().split()[1:]))
-
-                            # wyliczanie przesunięcia wierchołków na podstawie kąta i dystansu hotspota
-                            # x = r*cos(kat_w_radianach)
-                            # y = r*sin(kat_w_radianach), r= scale*distance, kat_w_radianach= azymut_obliczony
-                            ver[0] += scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[1] += scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[2] += 0.301
-                            b_vertices.append(ver)
-                        elif line.startswith('f '):
-                            face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
-                            b_faces.append(face)
-
-                self.vertices_group.append(vertices)
-                self.faces_group.append(faces)
-                self.black_vertices_group.append(b_vertices)
-                self.black_faces_group.append(b_faces)
                 self.hotspot_fid.append(hotspot['fid'])
-                            
+                self.obj_x.append(scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))
+                self.obj_y.append(scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))                   
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -560,42 +597,7 @@ class ViewerWidget(QOpenGLWidget):
         self.update()
 
         self.prev_dx = dx
-        self.prev_dy = dy
-
-    def drawBlackHotSpots(self, test_color=False):
-        """
-        Rysowanie ciemnych hot spotów w kolorze domyślnym lub do identyfikacji
-        """
-
-        if self.black_vertices_group is not None and self.black_faces_group is not None:
-            for i in range(0, len(self.black_vertices_group)):
-                if test_color:
-                    color = 70 + i # kolor ściśle związany z wykrywaniem kliknięcia
-                else:
-                    color = 60 # kolor ściśle związany z wykrywaniem kliknięcia
-                if self.black_vertices_group[i] is not None and self.black_faces_group[i] is not None:
-                    glBegin(GL_TRIANGLES)
-                    glColor3ub(color, color, color)
-                    for face in self.black_faces_group[i]:
-                        for vertex in face:
-                            glVertex3fv([self.black_vertices_group[i][vertex][0], self.black_vertices_group[i][vertex][1], self.black_vertices_group[i][vertex][2]])
-                    glColor3f(1, 1, 1) 
-                    glEnd()   
-
-    def drawHotSpots(self, test_color=False):
-        """
-        Rysowanie jasnych hot spotów w kolorze domyślnym
-        """
-        if self.vertices_group is not None and self.faces_group is not None:
-            for i in range(0, len(self.vertices_group)):
-                if self.vertices_group[i] is not None and self.faces_group[i] is not None:
-                    glBegin(GL_TRIANGLES)
-                    glColor3ub(220, 220, 220)
-                    for face in self.faces_group[i]:
-                        for vertex in face:
-                            glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
-                    glColor3f(1, 1, 1) 
-                    glEnd()   
+        self.prev_dy = dy   
    
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
