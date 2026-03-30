@@ -724,7 +724,7 @@ class Geo360:
             try:
                 os.rename(gpkg_path, gpkg_path)
             except OSError as e:
-                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.\nAby dokonać operacji, usuń warstwę z projektu QGIS")
+                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.\nUsuń warstwę z projektu QGIS, aby dokonać operacji nadpisania")
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
