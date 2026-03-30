@@ -218,9 +218,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def updateViewer(self):
         """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
 
-        geom = self.selected_features.geometry()
-        x = geom.asPoint().x()
-        y = geom.asPoint().y()
         azymut = self.selected_features.attributes()[4]
 
         if self.gl_widget is not None: 
@@ -234,7 +231,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 self.kilometraz,
             )
             self.getPointsToHotspot()
-            self.gl_widget.updateViewerWigdet(azymut, 0.0, x, y)
+            self.gl_widget.updateViewerWidget(azymut)
 
         else:
             # Utworzenie widgetu wraz ze wszystkimi danymi potrzebnymi do poprawnego wyswietlenia
@@ -242,9 +239,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 self,
                 self.iface,
                 azymut,
-                0.0,
-                x,
-                y,
                 self.current_image,
                 self.data_wykonania,
                 self.nr_drogi,

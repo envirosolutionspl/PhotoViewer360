@@ -70,7 +70,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def __init__(
         self, parent, iface,
-        direction, angle_degrees, x, y,
+        direction,
         nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
         ):
         """
@@ -97,12 +97,9 @@ class ViewerWidget(QOpenGLWidget):
         super().__init__(parent)
         self.show_description = True
         self.iface = iface
-        self.x = x
-        self.y = y
         self.prev_dx = 0
         self.prev_dy = 0
         self.direction = direction
-        self.angle_degrees = angle_degrees
         self.parent = parent
 
         self.nazwa_pliku = nazwa_pliku
@@ -127,7 +124,7 @@ class ViewerWidget(QOpenGLWidget):
                 level=Qgis.Info,
             )
             
-        self.yaw = 90 - (direction - ((450 - angle_degrees) % 360))
+        self.yaw = direction
         self.pitch = 0
         self.sensitivity = 1
         self.fov = 60
@@ -288,7 +285,7 @@ class ViewerWidget(QOpenGLWidget):
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         glPushMatrix()
         self.applyRotation()
-        self.drawHotSpots(self.hot_spot_test)
+        self.drawHotSpots()
         glPopMatrix()
 
         # 2D: Rysowanie opisu
@@ -299,17 +296,21 @@ class ViewerWidget(QOpenGLWidget):
         glLoadIdentity()
 
     def applyRotation(self):
+        """
+        Obracanie sceny z położenia wyjściowego do położenia zgodnego z aktualną pozycją obserwatora
+        """
         glRotatef(self.pitch, 1, 0, 0)
         glRotatef(self.yaw, 0, 1, 0)
         glRotatef(90, 1, 0, 0)
         glRotatef(90, 0, 0, 1)
 
     def drawSphere(self):
+        """
+        Rysowanie sfery na podstawie equikwadratowego zdjęcia
+        """
         glEnable(GL_TEXTURE_2D)
         if hasattr(self, "texture_id") and self.is_texture_loaded:
             glBindTexture(GL_TEXTURE_2D, self.texture_id)
-        else:
-            print("No texture loaded, drawing without texture.")
         sphere = gluNewQuadric()
         gluQuadricTexture(sphere, True)
         gluSphere(sphere, 15, 100, 100)
@@ -317,7 +318,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def drawDescriptionBalloom(self):
         """
-        Rysuje dymek z opisem na oknie OpenGL
+        Rysowanie dymka z opisem na oknie OpenGL
         """
         if self.image_description_data is not None:
             glMatrixMode(GL_PROJECTION)
@@ -334,7 +335,7 @@ class ViewerWidget(QOpenGLWidget):
 
             # Rysowanie dymka z informacjami
             glColor3f(1, 1, 1) 
-            glRasterPos(0, 260) # lub glRasterPos(0, 207) - na niektórych konfiguracjach było przesunięcie
+            glRasterPos(0, 260)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             if self.is_screen_shot_mode_activated:
@@ -369,7 +370,6 @@ class ViewerWidget(QOpenGLWidget):
                 color = 70 + i # kolor ściśle związany z wykrywaniem kliknięcia
             else:
                 color = 60 # kolor ściśle związany z wykrywaniem kliknięcia
-            MessageUtils.pushLogInfo("hs: "+str(i))
             glPushMatrix()
             glTranslatef(self.obj_x[i], self.obj_y[i], 0.301)  # Move 
             glBegin(GL_TRIANGLES)
@@ -381,13 +381,13 @@ class ViewerWidget(QOpenGLWidget):
             glEnd() 
             glPopMatrix()    
 
-    def drawHotSpots(self, test_color=False):
+    def drawHotSpots(self):
         """
         Rysowanie jasnych hot spotów w kolorze domyślnym
         """
         if self.hotspot_fid is None:
             return
-        if self.obj_black_vertices is None or self.obj_black_faces is None:
+        if self.obj_white_vertices is None or self.obj_white_faces is None:
             return
         if self.obj_x is None or self.obj_y is None:
             return
@@ -406,7 +406,7 @@ class ViewerWidget(QOpenGLWidget):
     
     def testHotSpots(self):
         """
-        Funkcja testuje kliknięcie w hot spot oraz wyzwala przeładowanie w przypadku trafienia
+        Testuje kliknięcie w hot spot oraz wyzwala przeładowanie w przypadku trafienia
         """
         hot_spot_selected = -1
 
@@ -455,13 +455,12 @@ class ViewerWidget(QOpenGLWidget):
             self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
             MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))  
         
-    def updateViewerWigdet(self, direction, angle_degrees, x, y):
+    def updateViewerWidget(self, direction):
+        """
+        Ładuje na nowo zdjęcie do pamięci i wyzwala przeładowanie widoku
+        """
         if self.is_widget_loaded:
-            self.direction = direction
-            self.angle_degrees = angle_degrees
-            self.x = x
-            self.y = y
-
+            # self.yaw = direction
             self.loadTexture(self.nazwa_pliku)
             self.image_description_data = self.new_image_description_data
             self.update()
@@ -472,7 +471,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def setDataAboutPhoto(self, nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
         """
-        Wprowadzanie danych opisowych zdjęcia do Widgetu
+        Wprowadza dane opisowe zdjęcia do Widgetu
         """
         self.data_wykonania = data_wykonania
         self.nr_drogi = nr_drogi
@@ -525,7 +524,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def setHotSpots(self, coordinates):
         """
-        Ustawienie hotSpotow według podanej listy
+        Aktualizuje hotSpoty według podanej listy
         """
         self.coordinates = coordinates            
 
@@ -559,6 +558,9 @@ class ViewerWidget(QOpenGLWidget):
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
 
     def updateRotationData(self, d_rotation, d_zoom, d_pitch):
+        """
+        Obraca obserwatora o podane delty i aktualizuje widok
+        """
         self.yaw += d_rotation
         self.pitch -= d_pitch
         self.pitch = min(max(self.pitch, -90), 90)
@@ -607,6 +609,9 @@ class ViewerWidget(QOpenGLWidget):
         self.update()
 
     def setScreenShotMode(self, state):
+        """
+        Wyłącza/włącza przezroczystości w obrazach, które nie zawsze poprawnie się zapisywały w pliku JPG/PNG
+        """
         self.is_screen_shot_mode_activated = state
         self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
         self.image_description_data = self.new_image_description_data
