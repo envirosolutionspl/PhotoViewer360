@@ -131,12 +131,25 @@ GPKP_COLUMNS_ADD_LIST = (
 GPKP_COLUMNS_CHANGE_DICT = {
     "photo": 'sciezka_zdjecie',
     "filename": 'nazwa_zdjecia',
-    "directory": "nazwa_folderu",
+    "directory": 'nazwa_folderu',
     "direction": 'azymut',
     "longitude": 'dlugosc_geog',
     "latitude": 'szerokosc_geog',
     "timestamp": 'data_wykonania'
 }
+
+# Lista atrybutów wymaganych do prawidłowej pracy z impotowaną GeoPaczką
+GPKP_COLUMNS_CHECK = (
+    'nr_drogi',
+    'nazwa_ulicy',
+    'numer_odcinka',
+    'kilometraz',
+    'sciezka_zdjecie',
+    'nazwa_zdjecia',
+    'nazwa_folderu',
+    'azymut',
+    'data_wykonania',
+)
 
 GPKG_FILTER_EXTENSION = "geoPackage(*.gpkg)"
 
