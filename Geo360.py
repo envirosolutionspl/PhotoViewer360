@@ -236,8 +236,8 @@ class Geo360:
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            MessageUtils.pushLogInfo("Znaleziono lokalną wersję biblioteki'exifread'")
-            MessageUtils.pushLogInfo("Użyto lokalnej wersji biblioteki 'exifread'")
+            MessageUtils.pushLogInfo("Znaleziono lokalną wersję biblioteki 'exifread'.")
+            MessageUtils.pushLogInfo("Użyto lokalnej wersji biblioteki 'exifread'.")
             return True  
 
         elif exifread_spec is not None:
@@ -378,7 +378,6 @@ class Geo360:
         """Obsługa przycisku "Przeglądaj" do wybrania warstwy z projektu QGIS"""
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
         good_layer = False
         layer_name = self.dlg.mapLayerComboBox.currentText()
         self.use_layer = layer_name
@@ -397,11 +396,11 @@ class Geo360:
                 self.dlg.hide()
                 self.clickPointOnMapFeature()
             else:
-                MessageUtils.pushWarning(self.iface, "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
+                MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
                 return False
 
         except IndexError:
-            MessageUtils.pushWarning(self.iface, "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
             return False
         
         self.action_activate.setEnabled(True)
@@ -441,11 +440,7 @@ class Geo360:
             )
 
         except Exception as exc:
-            QgsMessageLog.logMessage(
-                f"Tool Import Geotagged Photos failed: {exc}",
-                plugin_name,
-                level=Qgis.Critical,
-            )
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas importu zdjęć procesem 'native:importphotos'. Błąd: {exc}")
 
         try:
             self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
@@ -458,11 +453,7 @@ class Geo360:
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
 
         if not vlayer.isValid():
-            QgsMessageLog.logMessage(
-                "Layer failed to load after creating GeoPackage.",
-                plugin_name,
-                level=Qgis.Critical,
-            )
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas ładowania warstwy po wczytaniu GeoPaczki.")
         else:
             # start edycji GeoPaczki
             vlayer.startEditing()
@@ -684,7 +675,6 @@ class Geo360:
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         photo_path = self.dlg.mQgsFileWidget_search_photo.filePath()
         if not self.checkSavePath(photo_path):
@@ -699,7 +689,7 @@ class Geo360:
             rozszerzenia.append(rozszerzenie[-1])
 
         if ("jpg" not in rozszerzenia):
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg")
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
@@ -713,7 +703,7 @@ class Geo360:
         self.progress.setAlignment(QtCompat.alignmentLeftVcenter(Qt))
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano miejsca zapisu pliku .gpkg\nWskazanie pliku jest wymagane przez managera warstw QGIS.\nOperacja przerwana.")
             return False
         
         # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
@@ -721,7 +711,7 @@ class Geo360:
             try:
                 os.rename(gpkg_path, gpkg_path)
             except OSError as e:
-                MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
+                MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Wskazany plik GeoPackage jest używany przez\ninny proces zewnętrzny lub przez istniejącą warstwę.\nOperacja przerwana.")
                 return False
 
         # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
@@ -731,7 +721,7 @@ class Geo360:
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
-            msgBox = QMessageBox(self.iface.mainWindow())
+            msgBox = QMessageBox(self.dlg)
             msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
             msgBox.setWindowTitle("Informacja")
             msgBox.setText(
@@ -795,6 +785,7 @@ class Geo360:
 
             # ukrycie okna PhotoViewer360
             self.dlg.hide()
+            self.action_activate.setEnabled(True)
             self.clickPointOnMapFeature()
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
@@ -818,7 +809,6 @@ class Geo360:
         (GeoPaczka musi być utworzona przez tą wtyczkę) """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         gpkg_path = os.path.join(self.dlg.mQgsFileWidget_search_gpkg.filePath())
         if not self.checkSavePath(gpkg_path):
@@ -827,17 +817,14 @@ class Geo360:
 
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
         if not vlayer.isValid():
-            QgsMessageLog.logMessage(
-                f"Layer failed to load from existing GeoPackage: {gpkg_path}",
-                plugin_name,
-                level=Qgis.Critical,
-            )
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas ładowania warstwy z istniejącej GeoPaczki: {gpkg_path}")
             return False
 
         self.project.addMapLayer(vlayer)
 
         self.use_layer = vlayer.name()
         self.dlg.hide()
+        self.action_activate.setEnabled(True)
         self.clickPointOnMapFeature()
 
     def renameNameField(self, rlayer, oldname, newname):
@@ -892,10 +879,10 @@ class Geo360:
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Nie wskazano ścieżki do pliku/folderu")
             return False
         elif not os.path.exists(path):
-            MessageUtils.pushMessageBoxWarning(self.iface.mainWindow(), "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
+            MessageUtils.pushMessageBoxWarning(self.dlg, "Ostrzeżenie", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu")
             return False
         else:
             return True
