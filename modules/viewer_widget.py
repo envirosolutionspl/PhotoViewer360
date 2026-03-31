@@ -243,8 +243,6 @@ class ViewerWidget(QOpenGLWidget):
         Obsługa wywołania OpenGL odpowiedzialnego za rysowanie.
 
         """
-        glLoadIdentity()
-        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         self.renderScene()
         # wyzwalanie aktualizacji QgsRubberBand jeśli poprawnie wczytano zdjęcie
         if self.parent.is_current_image_exists:
@@ -257,29 +255,28 @@ class ViewerWidget(QOpenGLWidget):
         """
         Rysowanie sceny
         """
+        glLoadIdentity()
+        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        # 3D: Rysowanie tła i ciemnych hotspotów
         glPushMatrix()
+        # 3D: Rysowanie tła, sfery i ciemnych hotspotów
         self.applyRotation()    
         self.drawSphere()
         self.drawHotSpots(self.obj_black_vertices, HOTSPOT_BASE_TEST_COLOR, self.hot_spot_test)
         glPopMatrix()
 
         # 2D: Testowanie hotspotów przed białym hotspotem 
-        glLoadIdentity()
         self.isHotSpotClicked()
 
-        # 3D: Rysowanie białych hotspotów 
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         glPushMatrix()
+        # 3D: Rysowanie białych hotspotów 
         self.applyRotation()
         self.drawHotSpots(self.obj_white_vertices, HOTSPOT_BASE_BRIGHT_COLOR, False)
         glPopMatrix()
 
         # 2D: Rysowanie opisu
-        glLoadIdentity()
         if self.show_description:
             self.drawDescriptionBalloom()
 
@@ -310,7 +307,8 @@ class ViewerWidget(QOpenGLWidget):
         """
         Rysowanie dymka z opisem na oknie OpenGL
         """
-        if self.image_description_data is not None:
+        if self.image_description_data is not None:  
+            glLoadIdentity()
             glMatrixMode(GL_PROJECTION)
             glPushMatrix()
             glLoadIdentity()
@@ -376,6 +374,7 @@ class ViewerWidget(QOpenGLWidget):
         """
         hot_spot_selected = -1
 
+        glLoadIdentity()
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
         glLoadIdentity()
@@ -438,7 +437,6 @@ class ViewerWidget(QOpenGLWidget):
         :rtype: boolean
         """
         if self.is_widget_loaded:
-            # self.yaw = direction
             self.loadTexture(self.nazwa_pliku)
             self.image_description_data = self.new_image_description_data
             self.update()
@@ -448,7 +446,7 @@ class ViewerWidget(QOpenGLWidget):
             return False 
 
     def setDataAboutPhoto(
-            self : str,
+            self,
             nazwa_pliku : str,
             data_wykonania : str,
             nr_drogi : str,
@@ -568,7 +566,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def updateRotationData(self, d_rotation, d_zoom, d_pitch):
         """
-        Obraca obserwatora o podane przyrosty (delty) i aktualizuje widok
+        Obraca obserwatora o podane parametry przyrostu (delty) i aktualizuje widok
 
         :param d_rotation: Przyrost obrotu w stopniach
         :type d_rotation: float
