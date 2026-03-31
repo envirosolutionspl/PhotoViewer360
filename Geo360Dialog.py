@@ -395,9 +395,12 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         Returns:
             (str, boolean): Zwraca nazwę pliku z warstwy oraz informację, czy plik istnieje  
         """
-
-        self.new_bering = self.selected_features.attribute(COLUMN_YAW)
-
+        try:
+            self.new_bering = self.selected_features.attribute(COLUMN_YAW)
+        except KeyError:
+            MessageUtils.pushLogCritical(f"Nie znaleziono atrybutu: {COLUMN_YAW}")
+            return "", False
+        
         try:
             path = QgsMapUtils.getAttributeFromFeature(
                 self.selected_features,
@@ -407,7 +410,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 path_project = QgsProject.instance().readPath("./")
                 path = os.path.normpath(os.path.join(path_project, path))
         except KeyError:
-            MessageUtils.pushLogCritical(f"Nie znaleziono kolumny: {COLUMN_NAME}")
+            MessageUtils.pushLogCritical(f"Nie znaleziono atrybutu: {COLUMN_NAME}")
+            return "", False
         except Exception:
             MessageUtils.pushLogCritical(
                 "Błąd podczas pobierania nazwy pliku z warstwy."

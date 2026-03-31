@@ -22,7 +22,6 @@ if int(QtCore.qVersion().split(".")[0]) > 5:
 else:
     from qgis.PyQt.QtWidgets import QOpenGLWidget
 
-from ..utils import MessageUtils
 from ..constants import (
     WHITE_HOTSPOT_OBJ_FILENAME,
     BLACK_HOTSPOT_OBJ_FILENAME,
@@ -35,41 +34,15 @@ from ..constants import (
     IMAGES_DIRECTORY,
     FONTS_DIRECTORY
 )
+
+from ..utils import MessageUtils, QtCompat
 from .. import plugin_dir
 
 class ViewerWidget(QOpenGLWidget):
     """ QWidget Renderujący Widok Perspektywiczny na podstawie zdjęcia EquiProstokątnego """
 
-    # Obsługa Qt5 i Qt6
-    _QtCore_Qt_MouseButton_LeftButton = None
-    _QtCore_Qt_CursorShape_OpenHandCursor = None
-    _QtCore_Qt_CursorShape_ClosedHandCursor = None
-    _QtCore_Qt_CursorShape_WaitCursor = None
-
     mouse_x = 0
     mouse_y = 0
-
-    def _obslugaQt5iQt6(self):
-        """ Obsługa Qt5 i Qt6 - inicjacja zmiennych """
-        if hasattr(QtCore.Qt,"MouseButton"):
-            self._QtCore_Qt_MouseButton_LeftButton = QtCore.Qt.MouseButton.LeftButton # Qt6
-        else:
-            self._QtCore_Qt_MouseButton_LeftButton = QtCore.Qt.LeftButton #Qt5
-
-        if hasattr(QtCore.Qt,"CursorShape"):
-            self._QtCore_Qt_CursorShape_OpenHandCursor = QtCore.Qt.CursorShape.OpenHandCursor # Qt6
-        else:
-            self._QtCore_Qt_CursorShape_OpenHandCursor = QtCore.Qt.OpenHandCursor #Qt5    
-
-        if hasattr(QtCore.Qt,"CursorShape"):
-            self._QtCore_Qt_CursorShape_ClosedHandCursor = QtCore.Qt.CursorShape.ClosedHandCursor # Qt6
-        else:
-            self._QtCore_Qt_CursorShape_ClosedHandCursor = QtCore.Qt.ClosedHandCursor #Qt5  
-
-        if hasattr(QtCore.Qt,"CursorShape"):
-            self._QtCore_Qt_CursorShape_WaitCursor = QtCore.Qt.CursorShape.WaitCursor # Qt6
-        else:
-            self._QtCore_Qt_CursorShape_WaitCursor = QtCore.Qt.WaitCursor #Qt5  
 
     def __init__(
         self, parent, iface,
@@ -80,22 +53,11 @@ class ViewerWidget(QOpenGLWidget):
         Widget wyświetlający podgląd equiprostokątnego zdjęcie w formie podglądu 360
 
         """
-        
-        # Obsługa Qt5 i Qt6
-        self._obslugaQt5iQt6()
 
         format = QSurfaceFormat()
         format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
         # Qt5: QSurfaceFormat.ColorSpace enum; Qt6: setColorSpace(QColorSpace)
-        if hasattr(QSurfaceFormat, "ColorSpace"):
-            format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
-        else:
-            from qgis.PyQt.QtGui import QColorSpace
-
-            if hasattr(QColorSpace, "sRgb"):
-                format.setColorSpace(QColorSpace.sRgb())
-            else:
-                format.setColorSpace(QColorSpace(QColorSpace.NamedColorSpace.SRgb))
+        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
         QSurfaceFormat.setDefaultFormat(format)
         super().__init__(parent)
         self.show_description = True
@@ -587,10 +549,10 @@ class ViewerWidget(QOpenGLWidget):
         self.update()
 
     def mousePressEvent(self, event):
-        if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
+        if event.button() == QtCompat.qtMouseButtonLeftButton(QtCore):
             self.moving = False
             self.mouse_x, self.mouse_y = event.pos().x(), event.pos().y()
-            self.setCursor(self._QtCore_Qt_CursorShape_ClosedHandCursor)
+            self.setCursor(QtCompat.qtCursorShapeClosedHandCursor(QtCore))
 
     def mouseReleaseEvent(self, event):
         if not self.moving:
@@ -599,8 +561,8 @@ class ViewerWidget(QOpenGLWidget):
             self.hot_spot_test = True
             self.update()
 
-        if event.button() == self._QtCore_Qt_MouseButton_LeftButton:
-            self.setCursor(self._QtCore_Qt_CursorShape_OpenHandCursor)
+        if event.button() == QtCompat.qtMouseButtonLeftButton(QtCore):
+            self.setCursor(QtCompat.qtCursorShapeOpenHandCursor(QtCore))
 
     def mouseMoveEvent(self, event):
         self.moving = True
