@@ -22,13 +22,17 @@ if int(QtCore.qVersion().split(".")[0]) > 5:
 else:
     from qgis.PyQt.QtWidgets import QOpenGLWidget
 
-from qgis.core import (
-    Qgis,
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
-    QgsPointXY,
-    QgsProject,
-    QgsUnitTypes,
+from ..constants import (
+    WHITE_HOTSPOT_OBJ_FILENAME,
+    BLACK_HOTSPOT_OBJ_FILENAME,
+    NOIMAGE_JPG_FILENAME,
+    HOTSPOT_BASE_TEST_COLOR,
+    HOTSPOT_BASE_BRIGHT_COLOR,
+    DESC_BALOON_FILENAME,
+    REGULAR_FONT_FILENAME,
+    BOLD_FONT_FILENAME,
+    IMAGES_DIRECTORY,
+    FONTS_DIRECTORY
 )
 
 from ..utils import MessageUtils, QtCompat
@@ -42,7 +46,7 @@ class ViewerWidget(QOpenGLWidget):
 
     def __init__(
         self, parent, iface,
-        direction, angle_degrees, x, y,
+        direction,
         nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
         ):
         """
@@ -58,12 +62,9 @@ class ViewerWidget(QOpenGLWidget):
         super().__init__(parent)
         self.show_description = True
         self.iface = iface
-        self.x = x
-        self.y = y
         self.prev_dx = 0
         self.prev_dy = 0
         self.direction = direction
-        self.angle_degrees = angle_degrees
         self.parent = parent
 
         self.nazwa_pliku = nazwa_pliku
@@ -79,16 +80,8 @@ class ViewerWidget(QOpenGLWidget):
         self.is_widget_loaded = False
         self.is_screen_shot_mode_activated = False
         self.is_texture_loaded = False
-
-        try:
-            self.image = Image.open(self.nazwa_pliku)
-        except Exception:
-            iface.messageBar().pushMessage(
-                "Unable to load the image, please verify image's source",
-                level=Qgis.Info,
-            )
             
-        self.yaw = 90 - (direction - ((450 - angle_degrees) % 360))
+        self.yaw = direction
         self.pitch = 0
         self.sensitivity = 1
         self.fov = 60
@@ -96,8 +89,10 @@ class ViewerWidget(QOpenGLWidget):
 
         # system hotspotow
         self.coordinates = None
-        self.vertices_group = None
-        self.faces_group = None
+        self.obj_black_vertices = None
+        self.obj_white_vertices = None
+        self.hotspot_x = None
+        self.hotspot_y = None
         self.hotspot_fid = None
         self.hot_spot_test = False
         self.hot_spot_last_rgb = 0
@@ -108,11 +103,13 @@ class ViewerWidget(QOpenGLWidget):
         """
         Wczytuje zdjęcie do pamięci OpenGL lub je odświeża. Nazwa zostaje zapamiętana w klasie ViewerWidget.
 
+        :param nazwa_pliku: ścieżka do pliku ze zdjęciem
+        :type nazwa_pliku: str
         """
         self.is_texture_loaded = False
         self.nazwa_pliku = nazwa_pliku
         if os.path.exists(nazwa_pliku) is False:
-            nazwa_pliku = os.path.join(plugin_dir, "images", "no_image.jpg")
+            nazwa_pliku = os.path.join(plugin_dir, IMAGES_DIRECTORY, NOIMAGE_JPG_FILENAME)
         try:
             # Wczytywanie zdjęcia equiprostokątnego do pamięci
             image = Image.open(nazwa_pliku)
@@ -137,6 +134,45 @@ class ViewerWidget(QOpenGLWidget):
         except Exception:
             MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia.")
 
+    def loadOBJ(self, src):
+        """
+        Wczytuje objekt OBJ i zwraca tablicę wierzchołków OpenGL.
+
+        :param src: Ścieżka do pliku Wavefront .OBJ
+        :type src: str
+
+        :returns: Tablica wierzchołków
+        :rtype: <class 'list'>
+        """
+        output_vertices = []
+        try:
+            with open(src, 'r') as f:
+                vertices = []
+                for line in f:
+                    if line.startswith('v '):
+                        ver = list(map(float, line.strip().split()[1:]))
+                        vertices.append(ver)
+                    elif line.startswith('f '):
+                        face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
+                        for v in face:
+                            output_vertices.append(vertices[v])
+        except FileNotFoundError:
+            MessageUtils.pushLogWarning(f"Nie znaleziono pliku {src}")
+            return None
+        except Exception:
+            MessageUtils.pushLogWarning(f"Błąd podczas odczytu pliku {src}")
+            return None
+
+        return output_vertices
+
+    def loadHotspotObjects(self):
+        """
+        Wczytuje objekty OBJ do pamięci OpenGL.
+
+        """
+        self.obj_black_vertices = self.loadOBJ(os.path.join(plugin_dir, IMAGES_DIRECTORY, BLACK_HOTSPOT_OBJ_FILENAME))
+        self.obj_white_vertices = self.loadOBJ(os.path.join(plugin_dir, IMAGES_DIRECTORY, WHITE_HOTSPOT_OBJ_FILENAME))
+
     def initializeGL(self):
         """
         Funkcja inicjująca ustawienia OpenGL.
@@ -147,6 +183,7 @@ class ViewerWidget(QOpenGLWidget):
         glEnable(GL_FRAMEBUFFER_SRGB)
         
         self.loadTexture(self.nazwa_pliku)
+        self.loadHotspotObjects()
         self.setupProjection()
         self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
         self.image_description_data = self.new_image_description_data
@@ -168,8 +205,6 @@ class ViewerWidget(QOpenGLWidget):
         Obsługa wywołania OpenGL odpowiedzialnego za rysowanie.
 
         """
-        glLoadIdentity()
-        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         self.renderScene()
         # wyzwalanie aktualizacji QgsRubberBand jeśli poprawnie wczytano zdjęcie
         if self.parent.is_current_image_exists:
@@ -182,28 +217,49 @@ class ViewerWidget(QOpenGLWidget):
         """
         Rysowanie sceny
         """
+        glLoadIdentity()
+        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glPushMatrix()
+        # 3D: Rysowanie tła, sfery i ciemnych hotspotów
         self.applyRotation()    
         self.drawSphere()
-        self.drawHotSpots(self.hot_spot_test)
+        self.drawHotSpots(self.obj_black_vertices, HOTSPOT_BASE_TEST_COLOR, self.hot_spot_test)
         glPopMatrix()
+
+        # 2D: Testowanie hotspotów przed białym hotspotem 
+        self.isHotSpotClicked()
+
         glLoadIdentity()
+        gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
+        glPushMatrix()
+        # 3D: Rysowanie białych hotspotów 
+        self.applyRotation()
+        self.drawHotSpots(self.obj_white_vertices, HOTSPOT_BASE_BRIGHT_COLOR, False)
+        glPopMatrix()
+
+        # 2D: Rysowanie opisu
         if self.show_description:
             self.drawDescriptionBalloom()
 
+        glLoadIdentity()
+
     def applyRotation(self):
+        """
+        Obracanie sceny z położenia wyjściowego do położenia zgodnego z aktualną pozycją obserwatora
+        """
         glRotatef(self.pitch, 1, 0, 0)
         glRotatef(self.yaw, 0, 1, 0)
         glRotatef(90, 1, 0, 0)
         glRotatef(90, 0, 0, 1)
 
     def drawSphere(self):
+        """
+        Rysowanie sfery na podstawie equikwadratowego zdjęcia
+        """
         glEnable(GL_TEXTURE_2D)
         if hasattr(self, "texture_id") and self.is_texture_loaded:
             glBindTexture(GL_TEXTURE_2D, self.texture_id)
-        else:
-            print("No texture loaded, drawing without texture.")
         sphere = gluNewQuadric()
         gluQuadricTexture(sphere, True)
         gluSphere(sphere, 15, 100, 100)
@@ -211,11 +267,10 @@ class ViewerWidget(QOpenGLWidget):
 
     def drawDescriptionBalloom(self):
         """
-        Rysuje dymek z opisem na oknie OpenGL i testuje kliknięcie w hot spot
+        Rysowanie dymka z opisem na oknie OpenGL
         """
-        if self.image_description_data is not None:
-            hot_spot_selected = -1
-
+        if self.image_description_data is not None:  
+            glLoadIdentity()
             glMatrixMode(GL_PROJECTION)
             glPushMatrix()
             glLoadIdentity()
@@ -230,7 +285,7 @@ class ViewerWidget(QOpenGLWidget):
 
             # Rysowanie dymka z informacjami
             glColor3f(1, 1, 1) 
-            glRasterPos(0, 260) # lub glRasterPos(0, 207) - na niektórych konfiguracjach było przesunięcie
+            glRasterPos(0, 260)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             if self.is_screen_shot_mode_activated:
@@ -239,74 +294,111 @@ class ViewerWidget(QOpenGLWidget):
                 glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
             glDisable(GL_BLEND)
 
-            # wykrywanie hotSpotów wewnątrz operacji na bitmapach
-            # obsługa skalowania okien w windows
-            dpi_window_scale = float(self.viewport[3])/float(self.height())
-            p_x = int(float(self.mouse_x) * dpi_window_scale)
-            p_y = int(float(self.mouse_y) * dpi_window_scale)
-
-            # pobranie punktu to testu
-            # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
-            rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
-            if rgb[0] == rgb[1] and rgb[0] == rgb[2]: # interesuje nasz idealny szary
-                # interesuje nas para 215 i 220+index, 215 to kolor hotspotów
-                if rgb[0] == 215 and self.hot_spot_last_rgb in range(220, 220+len(self.hotspot_fid)):
-                    hot_spot_selected = self.hotspot_fid[self.hot_spot_last_rgb-220]
-                elif self.hot_spot_last_rgb == 215 and rgb[0] in range(220, 220+len(self.hotspot_fid)):
-                    hot_spot_selected = self.hotspot_fid[rgb[0]-220]
-                self.hot_spot_last_rgb = rgb[0]
-            else:
-                self.hot_spot_last_rgb = 0
-
             # finalizacja GL
             glColor3f(1, 1, 1) 
             glPopMatrix()
             glMatrixMode(GL_PROJECTION)
             glPopMatrix()
-            
-            # obsługa hotspotów
-            if self.hot_spot_test:
-                self.hot_spot_test = False
-                self.update()
-
-            if hot_spot_selected != -1:
-                self.parent.reloadView(hot_spot_selected)
-                self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
-                MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))
-
             return True
         else:
             return False
 
-    def updateViewerWigdet(
-            self, direction, angle_degrees, x, y,
-            nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
-        ):
+    def drawHotSpots(self, vertices, default_color=255, test_color=False):
+        """
+        Rysowanie ciemnych hot spotów w kolorze domyślnym lub do identyfikacji
+        """
 
-
-        if self.is_widget_loaded:
-            self.direction = direction
-            self.angle_degrees = angle_degrees
-            self.x = x
-            self.y = y
-
-            self.loadTexture(nazwa_pliku)
-            if self.setDataAboutPhoto(nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
-                # aktualizacja obrazu w przypadku powodzenia
-                self.image_description_data = self.new_image_description_data
-            self.update()
-            return True
-        else:
-            MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
-            return False    
+        if self.hotspot_fid is None:
+            return
+        if vertices is None:
+            return
+        if self.hotspot_x is None or self.hotspot_y is None:
+            return
         
-    def updateViewerWigdet(self, direction, angle_degrees, x, y):
-        if self.is_widget_loaded:
-            self.direction = direction
-            self.angle_degrees = angle_degrees
-            self.x = x
-            self.y = y
+        for i in range(0, len(self.hotspot_fid)):
+            if test_color:
+                color = default_color + 10 + i # kolor ściśle związany z wykrywaniem kliknięcia
+            else:
+                color = default_color # kolor ściśle związany z wykrywaniem kliknięcia
+            glPushMatrix()
+            glTranslatef(self.hotspot_x[i], self.hotspot_y[i], 0.301)  # Move 
+            glBegin(GL_TRIANGLES)
+            glColor3ub(color, color, color)
+            for v in vertices:
+                glVertex3fv(v)
+            glColor3f(1, 1, 1) 
+            glEnd() 
+            glPopMatrix() 
 
+    def isHotSpotClicked(self):
+        """
+        Testuje kliknięcie w hot spot oraz wyzwala przeładowanie w przypadku trafienia
+        """
+        hot_spot_selected = -1
+
+        glLoadIdentity()
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+
+        gluOrtho2D(0, self.viewport[2], self.viewport[3], 0)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()    
+
+        # aktualizacja danych o wymiarach viewport - przydaje się przy przerzucaniu okna między monitorami o różnym skalowaniu
+        self.viewport = glGetIntegerv(GL_VIEWPORT) 
+
+        # obsługa skalowania okien w Windows
+        dpi_window_scale = float(self.viewport[3])/float(self.height())
+        p_x = int(float(self.mouse_x) * dpi_window_scale)
+        p_y = int(float(self.mouse_y) * dpi_window_scale)
+
+        # pobranie punktu do testu
+        # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
+        rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
+        if rgb[0] == rgb[1] == rgb[2] >= HOTSPOT_BASE_TEST_COLOR: # interesuje nasz idealny szary
+            current_rgb = rgb[0]
+            last_rgb = self.hot_spot_last_rgb
+            if current_rgb > last_rgb:
+                current_rgb, last_rgb = last_rgb, current_rgb
+
+            # interesuje nas para dwóch konkretych kolorów
+            last_rgb -= HOTSPOT_BASE_TEST_COLOR + 10
+            if current_rgb == HOTSPOT_BASE_TEST_COLOR and last_rgb in range(0, len(self.hotspot_fid)):
+                hot_spot_selected = self.hotspot_fid[last_rgb]
+    
+            self.hot_spot_last_rgb = rgb[0]
+        else:
+            self.hot_spot_last_rgb = 0
+
+        # finalizacja GL
+        glPopMatrix()
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        
+        # wyzwalanie odświeżenia, które spowoduje wygenerowanie drugiej klatki porównawczej
+        if self.hot_spot_test:
+            self.hot_spot_test = False
+            self.update()
+
+        # przeładowanie widoku w przypadku trafienia
+        if hot_spot_selected != -1:
+            self.parent.reloadView(hot_spot_selected)
+            self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
+            MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))  
+        
+    def updateViewerWidget(self, direction):
+        """
+        Ładuje na nowo zdjęcie do pamięci i wyzwala przeładowanie widoku
+
+        :param direction: Azymut obserwatora
+        :type direction: float
+
+        :returns: Zwraca True w przypadku powodzenia 
+        :rtype: boolean
+        """
+        if self.is_widget_loaded:
             self.loadTexture(self.nazwa_pliku)
             self.image_description_data = self.new_image_description_data
             self.update()
@@ -315,9 +407,38 @@ class ViewerWidget(QOpenGLWidget):
             MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
             return False 
 
-    def setDataAboutPhoto(self, nazwa_pliku, data_wykonania, nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz):
+    def setDataAboutPhoto(
+            self,
+            nazwa_pliku : str,
+            data_wykonania : str,
+            nr_drogi : str,
+            nazwa_ulicy : str,
+            numer_odcinka : str,
+            kilometraz : str
+        ):
         """
-        Wprowadzanie danych opisowych zdjęcia do Widgetu
+        Wprowadza dane opisowe zdjęcia do Widgetu
+
+        :param nazwa_pliku: Ścieżka do pliku ze zdjęciem equiprostokątnym
+        :type nazwa_pliku: str
+
+        :param data_wykonania: Data wykonania zdjęcia
+        :type data_wykonania: str
+
+        :param nr_drogi: Numer drogi
+        :type nr_drogi: str
+
+        :param nazwa_ulicy: Nazwa ulicy
+        :type nazwa_ulicy: str
+
+        :param numer_odcinka: Numer odcinka
+        :type numer_odcinka: str
+
+        :param kilometraz: Znacznik kilometrowy
+        :type kilometraz: str
+
+        :returns: Zwraca True w przypadku powodzenia 
+        :rtype: boolean
         """
         self.data_wykonania = data_wykonania
         self.nr_drogi = nr_drogi
@@ -327,18 +448,23 @@ class ViewerWidget(QOpenGLWidget):
         self.nazwa_pliku = nazwa_pliku
 
         try:
-            image = Image.open(os.path.join(plugin_dir, "images", "desc_balloon.png"))
+            image = Image.open(os.path.join(plugin_dir, IMAGES_DIRECTORY, DESC_BALOON_FILENAME))
         except FileNotFoundError:
-            MessageUtils.pushLogCritical("Nie znaleziono ścieżki /images/desc_balloon.png")
+            MessageUtils.pushLogCritical(f"Nie znaleziono ścieżki /{IMAGES_DIRECTORY}/{DESC_BALOON_FILENAME}")
+            return False
         except Exception:
-            MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia /images/desc_balloon.png")
+            MessageUtils.pushLogCritical(f"Błąd podczas wczytywania zdjęcia /{IMAGES_DIRECTORY}/{DESC_BALOON_FILENAME}")
             return False
         
         try:
-            font_regular = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Regular.ttf"), 15)
-            font_bold = ImageFont.truetype(os.path.join(plugin_dir, "fonts", "Roboto_SemiCondensed-Bold.ttf"), 15)
+            font_regular = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, REGULAR_FONT_FILENAME), 15)
+            font_bold = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, BOLD_FONT_FILENAME), 15)
+            # font_regular = ImageFont.truetype("arial.ttf", 15) # tylko Windows
+            # font_bold = ImageFont.truetype("arialbd.ttf", 15)  # tylko Windows
+
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
+            return False
         except Exception:
             MessageUtils.pushLogCritical("Błąd podczas wczytywania plików czczionek.")
             return False
@@ -365,46 +491,34 @@ class ViewerWidget(QOpenGLWidget):
 
     def setHotSpots(self, coordinates):
         """
-        Ustawienie hotSpotow według podanej listy
+        Aktualizuje hotSpoty według podanej listy
+
+        :param coordinates: Lista słowników do obsługi hotspotów
+        :type coordinates: <class 'list'>
         """
         self.coordinates = coordinates            
-
         if self.coordinates is not None:
-            # wczytywanie obiektów hotspotów do pamięci
-            self.vertices_group = []
-            self.faces_group = []
             self.hotspot_fid = []
+            self.hotspot_x = []
+            self.hotspot_y = []
             scale = 0.104 # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
             spectator_angle  = 0
+
+            # określenie azymutu obserwatora
             for hotspot in self.coordinates:
                 if hotspot['distance'] < 0.01:
                     spectator_angle = hotspot['azymut']
+                    break
+
+            # tworzenie listy koordynatów hotspotów w przestrzeni OpenGl
             for hotspot in self.coordinates:
                 # pomijamy punkt obserwatora
                 if hotspot['distance'] < 0.01:
                     continue
 
-                vertices = []
-                faces = []
-                with open(os.path.join(plugin_dir, "images", "hotspot.obj"), 'r') as f:
-                    for line in f:
-                        if line.startswith('v '):
-                            ver = list(map(float, line.strip().split()[1:]))
-
-                            # wyliczanie przesunięcia wierchołków na podstawie kąta i dystansu hotspota
-                            # x = r*cos(kat_w_radianach)
-                            # y = r*sin(kat_w_radianach), r= scale*distance, kat_w_radianach= azymut_obliczony
-                            ver[0] += scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[1] += scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
-                            ver[2] += 0.3
-                            vertices.append(ver)
-                        elif line.startswith('f '):
-                            face = [int(val.split('/')[0]) - 1 for val in line.strip().split()[1:]]
-                            faces.append(face)
-                self.vertices_group.append(vertices)
-                self.faces_group.append(faces)
                 self.hotspot_fid.append(hotspot['fid'])
-                            
+                self.hotspot_x.append(scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))
+                self.hotspot_y.append(scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))                   
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -413,14 +527,26 @@ class ViewerWidget(QOpenGLWidget):
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
 
     def updateRotationData(self, d_rotation, d_zoom, d_pitch):
+        """
+        Obraca obserwatora o podane parametry przyrostu (delty) i aktualizuje widok
+
+        :param d_rotation: Przyrost obrotu w stopniach
+        :type d_rotation: float
+
+        :param d_zoom: Przyrost powiększenia w stopniach FOV.
+        Funkcja odrzuca zmianę po przekroczeniu min/maks
+        :type d_zoom: float
+
+        :param d_pitch: Przyrost wychylenia góra/dół w stopniach.
+        Funkcja odrzuca zmianę po przekroczeniu min/maks
+        :type d_pitch: float
+        """
         self.yaw += d_rotation
         self.pitch -= d_pitch
         self.pitch = min(max(self.pitch, -90), 90)
         self.fov -= d_zoom
         self.fov = max(30, min(self.fov, 90))
         self.update()
-
-
 
     def mousePressEvent(self, event):
         if event.button() == QtCompat.qtMouseButtonLeftButton(QtCore):
@@ -432,13 +558,11 @@ class ViewerWidget(QOpenGLWidget):
         if not self.moving:
             
             # przeprowadzenie testu kliknięcia w hot spot
-            self.show_description = True # operacje testujące znajdują się w drawDescriptionBalloom()
             self.hot_spot_test = True
             self.update()
 
         if event.button() == QtCompat.qtMouseButtonLeftButton(QtCore):
             self.setCursor(QtCompat.qtCursorShapeOpenHandCursor(QtCore))
-
 
     def mouseMoveEvent(self, event):
         self.moving = True
@@ -455,26 +579,7 @@ class ViewerWidget(QOpenGLWidget):
         self.update()
 
         self.prev_dx = dx
-        self.prev_dy = dy
-
-    def drawHotSpots(self, test_color=False):
-        """
-        Rysowanie hot spotów w kolorze domyślnym lub do identyfikacji
-        """
-        if self.vertices_group is not None and self.faces_group is not None:
-            for i in range(0, len(self.vertices_group)):
-                if test_color:
-                    color = 220 + i # kolor ściśle związany z wykrywaniem kliknięcia
-                else:
-                    color = 215 # kolor ściśle związany z wykrywaniem kliknięcia
-                if self.vertices_group[i] is not None and self.faces_group[i] is not None:
-                    glBegin(GL_TRIANGLES)
-                    glColor3ub(color, color, color)
-                    for face in self.faces_group[i]:
-                        for vertex in face:
-                            glVertex3fv([self.vertices_group[i][vertex][0], self.vertices_group[i][vertex][1], self.vertices_group[i][vertex][2]])
-                    glColor3f(1, 1, 1) 
-                    glEnd()   
+        self.prev_dy = dy   
    
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
@@ -484,6 +589,12 @@ class ViewerWidget(QOpenGLWidget):
         self.update()
 
     def setScreenShotMode(self, state):
+        """
+        Wyłącza/włącza przezroczystości w obrazach, które nie zawsze poprawnie się zapisywały w pliku JPG/PNG
+
+        :param state: True wyłącza przezroczystość i jest gotowa na screenShot
+        :type state: boolean
+        """
         self.is_screen_shot_mode_activated = state
         self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
         self.image_description_data = self.new_image_description_data
