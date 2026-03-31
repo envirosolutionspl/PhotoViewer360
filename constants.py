@@ -33,6 +33,22 @@ NETWORK_ATTRS = {
 # Dystans rysowania hotspotów wyrażony w metrach
 MAX_HOTSPOT_DISTANCE = 8.0
 
+IMAGES_DIRECTORY = "images"
+FONTS_DIRECTORY = "fonts"
+WHITE_HOTSPOT_OBJ_FILENAME = "hotspot_white.obj"
+BLACK_HOTSPOT_OBJ_FILENAME = "hotspot_black.obj"
+NOIMAGE_JPG_FILENAME = "no_image.jpg"
+DESC_BALOON_FILENAME = "desc_balloon.png"
+REGULAR_FONT_FILENAME = "Roboto_SemiCondensed-Regular.ttf"
+BOLD_FONT_FILENAME = "Roboto_SemiCondensed-Bold.ttf"
+
+# Szary kolor bazowy, który jest używany do rozpoznawania hotspotów
+# najlepiej w zakresie od 1 do maks 210
+HOTSPOT_BASE_TEST_COLOR = 60
+
+# Szary kolor bazowy, który jest używany do jasnej części hotspota
+HOTSPOT_BASE_BRIGHT_COLOR = 220
+
 # Animacja
 ANIMATION_DEFAULT = 0.0
 ANIMATION_STOP = 0.0
