@@ -45,7 +45,6 @@ from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt import QtCore
 
-from . import PLUGIN_NAME as plugin_name
 from .constants import (
     ANIMATION_ACCELERATION_FACTOR,
     ANIMATION_DECELERATION_FACTOR,
@@ -58,6 +57,7 @@ from .constants import (
     ANIMATION_TURN_RIGHT,
     ANIMATION_ZOOM_IN,
     ANIMATION_ZOOM_OUT,
+    GPKP_COLUMNS_DICT,
     COLUMN_NAME,
     COLUMN_YAW,
     CRS_EPSG_3857,
@@ -71,6 +71,7 @@ from .gui.ui_orbitalDialog import UiOrbitalDialog
 from .modules.viewer_widget import ViewerWidget
 from .utils import MessageUtils, QgsMapUtils, QtCompat
 
+from . import PLUGIN_NAME as plugin_name
 
 class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     """Geo360 Dialog Class"""
@@ -218,7 +219,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def updateViewer(self):
         """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
 
-        azymut = self.selected_features.attributes()[4]
+        azymut = self.selected_features.attribute(GPKP_COLUMNS_DICT['direction'])
 
         if self.gl_widget is not None: 
             # Wgranie do widgetu danych dla dymka
@@ -272,13 +273,13 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.kilometraz = ""
         iso_fmt = QtCompat.dateFormatISODate(Qt)
         for feature in self.layer.getFeatures():
-            if feature.attributes()[2] == name_img.replace(".jpg", ""):
-                date_time = feature.attributes()[7]
+            if feature.attribute(GPKP_COLUMNS_DICT["filename"]) == name_img.replace(".jpg", ""):
+                date_time = feature.attribute(GPKP_COLUMNS_DICT["timestamp"])
                 self.data_wykonania = str(date_time.toString(iso_fmt)).replace("T", " ")
-                self.nr_drogi = str(feature.attributes()[8])
-                self.nazwa_ulicy = str(feature.attributes()[9])
-                self.numer_odcinka = str(feature.attributes()[10])
-                self.kilometraz = str(feature.attributes()[11])
+                self.nr_drogi = str(feature.attribute(GPKP_COLUMNS_DICT["roadname"]))
+                self.nazwa_ulicy = str(feature.attribute(GPKP_COLUMNS_DICT["streetname"]))
+                self.numer_odcinka = str(feature.attribute(GPKP_COLUMNS_DICT["sectionname"]))
+                self.kilometraz = str(feature.attribute(GPKP_COLUMNS_DICT["locationmarker"]))
         if self.nazwa_ulicy == "NULL":
             MessageUtils.pushLogInfo(
                 "Wczytywanie danych punktu z warstwy... Dane niekompletne."
@@ -352,7 +353,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             x = geom.asPoint().x()
             y = geom.asPoint().y()
 
-            azymut = feat.attributes()[4]
+            azymut = feat.attribute(GPKP_COLUMNS_DICT["direction"])
             index_feature = feat.id()
             
             # obliczenie azymutu na podstawie, którego będziemy identyfikować czy punkt jest aktualnie wyświetlanym zdjęciem

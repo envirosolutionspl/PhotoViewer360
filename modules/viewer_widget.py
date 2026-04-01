@@ -1,6 +1,8 @@
 import math
 import os
 
+from ..utils import MessageUtils, QtCompat, VersionUtils
+
 from OpenGL.GL import *
 from OpenGL.GLU import (
     gluNewQuadric,
@@ -12,9 +14,8 @@ from OpenGL.GLU import (
 
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
-from qgis.PyQt.QtGui import QSurfaceFormat
 
-if int(QtCore.qVersion().split(".")[0]) > 5:
+if VersionUtils.isCompatibleQtVersion(QtCore.QT_VERSION_STR, 6):
     try:
         from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
     except ModuleNotFoundError:
@@ -29,13 +30,11 @@ from ..constants import (
     HOTSPOT_BASE_TEST_COLOR,
     HOTSPOT_BASE_BRIGHT_COLOR,
     DESC_BALOON_FILENAME,
-    REGULAR_FONT_FILENAME,
-    BOLD_FONT_FILENAME,
+    REGULAR_FONT_PATH,
+    BOLD_FONT_PATH,
     IMAGES_DIRECTORY,
-    FONTS_DIRECTORY
 )
 
-from ..utils import MessageUtils, QtCompat
 from .. import plugin_dir
 
 class ViewerWidget(QOpenGLWidget):
@@ -53,12 +52,6 @@ class ViewerWidget(QOpenGLWidget):
         Widget wyświetlający podgląd equiprostokątnego zdjęcie w formie podglądu 360
 
         """
-
-        format = QSurfaceFormat()
-        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
-        # Qt5: QSurfaceFormat.ColorSpace enum; Qt6: setColorSpace(QColorSpace)
-        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
-        QSurfaceFormat.setDefaultFormat(format)
         super().__init__(parent)
         self.show_description = True
         self.iface = iface
@@ -457,11 +450,8 @@ class ViewerWidget(QOpenGLWidget):
             return False
         
         try:
-            font_regular = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, REGULAR_FONT_FILENAME), 15)
-            font_bold = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, BOLD_FONT_FILENAME), 15)
-            # font_regular = ImageFont.truetype("arial.ttf", 15) # tylko Windows
-            # font_bold = ImageFont.truetype("arialbd.ttf", 15)  # tylko Windows
-
+            font_regular = ImageFont.truetype(REGULAR_FONT_PATH[VersionUtils.platformOperatingSystem()], 15)
+            font_bold = ImageFont.truetype(BOLD_FONT_PATH[VersionUtils.platformOperatingSystem()], 15)
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
             return False

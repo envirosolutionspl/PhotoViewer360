@@ -29,14 +29,21 @@ NETWORK_ATTRS = {
 MAX_HOTSPOT_DISTANCE = 8.0
 
 IMAGES_DIRECTORY = "images"
-FONTS_DIRECTORY = "fonts"
 WHITE_HOTSPOT_OBJ_FILENAME = "hotspot_white.obj"
 BLACK_HOTSPOT_OBJ_FILENAME = "hotspot_black.obj"
 NOIMAGE_JPG_FILENAME = "no_image.jpg"
 DESC_BALOON_FILENAME = "desc_balloon.png"
-REGULAR_FONT_FILENAME = "Roboto_SemiCondensed-Regular.ttf"
-BOLD_FONT_FILENAME = "Roboto_SemiCondensed-Bold.ttf"
-
+REGULAR_FONT_PATH = { 
+    'windows' : 'arial.ttf',
+    'linux'   : '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    'darwin'  : '/System/Library/Fonts/Supplemental/Arial.ttf'
+}
+BOLD_FONT_PATH = { 
+    'windows' : 'arialbd.ttf',
+    'linux'   : '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    'darwin'  : '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
+}
+ 
 # Szary kolor bazowy, który jest używany do rozpoznawania hotspotów
 # najlepiej w zakresie od 1 do maks 210
 HOTSPOT_BASE_TEST_COLOR = 60
@@ -123,14 +130,18 @@ GPKP_COLUMNS_ADD_LIST = (
     'kilometraz'
 )
 
-GPKP_COLUMNS_CHANGE_DICT = {
+GPKP_COLUMNS_DICT = {
     "photo": 'sciezka_zdjecie',
     "filename": 'nazwa_zdjecia',
     "directory": 'nazwa_folderu',
     "direction": 'azymut',
     "longitude": 'dlugosc_geog',
     "latitude": 'szerokosc_geog',
-    "timestamp": 'data_wykonania'
+    "timestamp": 'data_wykonania',
+    "roadname" : 'nr_drogi',
+    "streetname" : 'nazwa_ulicy',
+    "sectionname" : 'numer_odcinka',
+    "locationmarker" : 'kilometraz'
 }
 
 # Lista atrybutów wymaganych do prawidłowej pracy z impotowaną GeoPaczką
