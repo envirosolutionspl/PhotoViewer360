@@ -529,8 +529,6 @@ class Geo360:
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
                     MessageUtils.pushLogWarning(f"Niepoprawne dane wejściowe. Ustawienie wartosci domyślnej w atrybucie 'azymut' w pozycji fid: {feature.id()}.")
-                else:
-                    pass
 
                 # uzupełnienie wartości dla atrybutu data_wykonania
                 data_value = feature[GPKP_COLUMNS_DICT["timestamp"]]
@@ -572,7 +570,7 @@ class Geo360:
         if not vlayer.commitChanges():
             MessageUtils.pushLogCritical(f"Niepowodzenie podczas zapisu zmian przy czyszczeniu warstwy: {gpkg_path}")
             vlayer.rollBack()
-
+            return
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
