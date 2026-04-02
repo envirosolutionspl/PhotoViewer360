@@ -1,24 +1,30 @@
 import datetime
 from typing import List, Dict, Any
 import json
-import os
+import os, platform
+import importlib
 import processing
 import sys
 import time
-from .. import PLUGIN_NAME
+
 from qgis.core import (
     Qgis,
     QgsMessageLog,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsNetworkAccessManager,
-    QgsBlockingNetworkRequest
+    QgsBlockingNetworkRequest,
+    QgsPointXY,
+    QgsProject,
+    QgsRectangle,
 )
+from qgis.utils import iface
+
 from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
 from qgis.PyQt.QtCore import QUrl, QUrlQuery, QEventLoop, QTimer, QT_VERSION_STR
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
-from ..constants import (
+from .constants import (
     TIMEOUT_MS,
     MAX_ATTEMPTS,
     ULDK_URL,
@@ -44,6 +50,8 @@ from ..constants import (
 )
 from functools import partial
 import lxml.etree as ET
+
+from . import PLUGIN_NAME
 
 class LayersUtils:
     
@@ -170,6 +178,7 @@ class FileUtils:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
             subprocess.call([opener, filename])
 
+
     @staticmethod
     def createReport(file_path, headers, obj_list, file_name_from_url=True):
         file_path = f'{file_path}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.txt'
@@ -188,23 +197,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxCritical(parent, title: str, message: str):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setIcon(QtCompat.qmessageboxCriticalIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-
-        if hasattr(parent, 'plugin_icon'):
-            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
-
-        msg_box.exec()
-
-    @staticmethod
-    def pushMessageBoxWarning(parent, title, message):
-        msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -214,10 +210,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxInfo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setIcon(QtCompat.qmessageboxInformationIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -225,18 +221,30 @@ class MessageUtils:
         msg_box.exec()
 
     @staticmethod
+    def pushMessageBoxWarning(parent, title, message):
+        msg_box = QMessageBox(parent)
+        msg_box.setIcon(QtCompat.qmessageboxWarningIcon())
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
+
+        if hasattr(parent, 'plugin_icon'):
+            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
+
+        msg_box.exec()
+    @staticmethod
     def pushMessageBoxYesNo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setIcon(QtCompat.qmessageboxQuestionIcon())
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.No
+            QtCompat.qmessageboxYesButton() or
+            QtCompat.qmessageboxNoButton()
         )
 
         result = msg_box.exec()
-        return result == QMessageBox.StandardButton.Yes
+        return result == QtCompat.qmessageboxYesButton()
 
     @staticmethod
     def pushMessage(iface, message: str) -> None:
@@ -250,7 +258,7 @@ class MessageUtils:
     @staticmethod
     def pushSuccess(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            "Sukces",
+            'Sukces',
             message,
             level=Qgis.Success,
             duration=10
@@ -264,15 +272,6 @@ class MessageUtils:
             level=Qgis.Warning,
             duration=10
         )
-
-    @staticmethod
-    def pushCritical(iface, message: str) -> None:
-        iface.messageBar().pushMessage(
-            'Błąd',
-            message,
-            level=Qgis.Critical,
-            duration=10
-        )    
 
     @staticmethod
     def pushLogInfo(message: str) -> None:
@@ -333,19 +332,17 @@ class NetworkUtils:
     def _getAttributeEnum(self, attr_name):
         """Pobiera atrybut QNetworkRequest"""
         if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
-            if hasattr(QNetworkRequest, 'Attribute'):
-                val = getattr(QNetworkRequest.Attribute, attr_name, None)
-                if val is not None:
-                    return val
+            val = QtCompat.qnetworkRequestAttributeEnum(attr_name)
+            if val is not None:
+                return val
         return getattr(QNetworkRequest, attr_name, None)
 
     def _getErrorEnum(self, attr_name):
         """Pobiera kod błędu QNetworkReply"""
         if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
-            if hasattr(QNetworkReply, 'NetworkError'):
-                val = getattr(QNetworkReply.NetworkError, attr_name, None)
-                if val is not None:
-                    return val
+            val = QtCompat.qnetworkReplyNetworkErrorEnum(attr_name)
+            if val is not None:
+                return val
         return getattr(QNetworkReply, attr_name, None)
 
     def _setAttributes(self, request, timeout_ms):
@@ -613,3 +610,271 @@ class VersionUtils:
     @staticmethod
     def isCompatibleQtVersion(cur_version, tar_version):
         return cur_version.startswith(QT_VER[tar_version])
+    
+    @staticmethod
+    def platformOperatingSystem():
+        """ 
+        Sprawdza na jakim systemie operacyjnym uruchomiono wtyczkę
+        
+        :returns: Zwraca: "windows" lub "linux" lub "darwin" 
+        :rtype: str
+        """
+        return platform.system().lower()
+
+class QtCompat:
+    """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
+
+    @staticmethod
+    def qmessageboxWarningIcon():
+        return QMessageBox.Icon.Warning if hasattr(QMessageBox, "Icon") else QMessageBox.Warning
+
+    @staticmethod
+    def qmessageboxInformationIcon():
+        return QMessageBox.Icon.Information if hasattr(QMessageBox, "Icon") else QMessageBox.Information
+
+    @staticmethod
+    def qmessageboxCriticalIcon():
+        return QMessageBox.Icon.Critical if hasattr(QMessageBox, "Icon") else QMessageBox.Critical
+
+    @staticmethod
+    def qmessageboxQuestionIcon():
+        return QMessageBox.Icon.Question if hasattr(QMessageBox, "Icon") else QMessageBox.Question
+
+    @staticmethod
+    def qmessageboxOkButton():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.Ok
+        return QMessageBox.Ok
+
+    @staticmethod
+    def qmessageboxYesButton():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.Yes
+        return QMessageBox.Yes
+
+    @staticmethod
+    def qmessageboxNoButton():
+        if hasattr(QMessageBox, "StandardButton"):
+            return QMessageBox.StandardButton.No
+        return QMessageBox.No
+
+    @staticmethod
+    def dialogExec(dialog):
+        exec_fn = getattr(dialog, "exec", None)
+        if callable(exec_fn):
+            return exec_fn()
+        return dialog.exec_()
+
+    @staticmethod
+    def alignmentLeftVcenter(QtClass):
+        if hasattr(QtClass, "AlignmentFlag"):
+            return (
+                QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
+            )
+        return QtClass.AlignLeft | QtClass.AlignVCenter
+
+
+    @staticmethod
+    def rightDockwidgetArea(QtClass):
+        if hasattr(QtClass, "DockWidgetArea"):
+            return QtClass.DockWidgetArea.RightDockWidgetArea
+        return QtClass.RightDockWidgetArea
+
+    @staticmethod
+    def qdockwidgetAllFeatures(qtwidgets_module):
+        dw = qtwidgets_module.QDockWidget
+        if hasattr(dw, "DockWidgetFeature"):
+            f = dw.DockWidgetFeature
+            return (
+                f.DockWidgetClosable
+                | f.DockWidgetMovable
+                | f.DockWidgetFloatable
+            )
+        return dw.AllDockWidgetFeatures
+
+    @staticmethod
+    def qmessageboxApplyRole(qtwidgets_module):
+        if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
+            return qtwidgets_module.QMessageBox.ButtonRole.ApplyRole
+        return qtwidgets_module.QMessageBox.ApplyRole
+
+    @staticmethod
+    def qmessageboxResetRole(qtwidgets_module):
+        if hasattr(qtwidgets_module.QMessageBox, "ButtonRole"):
+            return qtwidgets_module.QMessageBox.ButtonRole.ResetRole
+        return qtwidgets_module.QMessageBox.ResetRole
+
+
+    @staticmethod
+    def qsizepolicyExpanding(qtwidgets_module):
+        if hasattr(qtwidgets_module.QSizePolicy, "Policy"):
+            return qtwidgets_module.QSizePolicy.Policy.Expanding
+        return qtwidgets_module.QSizePolicy.Expanding
+
+    @staticmethod
+    def qsizepolicyMinimum(qtwidgets_module):
+        if hasattr(qtwidgets_module.QSizePolicy, "Policy"):
+            return qtwidgets_module.QSizePolicy.Policy.Minimum
+        return qtwidgets_module.QSizePolicy.Minimum
+
+    @staticmethod
+    def qlayoutSizeConstraintFixedSize(qtwidgets_module):
+        lay = qtwidgets_module.QLayout
+        if hasattr(lay, "SizeConstraint"):
+            return lay.SizeConstraint.SetFixedSize
+        return lay.SetFixedSize
+
+    @staticmethod
+    def qfiledialogShowDirsOnly(qtwidgets_module):
+        fd = qtwidgets_module.QFileDialog
+        try:
+            return fd.Option.ShowDirsOnly
+        except AttributeError:
+            pass
+        try:
+            return fd.FileDialogOption.ShowDirsOnly
+        except AttributeError:
+            return fd.ShowDirsOnly
+
+    @staticmethod
+    def qiconModeNormal(qtgui_module):
+        if hasattr(qtgui_module.QIcon, "Mode"):
+            return qtgui_module.QIcon.Mode.Normal
+        return qtgui_module.QIcon.Normal
+
+    @staticmethod
+    def qiconStateOff(qtgui_module):
+        if hasattr(qtgui_module.QIcon, "State"):
+            return qtgui_module.QIcon.State.Off
+        return qtgui_module.QIcon.Off
+
+    @staticmethod
+    def setGlobalColor(qtcore_module, color_name):
+        """Zwraca QColor dla nazwy koloru z Qt.GlobalColor (PyQt5/PyQt6)."""
+        if hasattr(qtcore_module, "GlobalColor"):
+            return QColor(getattr(qtcore_module.GlobalColor, color_name))
+        return QColor(getattr(qtcore_module, color_name))
+
+    @staticmethod
+    def dateFormatISODate(qtcore_module):
+        if hasattr(qtcore_module, "DateFormat"):
+            return qtcore_module.DateFormat.ISODate
+        return qtcore_module.ISODate
+
+    @staticmethod
+    def windowStateFullScreen(qtcore_module):
+        if hasattr(qtcore_module, "WindowState"):
+            return qtcore_module.WindowState.WindowFullScreen
+        return qtcore_module.WindowFullScreen
+
+    @staticmethod
+    def qcursorShapePointingHand(qtcore_module):
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.PointingHandCursor
+        return qtcore_module.Qt.PointingHandCursor
+
+    @staticmethod
+    def qtMouseButtonLeftButton(qtcore_module):
+        if hasattr(qtcore_module.Qt, "MouseButton"):
+            return qtcore_module.Qt.MouseButton.LeftButton
+        return qtcore_module.Qt.LeftButton
+
+    @staticmethod
+    def qtCursorShapeOpenHandCursor(qtcore_module):
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.OpenHandCursor
+        return qtcore_module.Qt.OpenHandCursor
+
+    @staticmethod
+    def qtCursorShapeClosedHandCursor(qtcore_module):
+        if hasattr(qtcore_module.Qt, "CursorShape"):
+            return qtcore_module.Qt.CursorShape.ClosedHandCursor
+        return qtcore_module.Qt.ClosedHandCursor
+
+    @staticmethod
+    def setSurfaceFormatColorSpaceSrgb(surface_format):
+        if hasattr(QSurfaceFormat, "ColorSpace"):
+            surface_format.setColorSpace(QSurfaceFormat.ColorSpace.sRGBColorSpace)
+        else:
+            if hasattr(QColorSpace, "sRgb"):
+                surface_format.setColorSpace(QColorSpace.sRgb())
+            else:
+                surface_format.setColorSpace(QColorSpace(QColorSpace.NamedColorSpace.SRgb))
+
+    @staticmethod
+    def qnetworkRequestAttributeEnum(attr_name):
+        if hasattr(QNetworkRequest, "Attribute"):
+            return getattr(QNetworkRequest.Attribute, attr_name, None)
+        return None
+
+    @staticmethod
+    def qnetworkReplyNetworkErrorEnum(attr_name):
+        if hasattr(QNetworkReply, "NetworkError"):
+            return getattr(QNetworkReply.NetworkError, attr_name, None)
+        return None
+    
+    @staticmethod
+    def importQtOpenGLWidgetsQOpenGLWidget():
+        if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
+            if importlib.util.find_spec("qgis.PyQt.QtOpenGLWidgets") is not None:
+                return importlib.import_module("qgis.PyQt.QtOpenGLWidgets")
+            return importlib.import_module("PyQt6.QtOpenGLWidgets")
+        else:
+            return importlib.import_module("qgis.PyQt.QtWidgets")
+    
+class OpenGLUtils:
+
+    @staticmethod
+    def setDefaultQSurfaceFormat():
+        format = QSurfaceFormat()
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
+        return format
+
+
+class QgsMapUtils(object):
+    @staticmethod
+    def convertProjection(x, y, from_crs, to_crs):
+        """Convert Coordinates EPSG"""
+        crsSrc = QgsCoordinateReferenceSystem(from_crs)
+        crsDest = QgsCoordinateReferenceSystem(to_crs)
+        xform = QgsCoordinateTransform(crsSrc, crsDest, QgsProject.instance())
+        pt = xform.transform(QgsPointXY(x, y))
+        return pt
+
+    @staticmethod
+    def getAttributeFromFeature(feature, columnName):
+        """Get Attribute from feature"""
+        return feature.attribute(columnName)
+
+    @staticmethod
+    def zoomToFeature(canvas, layer, ide):
+        """Zoom to feature by Id"""
+        if layer:
+            for feature in layer.getFeatures():
+                if feature.id() == ide:
+                    # Transform Point
+                    actualPoint = feature.geometry().asPoint()
+                    projPoint = QgsMapUtils.convertProjection(
+                        actualPoint.x(),
+                        actualPoint.y(),
+                        layer.crs().authid(),
+                        canvas.mapSettings().destinationCrs().authid(),
+                    )
+                    x = projPoint.x()
+                    y = projPoint.y()
+                    # rect = QgsRectangle(x*0.99998, y*0.99998, x*1.00002, y*1.00002) # zakres zoom w przypadku przybliżenia do punktu
+                    rect = QgsRectangle(x, y, x, y)
+                    canvas.setExtent(rect)
+                    canvas.refresh()
+                    return True
+        return False
+
+    @staticmethod
+    def getToFeature(layer, ide):
+        """Get To feature by ID"""
+        if layer:
+            for feature in layer.getFeatures():
+                if feature.id() == ide:
+                    return feature
+        return False

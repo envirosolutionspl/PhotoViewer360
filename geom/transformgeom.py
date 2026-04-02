@@ -1,7 +1,7 @@
 import math
 from qgis.core import QgsPoint, QgsGeometry
 
-from PyQt5.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import QMessageBox
 
 
 class TransformGeometry:
