@@ -465,13 +465,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         # gdy użytkownik nie wskaże pliku -> nic nie rób
         if not image_path:
             return
-        
-        self.gl_widget.setScreenShotMode(True)
-        pixmap = self.gl_widget.grab()
-        self.gl_widget.setScreenShotMode(False)
-        pixmap.save(image_path)
-        os.startfile(image_path)
-        #image.show()
+
+        self.gl_widget.screenShot(image_path)
 
     def updateOrientation(self, yaw=None):
         """Zaktualizowanie kierunku/orinetacji zdjęcia"""

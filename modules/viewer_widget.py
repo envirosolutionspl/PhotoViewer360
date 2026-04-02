@@ -16,6 +16,7 @@ from OpenGL.GLU import (
 
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
+from qgis.PyQt.QtGui import QPainter, QPixmap
 
 # QtCompat: from qgis.PyQt import QtOpenGLWidgets
 QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
@@ -65,9 +66,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
 
         self.image_description_data = None
         self.new_image_description_data = None
+        self.qimage_description_data = None
         
         self.is_widget_loaded = False
-        self.is_screen_shot_mode_activated = False
         self.is_texture_loaded = False
             
         self.yaw = direction
@@ -277,10 +278,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             glRasterPos(0, 260)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            if self.is_screen_shot_mode_activated:
-                glDrawPixels(300, 260, GL_RGB, GL_UNSIGNED_BYTE, self.image_description_data)
-            else:
-                glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
+            glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
             glDisable(GL_BLEND)
 
             # finalizacja GL
@@ -472,10 +470,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             draw.text((10, 212), "Data:", fill=(0, 0, 0), font=font_bold)
             draw.text((10, 228), data_wykonania, fill=(0, 0, 0), font=font_regular)
 
-        if self.is_screen_shot_mode_activated:
-            self.new_image_description_data = image.tobytes("raw", "RGB", 0, -1)
-        else:
-            self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
+        self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
+        self.qimage_description_data = image.toqimage()
+
         return True
 
     def setHotSpots(self, coordinates):
@@ -575,18 +572,30 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.fov -= delta * 0.1
         self.fov = max(30, min(self.fov, 90))
         self.sensitivity = self.fov / 60
+        self.update() 
+    
+    def screenShot(self, image_path):
+        """
+        Wykonuje screen shot aktualnego widoku z włączoną przezroczystością okienka opisowego
+
+        :param image_path: nazwa pliku, do którego zapisany zostanie screen shot
+        :type image_path: str
+        """
+        self.show_description = False
+        self.update()
+        
+        pixmap = self.grab()
+        image = pixmap.toImage()
+        painter = QPainter()
+        painter.begin(image)
+        painter.drawImage(0, 0, self.qimage_description_data)
+        painter.end()
+        pixmap = QPixmap.fromImage(image)
+
+        self.show_description = True
         self.update()
 
-    def setScreenShotMode(self, state):
-        """
-        Wyłącza/włącza przezroczystości w obrazach, które nie zawsze poprawnie się zapisywały w pliku JPG/PNG
-
-        :param state: True wyłącza przezroczystość i jest gotowa na screenShot
-        :type state: boolean
-        """
-        self.is_screen_shot_mode_activated = state
-        self.setDataAboutPhoto(self.nazwa_pliku, self.data_wykonania, self.nr_drogi, self.nazwa_ulicy, self.numer_odcinka, self.kilometraz)
-        self.image_description_data = self.new_image_description_data
-        self.update()
+        pixmap.save(image_path)
+        os.startfile(image_path)
 
 
