@@ -6,9 +6,13 @@
 #
 # WARNING! Manual compatibility adjustments added.
 
+import os
+
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 from .. import plugin_dir
 from ..utils import QtCompat
+
+from ..constants import IMAGES_DIRECTORY
 
 
 class UiOrbitalDialog(object):
@@ -56,117 +60,50 @@ class UiOrbitalDialog(object):
         )
         self.horizontalLayout.addItem(spacerItem)
 
+        def setButton(object_name, image_file_name):
+            button = QtWidgets.QPushButton(self.dockWidgetContents)
+            button.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
+            button.setText("")
+            q_icon = QtGui.QIcon()
+            q_icon.addPixmap(
+                QtGui.QPixmap(os.path.join(plugin_dir, IMAGES_DIRECTORY, image_file_name)),
+                QtCompat.qiconModeNormal(QtGui),
+                QtCompat.qiconStateOff(QtGui),
+            )
+            button.setIcon(q_icon)
+            button.setObjectName(object_name)
+            return button
+        
         # dodanie przycisku służącego do patrzenia w górę
-        self.btn_look_up = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_look_up.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_look_up.setText("")
-        icon8 = QtGui.QIcon()
-        icon8.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/look_up.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_look_up.setIcon(icon8)
-        self.btn_look_up.setObjectName("btn_look_up")
+        self.btn_look_up = setButton("btn_look_up", "look_up.svg")
         self.horizontalLayout.addWidget(self.btn_look_up)
 
         # dodanie przycisku służącego do patrzenia w dół
-        self.btn_look_down = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_look_down.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_look_down.setText("")
-        icon9 = QtGui.QIcon()
-        icon9.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/look_down.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_look_down.setIcon(icon9)
-        self.btn_look_down.setObjectName("btn_look_down")
+        self.btn_look_down = setButton("btn_look_down", "look_down.svg")
         self.horizontalLayout.addWidget(self.btn_look_down)
 
         # dodanie przycisku służącego do obracania w lewo
-        self.btn_turn_left = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_turn_left.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_turn_left.setText("")
-        icon4 = QtGui.QIcon()
-        icon4.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/turn_left.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_turn_left.setIcon(icon4)
-        self.btn_turn_left.setObjectName("btn_turn_left")
+        self.btn_turn_left = setButton("btn_turn_left", "turn_left.svg")
         self.horizontalLayout.addWidget(self.btn_turn_left)
 
         # dodanie przycisku służącego do zrobienia raportu graficznego
-        self.btn_screenshot = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_screenshot.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_screenshot.setText("")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/camera.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_screenshot.setIcon(icon1)
-        self.btn_screenshot.setObjectName("btn_screenshot")
+        self.btn_screenshot = setButton("btn_screenshot", "camera.svg")
         self.horizontalLayout.addWidget(self.btn_screenshot)
 
         # dodanie przycisku służącego do obsługi fullscreen'a
-        self.btn_fullscreen = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_fullscreen.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_fullscreen.setText("")
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/full_screen.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_fullscreen.setIcon(icon3)
-        self.btn_fullscreen.setCheckable(True)
-        self.btn_fullscreen.setObjectName("btn_fullscreen")
+        self.btn_fullscreen = setButton("btn_fullscreen", "full_screen.svg")
         self.horizontalLayout.addWidget(self.btn_fullscreen)
 
         # dodanie przycisku służącego do obracania w prawo
-        self.btn_turn_right = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_turn_right.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_turn_right.setText("")
-        icon5 = QtGui.QIcon()
-        icon5.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/turn_right.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_turn_right.setIcon(icon5)
-        self.btn_turn_right.setObjectName("btn_turn_right")
+        self.btn_turn_right = setButton("btn_turn_right", "turn_right.svg")
         self.horizontalLayout.addWidget(self.btn_turn_right)
 
         # dodanie przycisku służącego do przybliżania
-        self.btn_zoom_in = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_zoom_in.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_zoom_in.setText("")
-        icon6 = QtGui.QIcon()
-        icon6.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/zoom_in.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_zoom_in.setIcon(icon6)
-        self.btn_zoom_in.setObjectName("btn_zoom_in")
+        self.btn_zoom_in = setButton("btn_zoom_in", "zoom_in.svg")
         self.horizontalLayout.addWidget(self.btn_zoom_in)
 
         # dodanie przycisku służącego do oddalania
-        self.btn_zoom_out = QtWidgets.QPushButton(self.dockWidgetContents)
-        self.btn_zoom_out.setCursor(QtGui.QCursor(QtCompat.qcursorShapePointingHand(QtCore)))
-        self.btn_zoom_out.setText("")
-        icon7 = QtGui.QIcon()
-        icon7.addPixmap(
-            QtGui.QPixmap(plugin_dir + "/images/zoom_out.svg"),
-            QtCompat.qiconModeNormal(QtGui),
-            QtCompat.qiconStateOff(QtGui),
-        )
-        self.btn_zoom_out.setIcon(icon7)
-        self.btn_zoom_out.setObjectName("btn_zoom_out")
+        self.btn_zoom_out = setButton("btn_zoom_out", "zoom_out.svg")
         self.horizontalLayout.addWidget(self.btn_zoom_out)
 
         spacerItem1 = QtWidgets.QSpacerItem(

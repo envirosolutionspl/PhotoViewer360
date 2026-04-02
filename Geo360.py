@@ -23,7 +23,7 @@
 import os
 
 from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication
-from qgis.PyQt.QtGui import QIcon, QSurfaceFormat
+from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
     QApplication,
@@ -36,7 +36,6 @@ from qgis.core import *
 from qgis.PyQt import QtWidgets
 import processing
 
-from . import plugin_dir, temp_dir
 from .utils import MessageUtils, QtCompat
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
@@ -68,6 +67,8 @@ import importlib.util
 
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
+
+from . import plugin_dir, temp_dir
 
 class Geo360:
     """QGIS Plugin Implementation."""
@@ -108,11 +109,6 @@ class Geo360:
         QSettings().setValue(QGIS_SETTINGS_KEYS["OPENCL_ENABLED"], True)
         self.orbital_viewer = None
 
-        format = QSurfaceFormat()
-        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
-        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
-        QSurfaceFormat.setDefaultFormat(format)
-
         self.dlg = FirstWindowGeo360Dialog()
         self.use_layer = ""
         self.is_press_button = False
@@ -121,7 +117,6 @@ class Geo360:
         self.menu = self.tr(f"&{ENV_MENU_NAME}")
         self.layer = None
         self.map_tool = None
-
 
         # toolbar
         self.toolbar = self.iface.mainWindow().findChild(QToolBar, ENV_MENU_NAME)

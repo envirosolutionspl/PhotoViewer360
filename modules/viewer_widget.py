@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import math
 import os
 
@@ -15,13 +17,8 @@ from OpenGL.GLU import (
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
 
-if VersionUtils.isCompatibleQtVersion(QtCore.QT_VERSION_STR, 6):
-    try:
-        from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
-    except ModuleNotFoundError:
-        from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-else:
-    from qgis.PyQt.QtWidgets import QOpenGLWidget
+# QtCompat: from qgis.PyQt import QtOpenGLWidgets
+QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
 
 from ..constants import (
     WHITE_HOTSPOT_OBJ_FILENAME,
@@ -30,14 +27,13 @@ from ..constants import (
     HOTSPOT_BASE_TEST_COLOR,
     HOTSPOT_BASE_BRIGHT_COLOR,
     DESC_BALOON_FILENAME,
-    REGULAR_FONT_PATH,
-    BOLD_FONT_PATH,
+    FONT_NAME,
     IMAGES_DIRECTORY,
 )
 
 from .. import plugin_dir
 
-class ViewerWidget(QOpenGLWidget):
+class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
     """ QWidget Renderujący Widok Perspektywiczny na podstawie zdjęcia EquiProstokątnego """
 
     mouse_x = 0
@@ -450,8 +446,11 @@ class ViewerWidget(QOpenGLWidget):
             return False
         
         try:
-            font_regular = ImageFont.truetype(REGULAR_FONT_PATH[VersionUtils.platformOperatingSystem()], 15)
-            font_bold = ImageFont.truetype(BOLD_FONT_PATH[VersionUtils.platformOperatingSystem()], 15)
+            font_path = os.path.abspath(os.path.join(plugin_dir, os.pardir, os.pardir, os.pardir, "fonts", FONT_NAME))
+            font_regular = ImageFont.truetype(font_path, 15)
+            font_regular.set_variation_by_name(b'Condensed Regular')
+            font_bold = ImageFont.truetype(font_path, 15)
+            font_bold.set_variation_by_name(b'Bold')
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
             return False

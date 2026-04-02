@@ -2,6 +2,7 @@ import datetime
 from typing import List, Dict, Any
 import json
 import os, platform
+import importlib
 import processing
 import sys
 import time
@@ -811,6 +812,25 @@ class QtCompat:
         if hasattr(QNetworkReply, "NetworkError"):
             return getattr(QNetworkReply.NetworkError, attr_name, None)
         return None
+    
+    @staticmethod
+    def importQtOpenGLWidgetsQOpenGLWidget():
+        if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
+            if importlib.util.find_spec("qgis.PyQt.QtOpenGLWidgets") is not None:
+                return importlib.import_module("qgis.PyQt.QtOpenGLWidgets")
+            return importlib.import_module("PyQt6.QtOpenGLWidgets")
+        else:
+            return importlib.import_module("qgis.PyQt.QtWidgets")
+    
+class OpenGLUtils:
+
+    @staticmethod
+    def setDefaultQSurfaceFormat():
+        format = QSurfaceFormat()
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
+        return format
+
 
 class QgsMapUtils(object):
     @staticmethod

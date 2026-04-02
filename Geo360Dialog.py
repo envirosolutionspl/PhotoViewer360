@@ -30,33 +30,19 @@ from os.path import basename
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsFeatureRequest,
-    QgsMessageLog,
     QgsPointXY,
     QgsProcessingFeatureSourceDefinition,
     QgsProject,
     QgsVectorLayer,
     QgsWkbTypes,
-    Qgis,
 )
 from qgis.gui import QgsRubberBand
 
-from qgis.PyQt.QtCore import QTimer, Qt
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
-from qgis.PyQt.QtGui import QColor
-from qgis.PyQt import QtCore
+from qgis.PyQt.QtGui import QColor, QSurfaceFormat
 
 from .constants import (
-    ANIMATION_ACCELERATION_FACTOR,
-    ANIMATION_DECELERATION_FACTOR,
-    ANIMATION_DEFAULT,
-    ANIMATION_LOOK_DOWN,
-    ANIMATION_LOOK_UP,
-    ANIMATION_MAX_SPEED,
-    ANIMATION_STOP,
-    ANIMATION_TURN_LEFT,
-    ANIMATION_TURN_RIGHT,
-    ANIMATION_ZOOM_IN,
-    ANIMATION_ZOOM_OUT,
     GPKP_COLUMNS_DICT,
     COLUMN_NAME,
     COLUMN_YAW,
@@ -69,11 +55,12 @@ from .constants import (
 from .geom.transformgeom import TransformGeometry
 from .gui.ui_orbitalDialog import UiOrbitalDialog
 from .modules.viewer_widget import ViewerWidget
-from .utils import MessageUtils, QgsMapUtils, QtCompat
+from .modules.viewer_animation import ViewerAnimation
+from .utils import MessageUtils, QgsMapUtils, QtCompat, OpenGLUtils
 
 from . import PLUGIN_NAME as plugin_name
 
-class Geo360Dialog(QDockWidget, UiOrbitalDialog):
+class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
     """Geo360 Dialog Class"""
     _x = 0.0
     _y = 0.0
@@ -82,33 +69,15 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     _index = ""
     is_window_full_screen = False
 
-    def setXYId(self, coordinates):
-        """definiuje wartości parametrów do przekazania do JS"""
-        self._coordinates = coordinates
-
-    @QtCore.pyqtSlot(str, str, str)
-    def setXYtoPython(self, x, y, index):
-        """definiuje wartości parametrów do przekazania do Python'a """
-        self.clickHotspot([x, y, index])
-
-    @QtCore.pyqtSlot(result=list)
-    def getPhotoDetails(self):
-        return [self._coordinates]
-
-    @QtCore.pyqtSlot(result=list)
-    def getHotSpotDetailsToPython(self):
-        return [self._x, self._y, self._index]
-
-    def clickHotspot(self, coordinate_hotspot):
-        """Odbiór sygnału po kliknięciu w Hotspot"""
-        new_id = int(coordinate_hotspot[2])
-        self.reloadView(new_id)
-
     def __init__(self, iface, features_id=None, layer=None, name_layer="", parent = None):
 
         QDockWidget.__init__(self)
 
         self.setupUi(self)
+
+        ViewerAnimation.__init__(self)
+
+        self.gl_widget = None
 
         # zapisanie danych z konstruktora
         self.iface = iface
@@ -127,14 +96,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         self.yaw = None
         self.old_bering = 0
         self.new_bering = None
-
-        # obracanie zdjęcia
-        self.kierunek_obrotu = ANIMATION_DEFAULT
-        self.predkosc_obrotu = ANIMATION_DEFAULT
-        self.kierunek_podnoszenia = ANIMATION_DEFAULT
-        self.predkosc_podnoszenia = ANIMATION_DEFAULT
-        self.kierunek_przyblizania = ANIMATION_DEFAULT
-        self.predkosc_przyblizania = ANIMATION_DEFAULT
 
         # dane zdjecia
         self.data_wykonania = "" 
@@ -165,8 +126,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         self.selected_features = QgsMapUtils.getToFeature(self.layer, self.features_id)
 
-        self.gl_widget = None
-
         # otrzymanie ściezki do zdjęcia z warstwy  
         self.is_current_image_exists = False
         self.current_image, self.is_current_image_exists = self.getImagePathFromLayer()
@@ -184,10 +143,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
         # ustawienie RubberBand
         self.resetQgsRubberBand()
         self.setPosition()
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.viewAnimation)
-        self.timer.start(1000)
     
     def __del__(self):
         """dekonstruktor, uruchamia się przy zamknięciu okna"""
@@ -236,6 +191,8 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
 
         else:
             # Utworzenie widgetu wraz ze wszystkimi danymi potrzebnymi do poprawnego wyswietlenia
+            format = OpenGLUtils.setDefaultQSurfaceFormat()
+            QSurfaceFormat.setDefaultFormat(format)
             self.gl_widget = ViewerWidget(
                 self,
                 self.iface,
@@ -247,6 +204,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
                 self.numer_odcinka,
                 self.kilometraz,
             )
+            self.connectWidgetToViewerAnimation(self.gl_widget)
             self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
 
@@ -491,86 +449,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.setFloating(False)
             self.is_window_full_screen = False
 
-    def turnLeft(self):
-        self.kierunek_obrotu = ANIMATION_TURN_LEFT
-        self.timer.setInterval(30)
-
-    def turnRight(self):
-        self.kierunek_obrotu = ANIMATION_TURN_RIGHT
-        self.timer.setInterval(30)
-
-    def turnStop(self):
-        self.kierunek_obrotu = ANIMATION_STOP
-
-    def zoomIn(self):
-        self.kierunek_przyblizania= ANIMATION_ZOOM_IN
-        self.timer.setInterval(30)
-
-    def zoomOut(self):
-        self.kierunek_przyblizania= ANIMATION_ZOOM_OUT
-        self.timer.setInterval(30)
-
-    def zoomStop(self):
-        self.kierunek_przyblizania= ANIMATION_STOP
-
-    def lookUp(self):
-        self.kierunek_podnoszenia= ANIMATION_LOOK_UP
-        self.timer.setInterval(30)
-
-    def lookDown(self):
-        self.kierunek_podnoszenia= ANIMATION_LOOK_DOWN
-        self.timer.setInterval(30)
-
-    def lookStop(self):
-        self.kierunek_podnoszenia= ANIMATION_STOP
-
-    def countRotationSpeed(self, kierunek, predkosc):
-        """
-        Oblicza nową prędkość obrotu dla animacji
-
-        Parameters:
-            kierunek - kierunek obrotu 
-        Return:
-            float - nowa prędkość
-        """
-        if kierunek != ANIMATION_STOP and abs(predkosc) < ANIMATION_MAX_SPEED:
-            predkosc += ANIMATION_ACCELERATION_FACTOR * kierunek
-        elif predkosc != 0.0:
-            predkosc -= ANIMATION_DECELERATION_FACTOR * predkosc/abs(predkosc)
-            if abs(predkosc) < ANIMATION_DECELERATION_FACTOR:
-                predkosc = 0.0
-        
-        return predkosc
-
-
-    def viewAnimation(self):
-        """ Obliczenia prędkości obrotu i wyzwala aktualizację OpenGL """
-
-        self.predkosc_obrotu = self.countRotationSpeed(
-            self.kierunek_obrotu, self.predkosc_obrotu
-        )
-        self.predkosc_przyblizania = self.countRotationSpeed(
-            self.kierunek_przyblizania, self.predkosc_przyblizania
-        )
-        self.predkosc_podnoszenia = self.countRotationSpeed(
-            self.kierunek_podnoszenia, self.predkosc_podnoszenia
-        )
-
-        # wgrywamy nowe parametry do clasy OpenGL
-        if self.gl_widget is not None:
-            self.gl_widget.updateRotationData(
-                self.predkosc_obrotu,
-                self.predkosc_przyblizania,
-                self.predkosc_podnoszenia,
-            )
-
-        if (
-            self.predkosc_obrotu == 0
-            and self.predkosc_przyblizania == 0
-            and self.predkosc_podnoszenia == 0
-        ):
-            self.timer.setInterval(1000)
-
     def getScreenShot(self):
         """Funkcja odpowiedzialna za przycisk do robienia raportu graficznego"""
 
@@ -606,6 +484,14 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             self.bearing = self.selected_features.attribute(COLUMN_YAW)
 
         original_point = self.selected_features.geometry().asPoint()
+
+        if self.layer is None:
+            if self.parent.orbital_viewer is not None:
+                self.parent.orbital_viewer.close()
+                self.parent.orbital_viewer = None
+                self.parent.action_activate.setEnabled(False)
+                MessageUtils.pushLogWarning(f"Usunięto warstwę przypisaną do widoku. Należy wybrać inną warstwę w oknie wtyczki.")  
+            return
 
         self.actual_point_dx = QgsMapUtils.convertProjection(
             original_point.x(),
@@ -816,8 +702,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
     def closeEvent(self, _):
         """Zamknięcie okna ze zdjęciem (street view)"""
 
-        if self.timer.isActive():
-            self.timer.stop()
+        self.stopAnimation()
 
         self.resetQgsRubberBand()
         self.canvas.refresh()
@@ -837,8 +722,4 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog):
             if self.actual_point_orientation is not None:
                 self.actual_point_orientation.reset()
         except Exception as exc:
-            QgsMessageLog.logMessage(
-                f"Exception while removing rubberband: {exc}",
-                plugin_name,
-                level=Qgis.Warning,
-            )
+            MessageUtils.pushLogWarning(f"Błąd podczas usuwania obiektu RubberBand: {exc}")  

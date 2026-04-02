@@ -33,17 +33,8 @@ WHITE_HOTSPOT_OBJ_FILENAME = "hotspot_white.obj"
 BLACK_HOTSPOT_OBJ_FILENAME = "hotspot_black.obj"
 NOIMAGE_JPG_FILENAME = "no_image.jpg"
 DESC_BALOON_FILENAME = "desc_balloon.png"
-REGULAR_FONT_PATH = { 
-    'windows' : 'arial.ttf',
-    'linux'   : '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-    'darwin'  : '/System/Library/Fonts/Supplemental/Arial.ttf'
-}
-BOLD_FONT_PATH = { 
-    'windows' : 'arialbd.ttf',
-    'linux'   : '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-    'darwin'  : '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
-}
- 
+FONT_NAME = "Open Sans"
+
 # Szary kolor bazowy, który jest używany do rozpoznawania hotspotów
 # najlepiej w zakresie od 1 do maks 210
 HOTSPOT_BASE_TEST_COLOR = 60
@@ -52,6 +43,8 @@ HOTSPOT_BASE_TEST_COLOR = 60
 HOTSPOT_BASE_BRIGHT_COLOR = 220
 
 # Animacja
+ANIMATION_FPS = 30
+ANIMATION_SLEEP_FPS = 1
 ANIMATION_DEFAULT = 0.0
 ANIMATION_STOP = 0.0
 ANIMATION_TURN_LEFT = -1.0
