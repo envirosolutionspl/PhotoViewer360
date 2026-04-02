@@ -409,7 +409,6 @@ class Geo360:
             except RuntimeError:
                 MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
 
-
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
@@ -466,7 +465,7 @@ class Geo360:
                     new_value=GPKP_COLUMNS_CHANGE_DICT_local[field.name()]
                     old_value=field.name()
                     self.renameNameField(vlayer, old_value, new_value)
-            
+
             # usuwanie zbędnych atrybutów z GeoPaczki, które powstały podczas processingu
             is_cleaned = False
             while not is_cleaned:
@@ -480,48 +479,49 @@ class Geo360:
 
             features = vlayer.getFeatures()
             number_of_features = vlayer.featureCount()
+            progressbar_div = int(number_of_features / (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"]))
+            if progressbar_div == 0: 
+                progressbar_div = 1
             time_progress = 0
 
             # modyfikacja wartości atrybutów
+            field_map = vlayer.dataProvider().fieldNameMap()
             for feature in features:
-
                 time_progress += 1
-                try:
-                    progress_attr = PROGRESS["IMPORT_AFTER_TOOL"] + int(
-                        (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"])
-                        * time_progress
-                        / number_of_features
-                    )
-                    self.progress.setValue(progress_attr)
-                    QApplication.processEvents()
-                except RuntimeError:
-                    MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
+                # aktualizowanie paska postępu tylko, kiedy ma to sens
+                if time_progress % progressbar_div == 0:
+                    try:
+                        progress_attr = PROGRESS["IMPORT_AFTER_TOOL"] + int(
+                            (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"])
+                            * time_progress
+                            / number_of_features
+                        )
+                        self.progress.setValue(progress_attr)
+                        QApplication.processEvents()
+                    except RuntimeError:
+                        MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
                 
                 # uzupełnienie wartości dla atrybutów: nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz
                 nazwa_zdjecia = feature[GPKP_COLUMNS_DICT["filename"]]
-
                 try:
                     nr_drogi = nazwa_zdjecia.split("_")[0]
                     nazwa_ulicy = nazwa_zdjecia.split("_")[1]
                     numer_odcinka = nazwa_zdjecia.split("_")[2]
                     kilometraz = nazwa_zdjecia.split("_")[3]
-
                 except IndexError:
                     nr_drogi = nazwa_zdjecia
                     nazwa_ulicy = None
                     numer_odcinka = None
                     kilometraz = None
 
-                field_map = vlayer.dataProvider().fieldNameMap()
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[0]]: nr_drogi}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[1]]: nazwa_ulicy}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[2]]: numer_odcinka}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {field_map[GPKP_COLUMNS_ADD_LIST[3]]: kilometraz}})
-
+                vlayer.dataProvider().changeAttributeValues({
+                        feature.id(): {
+                            field_map[GPKP_COLUMNS_ADD_LIST[0]]: nr_drogi,
+                            field_map[GPKP_COLUMNS_ADD_LIST[1]]: nazwa_ulicy,
+                            field_map[GPKP_COLUMNS_ADD_LIST[2]]: numer_odcinka,
+                            field_map[GPKP_COLUMNS_ADD_LIST[3]]: kilometraz
+                            }
+                    })
                 # uzupełnienie wartości dla atrybutu azymut, w przypadku braku danych o azymucie w metadanych zdjęcia
                 azymut_value = feature[COLUMN_YAW]
 
@@ -532,7 +532,6 @@ class Geo360:
 
                 # uzupełnienie wartości dla atrybutu data_wykonania
                 data_value = feature[GPKP_COLUMNS_DICT["timestamp"]]
-
                 if str(data_value) == "NULL" or data_value is None:
                     sciezka_zdjecie_value = feature[COLUMN_NAME]
                     sciezka_zdjecie_value = sciezka_zdjecie_value.replace("\\", "/")
