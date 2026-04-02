@@ -36,7 +36,6 @@ from qgis.core import *
 from qgis.PyQt import QtWidgets
 import processing
 
-from . import plugin_dir, temp_dir
 from .utils import MessageUtils, QtCompat
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
@@ -46,7 +45,7 @@ from .constants import (
     TEMPORATORY_FILES_LIST,
     GPKP_COLUMNS_CHECK,
     GPKP_COLUMNS_ADD_LIST,
-    GPKP_COLUMNS_CHANGE_DICT,
+    GPKP_COLUMNS_DICT,
     GPKP_COLUMNS_DELETE_LIST,
     COLUMN_NAME,
     COLUMN_YAW,
@@ -66,10 +65,10 @@ from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 import importlib.util
 
-
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
 
+from . import plugin_dir, temp_dir
 
 class Geo360:
     """QGIS Plugin Implementation."""
@@ -118,7 +117,6 @@ class Geo360:
         self.menu = self.tr(f"&{ENV_MENU_NAME}")
         self.layer = None
         self.map_tool = None
-
 
         # toolbar
         self.toolbar = self.iface.mainWindow().findChild(QToolBar, ENV_MENU_NAME)
@@ -408,12 +406,12 @@ class Geo360:
                 self.progress.setValue(PROGRESS["IMPORT_START"] + int(progress * (PROGRESS["IMPORT_AFTER_TOOL"] - PROGRESS["IMPORT_START"]) / 100))
                 QApplication.processEvents()
             except RuntimeError:
-                pass
+                MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
 
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
-            pass
+            MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
                 
         gpkg_path = os.path.join(gpkg_path)
 
@@ -438,7 +436,7 @@ class Geo360:
         try:
             self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
         except RuntimeError:
-            pass
+            MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
 
         gpkg_name = Path(gpkg_path).stem
 
@@ -461,7 +459,7 @@ class Geo360:
 
             # modyfikacja już utworzonych kolumn (zmiana nazw atrybutów)
             for field_idx,field in enumerate(vlayer.fields()):
-                GPKP_COLUMNS_CHANGE_DICT_local = defaultdict(str, GPKP_COLUMNS_CHANGE_DICT)
+                GPKP_COLUMNS_CHANGE_DICT_local = defaultdict(str, GPKP_COLUMNS_DICT)
                 if GPKP_COLUMNS_CHANGE_DICT_local[field.name()]:
                     new_value=GPKP_COLUMNS_CHANGE_DICT_local[field.name()]
                     old_value=field.name()
@@ -495,10 +493,10 @@ class Geo360:
                     self.progress.setValue(progress_attr)
                     QApplication.processEvents()
                 except RuntimeError:
-                    pass
+                    MessageUtils.pushLogWarning("Niepowodzenie podczas atualizacji okna dialogowego.")
                 
                 # uzupełnienie wartości dla atrybutów: nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz
-                nazwa_zdjecia = feature[GPKP_COLUMNS_CHANGE_DICT["filename"]]
+                nazwa_zdjecia = feature[GPKP_COLUMNS_DICT["filename"]]
 
                 try:
                     nr_drogi = nazwa_zdjecia.split("_")[0]
@@ -524,15 +522,13 @@ class Geo360:
 
                 # uzupełnienie wartości dla atrybutu azymut, w przypadku braku danych o azymucie w metadanych zdjęcia
                 azymut_value = feature[COLUMN_YAW]
-
-                if str(azymut_value) == "NULL":
+                if str(azymut_value) == "NULL" or azymut_value == None:
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
-                else:
-                    pass    
+                    MessageUtils.pushLogWarning(f"Niepoprawne dane wejściowe. Ustawienie wartosci domyślnej w atrybucie 'azymut' w pozycji fid: {feature.id()}.")
 
                 # uzupełnienie wartości dla atrybutu data_wykonania
-                data_value = feature[GPKP_COLUMNS_CHANGE_DICT["timestamp"]]
+                data_value = feature[GPKP_COLUMNS_DICT["timestamp"]]
 
                 if str(data_value) == "NULL":
                     sciezka_zdjecie_value = feature[COLUMN_NAME]
@@ -542,7 +538,7 @@ class Geo360:
                     self.dataTime = tags["EXIF DateTimeOriginal"]
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {
-                            field_map[GPKP_COLUMNS_CHANGE_DICT["timestamp"]]: str(self.dataTime)}})
+                            field_map[GPKP_COLUMNS_DICT["timestamp"]]: str(self.dataTime)}})
                     sciezka_zdjecie_open.close()
 
         try:
@@ -606,11 +602,11 @@ class Geo360:
 
     def _gpkgFields(self, *keys):
         """
-        Zwraca nazwy pól (kolumn) z GeoPackage na podstawie GPKP_COLUMNS_CHANGE_DICT.
+        Zwraca nazwy pól (kolumn) z GeoPackage na podstawie GPKP_COLUMNS_DICT.
         """
         if not keys:
-            return list(GPKP_COLUMNS_CHANGE_DICT.values())
-        return [GPKP_COLUMNS_CHANGE_DICT[key] for key in keys]
+            return list(GPKP_COLUMNS_DICT.values())
+        return [GPKP_COLUMNS_DICT[key] for key in keys]
 
     def usuwanieDuplikatow(self, gpkg_path):
 
@@ -648,7 +644,7 @@ class Geo360:
             layer_duplicate = QgsVectorLayer(duplicate["DUPLICATES"], "duplicate", "ogr")
 
             for feat_duplic in layer_duplicate.getFeatures():
-                sciezka_zdjecie_value = feat_duplic[GPKP_COLUMNS_CHANGE_DICT["filename"]]
+                sciezka_zdjecie_value = feat_duplic[GPKP_COLUMNS_DICT["filename"]]
                 sciezka_zdjecie_list.append(sciezka_zdjecie_value)
 
             if len(sciezka_zdjecie_list) <= DUPLICATES_PREVIEW_LIMIT:

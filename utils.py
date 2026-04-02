@@ -1,11 +1,12 @@
 import datetime
 from typing import List, Dict, Any
 import json
-import os
+import os, platform
+import importlib
 import processing
 import sys
 import time
-from . import PLUGIN_NAME
+
 from qgis.core import (
     Qgis,
     QgsMessageLog,
@@ -18,11 +19,6 @@ from qgis.core import (
     QgsRectangle,
 )
 from qgis.utils import iface
-
-try:
-    from pydevd import *
-except ImportError:
-    None
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
@@ -54,6 +50,8 @@ from .constants import (
 )
 from functools import partial
 import lxml.etree as ET
+
+from . import PLUGIN_NAME
 
 class LayersUtils:
     
@@ -612,7 +610,16 @@ class VersionUtils:
     @staticmethod
     def isCompatibleQtVersion(cur_version, tar_version):
         return cur_version.startswith(QT_VER[tar_version])
-
+    
+    @staticmethod
+    def platformOperatingSystem():
+        """ 
+        Sprawdza na jakim systemie operacyjnym uruchomiono wtyczkę
+        
+        :returns: Zwraca: "windows" lub "linux" lub "darwin" 
+        :rtype: str
+        """
+        return platform.system().lower()
 
 class QtCompat:
     """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
@@ -805,6 +812,25 @@ class QtCompat:
         if hasattr(QNetworkReply, "NetworkError"):
             return getattr(QNetworkReply.NetworkError, attr_name, None)
         return None
+    
+    @staticmethod
+    def importQtOpenGLWidgetsQOpenGLWidget():
+        if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
+            if importlib.util.find_spec("qgis.PyQt.QtOpenGLWidgets") is not None:
+                return importlib.import_module("qgis.PyQt.QtOpenGLWidgets")
+            return importlib.import_module("PyQt6.QtOpenGLWidgets")
+        else:
+            return importlib.import_module("qgis.PyQt.QtWidgets")
+    
+class OpenGLUtils:
+
+    @staticmethod
+    def setDefaultQSurfaceFormat():
+        format = QSurfaceFormat()
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
+        return format
+
 
 class QgsMapUtils(object):
     @staticmethod

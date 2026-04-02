@@ -1,5 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import math
 import os
+
+from ..utils import MessageUtils, QtCompat, VersionUtils
 
 from OpenGL.GL import *
 from OpenGL.GLU import (
@@ -12,15 +16,9 @@ from OpenGL.GLU import (
 
 from PIL import Image, ImageFont, ImageDraw
 from qgis.PyQt import QtCore
-from qgis.PyQt.QtGui import QSurfaceFormat
 
-if int(QtCore.qVersion().split(".")[0]) > 5:
-    try:
-        from qgis.PyQt.QtOpenGLWidgets import QOpenGLWidget
-    except ModuleNotFoundError:
-        from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-else:
-    from qgis.PyQt.QtWidgets import QOpenGLWidget
+# QtCompat: from qgis.PyQt import QtOpenGLWidgets
+QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
 
 from ..constants import (
     WHITE_HOTSPOT_OBJ_FILENAME,
@@ -29,16 +27,13 @@ from ..constants import (
     HOTSPOT_BASE_TEST_COLOR,
     HOTSPOT_BASE_BRIGHT_COLOR,
     DESC_BALOON_FILENAME,
-    REGULAR_FONT_FILENAME,
-    BOLD_FONT_FILENAME,
+    FONT_NAME,
     IMAGES_DIRECTORY,
-    FONTS_DIRECTORY
 )
 
-from ..utils import MessageUtils, QtCompat
 from .. import plugin_dir
 
-class ViewerWidget(QOpenGLWidget):
+class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
     """ QWidget Renderujący Widok Perspektywiczny na podstawie zdjęcia EquiProstokątnego """
 
     mouse_x = 0
@@ -53,12 +48,6 @@ class ViewerWidget(QOpenGLWidget):
         Widget wyświetlający podgląd equiprostokątnego zdjęcie w formie podglądu 360
 
         """
-
-        format = QSurfaceFormat()
-        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
-        # Qt5: QSurfaceFormat.ColorSpace enum; Qt6: setColorSpace(QColorSpace)
-        QtCompat.setSurfaceFormatColorSpaceSrgb(format)
-        QSurfaceFormat.setDefaultFormat(format)
         super().__init__(parent)
         self.show_description = True
         self.iface = iface
@@ -457,11 +446,11 @@ class ViewerWidget(QOpenGLWidget):
             return False
         
         try:
-            font_regular = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, REGULAR_FONT_FILENAME), 15)
-            font_bold = ImageFont.truetype(os.path.join(plugin_dir, FONTS_DIRECTORY, BOLD_FONT_FILENAME), 15)
-            # font_regular = ImageFont.truetype("arial.ttf", 15) # tylko Windows
-            # font_bold = ImageFont.truetype("arialbd.ttf", 15)  # tylko Windows
-
+            font_path = os.path.abspath(os.path.join(plugin_dir, os.pardir, os.pardir, os.pardir, "fonts", FONT_NAME))
+            font_regular = ImageFont.truetype(font_path, 15)
+            font_regular.set_variation_by_name(b'Condensed Regular')
+            font_bold = ImageFont.truetype(font_path, 15)
+            font_bold.set_variation_by_name(b'Bold')
         except FileNotFoundError:
             MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
             return False
