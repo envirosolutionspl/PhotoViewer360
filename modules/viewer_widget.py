@@ -3,7 +3,7 @@
 import math
 import os
 
-from ..utils import MessageUtils, QtCompat, VersionUtils
+from ..utils import MessageUtils, QtCompat, VersionUtils, TranslationUtils
 
 from OpenGL.GL import *
 from OpenGL.GLU import (
@@ -119,9 +119,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             glGenerateMipmap(GL_TEXTURE_2D)
             self.is_texture_loaded = True
         except FileNotFoundError:
-            MessageUtils.pushLogCritical("Nie znaleziono pliku zdjęcia.")
+            MessageUtils.pushLogCritical(TranslationUtils.tr("Photo file not found."))
         except Exception:
-            MessageUtils.pushLogCritical("Błąd podczas wczytywania zdjęcia.")
+            MessageUtils.pushLogCritical(TranslationUtils.tr("Error loading photo."))
 
     def loadOBJ(self, src):
         """
@@ -146,10 +146,14 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
                         for v in face:
                             output_vertices.append(vertices[v])
         except FileNotFoundError:
-            MessageUtils.pushLogWarning(f"Nie znaleziono pliku {src}")
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("File not found: {path}").format(path=src)
+            )
             return None
         except Exception:
-            MessageUtils.pushLogWarning(f"Błąd podczas odczytu pliku {src}")
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Error reading file {path}").format(path=src)
+            )
             return None
 
         return output_vertices
@@ -375,7 +379,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         if hot_spot_selected != -1:
             self.parent.reloadView(hot_spot_selected)
             self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
-            MessageUtils.pushLogInfo("Wybrano nowy punkt o indeksie fid: "+str(hot_spot_selected))  
+            MessageUtils.pushLogInfo(
+                TranslationUtils.tr("Selected new point with index: {fid}").format(fid=hot_spot_selected)
+            )
         
     def updateViewerWidget(self, direction):
         """
@@ -393,7 +399,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             self.update()
             return True
         else:
-            MessageUtils.pushLogCritical("Aktualizacja widoku okna się nie powiodła.")
+            MessageUtils.pushLogCritical(TranslationUtils.tr("Failed to update window view."))
             return False 
 
     def setDataAboutPhoto(
@@ -439,10 +445,18 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         try:
             image = Image.open(os.path.join(plugin_dir, IMAGES_DIRECTORY, DESC_BALOON_FILENAME))
         except FileNotFoundError:
-            MessageUtils.pushLogCritical(f"Nie znaleziono ścieżki /{IMAGES_DIRECTORY}/{DESC_BALOON_FILENAME}")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Path not found: /{img_dir}/{filename}").format(
+                    img_dir=IMAGES_DIRECTORY, filename=DESC_BALOON_FILENAME
+                )
+            )
             return False
         except Exception:
-            MessageUtils.pushLogCritical(f"Błąd podczas wczytywania zdjęcia /{IMAGES_DIRECTORY}/{DESC_BALOON_FILENAME}")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Error loading photo /{img_dir}/{filename}").format(
+                    img_dir=IMAGES_DIRECTORY, filename=DESC_BALOON_FILENAME
+                )
+            )
             return False
         
         try:
@@ -452,24 +466,24 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             font_bold = ImageFont.truetype(font_path, 15)
             font_bold.set_variation_by_name(b'Bold')
         except FileNotFoundError:
-            MessageUtils.pushLogCritical("Nie znaleziono plików czczionek.")
+            MessageUtils.pushLogCritical(TranslationUtils.tr("Font files not found."))
             return False
         except Exception:
-            MessageUtils.pushLogCritical("Błąd podczas wczytywania plików czczionek.")
+            MessageUtils.pushLogCritical(TranslationUtils.tr("Error loading font files."))
             return False
 
         # Generowanie opisu na dymku
         draw = ImageDraw.Draw(image)
-        draw.text((10, 84), "Numer drogi:", fill=(0, 0, 0), font=font_bold)
+        draw.text((10, 84), TranslationUtils.tr("Road number:"), fill=(0, 0, 0), font=font_bold)
         draw.text((10, 100), nr_drogi, fill=(0, 0, 0), font=font_regular)
         if nazwa_ulicy != "NULL":
-            draw.text((10, 116), "Nazwa ulicy:", fill=(0, 0, 0), font=font_bold)
+            draw.text((10, 116), TranslationUtils.tr("Street name:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 132), nazwa_ulicy, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 148), "Numer odcinka:", fill=(0, 0, 0), font=font_bold)
+            draw.text((10, 148), TranslationUtils.tr("Segment number:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 164), numer_odcinka, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 180), "Kilometraż:", fill=(0, 0, 0), font=font_bold)
+            draw.text((10, 180), TranslationUtils.tr("Chainage:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 196), kilometraz, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 212), "Data:", fill=(0, 0, 0), font=font_bold)
+            draw.text((10, 212), TranslationUtils.tr("Date:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 228), data_wykonania, fill=(0, 0, 0), font=font_regular)
 
         if self.is_screen_shot_mode_activated:

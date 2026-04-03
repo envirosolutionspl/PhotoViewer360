@@ -56,7 +56,7 @@ from .geom.transformgeom import TransformGeometry
 from .gui.ui_orbitalDialog import UiOrbitalDialog
 from .modules.viewer_widget import ViewerWidget
 from .modules.viewer_animation import ViewerAnimation
-from .utils import MessageUtils, QgsMapUtils, QtCompat, OpenGLUtils
+from .utils import MessageUtils, QgsMapUtils, QtCompat, OpenGLUtils, TranslationUtils
 
 from . import PLUGIN_NAME as plugin_name
 
@@ -132,7 +132,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
         if self.is_current_image_exists is False:
             MessageUtils.pushLogInfo(
-                "Nie znaleziono pliku JPG skojarzonego ze wskazanym punktem."
+                TranslationUtils.tr("No JPG file associated with the selected point was found.")
             )
 
         self.copyInfoAboutFile()
@@ -208,7 +208,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
             self.getPointsToHotspot()
             self.ViewerLayout.addWidget(self.gl_widget, 1, 0)
 
-        MessageUtils.pushLogInfo("Zaktualizowano Widget OpenGL.")
+        MessageUtils.pushLogInfo(TranslationUtils.tr("OpenGL widget updated."))
                 
 
     def copyInfoAboutFile(self):
@@ -217,7 +217,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
                 
         """
 
-        MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy...")
+        MessageUtils.pushLogInfo(TranslationUtils.tr("Loading point data from layer..."))
 
         # Copy image in local folder
         a = self.current_image
@@ -240,10 +240,10 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
                 self.kilometraz = str(feature.attribute(GPKP_COLUMNS_DICT["locationmarker"]))
         if self.nazwa_ulicy == "NULL":
             MessageUtils.pushLogInfo(
-                "Wczytywanie danych punktu z warstwy... Dane niekompletne."
+                TranslationUtils.tr("Loading point data from layer... Incomplete data.")
             )
         else:
-            MessageUtils.pushLogInfo("Wczytywanie danych punktu z warstwy... Sukces.")
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Loading point data from layer... Success."))
 
     def getPointsToHotspot(self):
         """Wybranie z warstwy hotspotów na podstawie utworzonego buforu"""
@@ -357,7 +357,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         try:
             self.new_bering = self.selected_features.attribute(COLUMN_YAW)
         except KeyError:
-            MessageUtils.pushLogCritical(f"Nie znaleziono atrybutu: {COLUMN_YAW}")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Attribute not found: {name}").format(name=COLUMN_YAW)
+            )
             return "", False
         
         try:
@@ -369,11 +371,13 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
                 path_project = QgsProject.instance().readPath("./")
                 path = os.path.normpath(os.path.join(path_project, path))
         except KeyError:
-            MessageUtils.pushLogCritical(f"Nie znaleziono atrybutu: {COLUMN_NAME}")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Attribute not found: {name}").format(name=COLUMN_NAME)
+            )
             return "", False
         except Exception:
             MessageUtils.pushLogCritical(
-                "Błąd podczas pobierania nazwy pliku z warstwy."
+                TranslationUtils.tr("Error retrieving file name from layer.")
             )
             return "", False
 
@@ -457,9 +461,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
         image_path, _ext = QFileDialog.getSaveFileName(
             self.gl_widget,
-            "Wskaż lokalizacje zrzutu ekranu",
+            TranslationUtils.tr("Specify screenshot location"),
             "",
-            "PNG(*.png);;JPEG(*.jpg)",
+            TranslationUtils.tr("PNG(*.png);;JPEG(*.jpg)"),
         )
 
         # gdy użytkownik nie wskaże pliku -> nic nie rób
@@ -490,7 +494,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
                 self.parent.orbital_viewer.close()
                 self.parent.orbital_viewer = None
                 self.parent.action_activate.setEnabled(False)
-                MessageUtils.pushLogWarning(f"Usunięto warstwę przypisaną do widoku. Należy wybrać inną warstwę w oknie wtyczki.")  
+                MessageUtils.pushLogWarning(
+                    TranslationUtils.tr(
+                        "Layer assigned to the view has been removed. Please select another layer in the plugin window."
+                    )
+                )
             return
 
         self.actual_point_dx = QgsMapUtils.convertProjection(
@@ -722,4 +730,6 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
             if self.actual_point_orientation is not None:
                 self.actual_point_orientation.reset()
         except Exception as exc:
-            MessageUtils.pushLogWarning(f"Błąd podczas usuwania obiektu RubberBand: {exc}")  
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Error removing RubberBand object: {err}").format(err=exc)
+            )
