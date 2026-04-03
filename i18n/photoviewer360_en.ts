@@ -36,7 +36,7 @@
     <message>
         <location filename="../ui/qgis_feed.ui" line="97"/>
         <source>Planowanie/Geodezja</source>
-        <translation>Planning/Surveying</translation>
+        <translation>Planning/Surveying/Geodesy</translation>
     </message>
     <message>
         <location filename="../ui/qgis_feed.ui" line="102"/>
@@ -56,7 +56,7 @@
     <message>
         <location filename="../ui/qgis_feed.ui" line="117"/>
         <source>Telkom</source>
-        <translation>Telecommunication</translation>
+        <translation>Telecommunications</translation>
     </message>
     <message>
         <location filename="../ui/qgis_feed.ui" line="122"/>
@@ -66,7 +66,7 @@
     <message>
         <location filename="../ui/qgis_feed.ui" line="127"/>
         <source>Inne</source>
-        <translation>Others</translation>
+        <translation>Other</translation>
     </message>
     <message>
         <location filename="../ui/qgis_feed.ui" line="132"/>
@@ -139,7 +139,7 @@
     <message>
         <location filename="../Geo360.py" line="454"/>
         <source>Niepowodzenie podczas importu zdjęć procesem &apos;native:importphotos&apos;. Błąd: {err}</source>
-        <translation>Niepowodzenie podczas importu zdjęć procesem &apos;native:importphotos&apos;. Błąd: {err}</translation>
+        <translation>Failed to import photos using the &apos;native:importphotos&apos; tool. Error: {err}</translation>
     </message>
     <message>
         <location filename="../Geo360.py" line="473"/>
@@ -159,17 +159,17 @@
     <message>
         <location filename="../Geo360.py" line="718"/>
         <source>We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg</source>
-        <translation>There is no .jpg files found in the specified photo folder</translation>
+        <translation>No .jpg files were found in the selected photo folder</translation>
     </message>
     <message>
         <location filename="../Geo360.py" line="728"/>
         <source>Postęp importowania {name}...</source>
-        <translation>Import progress {name}...</translation>
+        <translation>Import inprogress {name}...</translation>
     </message>
     <message>
         <location filename="../Geo360.py" line="738"/>
         <source>Nie wskazano miejsca zapisu pliku .gpkg Wskazanie pliku jest wymagane przez managera warstw QGIS.Operacja przerwana.</source>
-        <translation>No output .gpkg file specified. This is required by the QGIS layer manager. Operation aborted.</translation>
+        <translation>No output GeoPackage (.gpkg) file was specified. This file is required by the QGIS layer manager. Operation cancelled.</translation>
     </message>
     <message>
         <location filename="../Geo360.py" line="754"/>
@@ -198,7 +198,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../Geo360.py" line="787"/>
         <source>Dopisanie do pliku</source>
-        <translation>Append to the file</translation>
+        <translation>Append data</translation>
     </message>
     <message>
         <location filename="../Geo360.py" line="788"/>
@@ -338,7 +338,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../modules/viewer_widget.py" line="382"/>
         <source>Wybrano nowy punkt o indeksie fid: {fid}</source>
-        <translation>Selected new point with fid: {fid}</translation>
+        <translation>Selected new point with index: {fid}</translation>
     </message>
     <message>
         <location filename="../modules/viewer_widget.py" line="402"/>
@@ -418,7 +418,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../gui/first_window_geo360_base.py" line="341"/>
         <source>Wybierz ścieżkę zapisu paczki GeoPackage z warstwą punktową zdjęć</source>
-        <translation>Select save path for the Geopackage containing the photo point layer</translation>
+        <translation>Select where to save the GeoPackage file with the photo point layer</translation>
     </message>
     <message>
         <location filename="../gui/first_window_geo360_base.py" line="342"/>
@@ -541,7 +541,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="194"/>
         <source>Wybierz ścieżkę zapisu paczki GeoPackage z warstwą punktową zdjęć</source>
-        <translation>Select save path for the GeoPackage with the photo point layer</translation>
+        <translation>Select where to save the GeoPackage file with the photo point layer</translation>
     </message>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="226"/>
@@ -566,7 +566,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="314"/>
         <source>Wybór warstwy punktowej GPKG</source>
-        <translation>Select point layer (GPKG)</translation>
+        <translation>Select point layer GPKG</translation>
     </message>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="347"/>
@@ -626,7 +626,7 @@ Or append data to the existing file?</translation>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="615"/>
         <source>Instrukcja użytkownika:</source>
-        <translation>User instruction:</translation>
+        <translation>User guide:</translation>
     </message>
     <message>
         <location filename="../gui/first_window_geo360_base.ui" line="632"/>
