@@ -1,9 +1,7 @@
 import math
 from qgis.core import QgsPoint, QgsGeometry
 
-from qgis.PyQt.QtWidgets import QMessageBox
-
-from ..utils import TranslationUtils
+from ..utils import MessageUtils, TranslationUtils
 
 
 class TransformGeometry:
@@ -83,7 +81,7 @@ class TransformGeometry:
             return QgsGeometry().fromMultiPolygon([coords])
 
         else:
-            QMessageBox.information(
+            MessageUtils.pushMessageBoxInfo(
                 None,
                 TranslationUtils.tr("Information"),
                 TranslationUtils.tr("Vector type is not supported."),
