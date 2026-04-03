@@ -69,32 +69,32 @@ ERR_NONE = 'NoError'
 ERR_CANCELED = 'OperationCanceledError'
 
 # Komunikaty sieciowe
-MSG_DOWNLOAD_CANCELED = "Pobieranie zostało anulowane."
-MSG_NETWORK_ERROR = "Błąd sieciowy ({}) dla: {}"
-MSG_HTTP_ERROR = "Błąd HTTP {}: {}"
-MSG_EMPTY_CONTENT = "Serwer zwrócił pustą zawartość dla: {}"
-MSG_TIMEOUT = "Przekroczono czas oczekiwania dla: {}"
-MSG_FILE_WRITE_ERROR = "Błąd zapisu do pliku: {}"
-MSG_JSON_DECODE_ERROR = "Błąd JSON: {}"
-MSG_NO_CONNECTION = "Brak połączenia z internetem."
+MSG_DOWNLOAD_CANCELED = "Download canceled."
+MSG_NETWORK_ERROR = "Network error ({}) for: {}"
+MSG_HTTP_ERROR = "HTTP error {}: {}"
+MSG_EMPTY_CONTENT = "Server returned empty content for: {}"
+MSG_TIMEOUT = "Timeout for: {}"
+MSG_FILE_WRITE_ERROR = "Error writing to file: {}"
+MSG_JSON_DECODE_ERROR = "JSON error: {}"
+MSG_NO_CONNECTION = "No internet connection."
 # =============================
 
 FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
 
 INDUSTRIES = {
-    "999": "Nie wybrano",
-    "e": "Energetyka/OZE",
-    "u": "Urząd",
-    "td": "Transport/Drogi",
-    "pg": "Planowanie/Geodezja",
-    "wk": "WodKan",
-    "s": "Środowisko",
-    "rl": "Rolnictwo/Leśnictwo",
-    "tk": "Telkom",
-    "edu": "Edukacja",
-    "i": "Inne",
+    "999": "Not selected",
+    "e": "Energy / Renewable Energy",
+    "u": "Public Administration",
+    "td": "Transport/Infrastructure",
+    "pg": "Planning/Surveying/Geodesy",
+    "wk": "Water and Wastewater",
+    "s": "Environment",
+    "rl": "Agriculture/Forestry",
+    "tk": "Telecommunications",
+    "edu": "Education",
+    "i": "Other",
     "it": "IT",
-    "n": "Nieruchomości"
+    "n": "Real Estate"
 }
 
 # Properties

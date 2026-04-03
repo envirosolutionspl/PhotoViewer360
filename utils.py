@@ -266,7 +266,7 @@ class MessageUtils:
     @staticmethod
     def pushMessage(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            TranslationUtils.tr('Informacja'),
+            TranslationUtils.tr('Information'),
             message,
             level=Qgis.Info,
             duration=10
@@ -275,7 +275,7 @@ class MessageUtils:
     @staticmethod
     def pushSuccess(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            TranslationUtils.tr('Sukces'),
+            TranslationUtils.tr('Success'),
             message,
             level=Qgis.Success,
             duration=10
@@ -284,7 +284,7 @@ class MessageUtils:
     @staticmethod
     def pushWarning(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            TranslationUtils.tr('Ostrzeżenie'),
+            TranslationUtils.tr('Warning'),
             message,
             level=Qgis.Warning,
             duration=10
@@ -293,7 +293,7 @@ class MessageUtils:
     @staticmethod
     def pushCritical(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            TranslationUtils.tr('Błąd'),
+            TranslationUtils.tr('Error'),
             message,
             level=Qgis.Critical,
             duration=10
@@ -487,7 +487,7 @@ class ServiceAPI:
             if is_success:
                 return True, result
             time.sleep(2)
-        return False, TranslationUtils.tr("Nieudana próba połączenia")
+        return False, TranslationUtils.tr("Connection attempt failed")
 
     def retreiveFile(self, url, destFolder, obj):
         file_name = url.split('/')[-1]
@@ -596,12 +596,12 @@ class ServiceAPI:
             except PermissionError:
                 MessageUtils.pushLogWarning(
                     TranslationUtils.tr(
-                        "Nie udało się usunąć pliku {path} - plik jest używany przez inny proces"
+                        "Failed to delete file {path} – file is in use by another process"
                     ).format(path=path)
                 )
             except OSError as e:
                 MessageUtils.pushLogWarning(
-                    TranslationUtils.tr("Błąd podczas usuwania pliku {path}: {err}").format(path=path, err=e)
+                    TranslationUtils.tr("Error deleting file {path}: {err}").format(path=path, err=e)
                 )
 
 class ParsingUtils:
@@ -627,19 +627,19 @@ class ParsingUtils:
             val_numeric_candidate = parts[0]
         except IndexError:
             MessageUtils.pushLogWarning(
-                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+                TranslationUtils.tr("Error converting value to float: {value}").format(value=value)
             )
             return 0.0
         try:
             return float(val_numeric_candidate)
         except ValueError:
             MessageUtils.pushLogWarning(
-                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+                TranslationUtils.tr("Error converting value to float: {value}").format(value=value)
             )
             return 0.0
         except TypeError:
             MessageUtils.pushLogWarning(
-                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+                TranslationUtils.tr("Error converting value to float: {value}").format(value=value)
             )
             return 0.0
 

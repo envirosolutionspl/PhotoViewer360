@@ -233,24 +233,24 @@ class Geo360:
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            MessageUtils.pushLogInfo(TranslationUtils.tr("Znaleziono lokalną wersję biblioteki 'exifread'."))
-            MessageUtils.pushLogInfo(TranslationUtils.tr("Użyto lokalnej wersji biblioteki 'exifread'."))
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Found local version of the 'exifread' library."))
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Using local version of the 'exifread' library."))
             return True  
 
         elif exifread_spec is not None:
             from exifread import processFile
-            MessageUtils.pushLogInfo(TranslationUtils.tr("Znaleziono bibliotekę 'exifread' w QGIS"))
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Found 'exifread' library in QGIS"))
             return True  
         
         else:
             from .libs.exifread_3_0_0.exifread import processFile
             MessageUtils.pushLogCritical(
-                TranslationUtils.tr("Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.")
+                TranslationUtils.tr("Local 'exifread' library not found. Please install the library.")
             )
             MessageUtils.pushCritical(
                 self.iface,
                 TranslationUtils.tr(
-                    "Biblioteka 'exifread' nie została odnaleziona — wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
+                    "'exifread' library not found - plugin may not function correctly. Please install the library.",
                 ),
             )
             return False        
@@ -271,7 +271,7 @@ class Geo360:
         # Dodanie narzędzia PhotoViewer360 aktywacja
         self.action_activate= self.addAction(
             icon_path=QIcon(plugin_dir + UI_TARGET_ICON_PATH),
-            text=f"{plugin_name} {TranslationUtils.tr('aktywacja')}",
+            text=f"{plugin_name} {TranslationUtils.tr('activation')}",
             callback=self.activate,
             parent=self.iface.mainWindow(),
             enabled_flag=False,
@@ -379,7 +379,7 @@ class Geo360:
         layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
         MessageUtils.pushMessage(
             self.iface,
-            TranslationUtils.tr("Korzystasz z warstwy: {layer}").format(layer=self.use_layer),
+            TranslationUtils.tr("Using layer: {layer}").format(layer=self.use_layer),
         )
         self.layer = layer
         self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
@@ -410,16 +410,16 @@ class Geo360:
             else:
                 MessageUtils.pushMessageBoxWarning(
                     self.dlg,
-                    TranslationUtils.tr("Ostrzeżenie"),
-                    TranslationUtils.tr("Podana warstwa punktowa nie zawiera geotagowanych zdjęć"),
+                    TranslationUtils.tr("Warning"),
+                    TranslationUtils.tr("The selected point layer does not contain geotagged photos"),
                 )
                 return False
 
         except IndexError:
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
-                TranslationUtils.tr("Nie wskazano warstwy geopackage z geotagowanymi zdjęciami"),
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No GeoPackage layer with geotagged photos selected"),
             )
             return False
         
@@ -436,14 +436,14 @@ class Geo360:
                 QApplication.processEvents()
             except RuntimeError:
                 MessageUtils.pushLogWarning(
-                    TranslationUtils.tr("Niepowodzenie podczas atualizacji okna dialogowego.")
+                    TranslationUtils.tr("Failed to update dialog window.")
                 )
 
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
             MessageUtils.pushLogWarning(
-                TranslationUtils.tr("Niepowodzenie podczas atualizacji okna dialogowego.")
+                TranslationUtils.tr("Failed to update dialog window.")
             )
                 
         gpkg_path = os.path.join(gpkg_path)
@@ -466,7 +466,7 @@ class Geo360:
         except Exception as exc:
             MessageUtils.pushLogCritical(
                 TranslationUtils.tr(
-                    "Niepowodzenie podczas importu zdjęć procesem 'native:importphotos'. Błąd: {err}"
+                    "Failed to import photos using the 'native:importphotos' tool. Error: {err}"
                 ).format(err=exc)
             )
 
@@ -474,7 +474,7 @@ class Geo360:
             self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
         except RuntimeError:
             MessageUtils.pushLogWarning(
-                TranslationUtils.tr("Niepowodzenie podczas atualizacji okna dialogowego.")
+                TranslationUtils.tr("Failed to update dialog window.")
             )
 
         gpkg_name = Path(gpkg_path).stem
@@ -484,7 +484,7 @@ class Geo360:
 
         if not vlayer.isValid():
             MessageUtils.pushLogCritical(
-                TranslationUtils.tr("Niepowodzenie podczas ładowania warstwy po wczytaniu GeoPaczki.")
+                TranslationUtils.tr("Failed to load layer after loading the GeoPackage.")
             )
         else:
             # start edycji GeoPaczki
@@ -535,7 +535,7 @@ class Geo360:
                     QApplication.processEvents()
                 except RuntimeError:
                     MessageUtils.pushLogWarning(
-                        TranslationUtils.tr("Niepowodzenie podczas atualizacji okna dialogowego.")
+                        TranslationUtils.tr("Failed to update dialog window.")
                     )
                 
                 # uzupełnienie wartości dla atrybutów: nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz
@@ -570,7 +570,7 @@ class Geo360:
                         {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
                     MessageUtils.pushLogWarning(
                         TranslationUtils.tr(
-                            "Niepoprawne dane wejściowe. Ustawienie wartosci domyślnej w atrybucie 'azymut' w pozycji fid: {fid}."
+                            "Invalid input data. Setting default value for 'azimuth' attribute at fid: {fid}."
                         ).format(fid=feature.id())
                     )
 
@@ -700,13 +700,9 @@ class Geo360:
             # wyświetlenie okna z informacją duplikatach
             MessageUtils.pushMessageBoxInfo(
                 self.iface.mainWindow(),
-                TranslationUtils.tr("Ostrzeżenie"),
+                TranslationUtils.tr("Warning"),
                 TranslationUtils.tr(
-                    "Usunięto {count} duplikatów.\n\n"
-                    "Duplikaty stwierdzono na podstawie atrybutów: "
-                    "nazwa_zdjecia, długosc_geog, szerokosc_geog, data_wykonania.\n\n"
-                    "Stwierdzono duplikaty zdjęć: \n"
-                    "{lista}"
+                    "Removed {count} duplicates. Duplicates were identified based on attributes: photo_name, longitude, latitude, capture_date. Duplicate photos: {lista}"
                 ).format(count=duplicate["DUPLICATE_COUNT"], lista=lista_zdjec),
             )
 
@@ -730,8 +726,8 @@ class Geo360:
         if ("jpg" not in rozszerzenia):
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
-                TranslationUtils.tr("We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg"),
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No .jpg files were found in the selected photo folder"),
             )
             return False
 
@@ -739,7 +735,7 @@ class Geo360:
 
         # stworzenie paska postępu
         progress_message_bar = self.iface.messageBar().createMessage(
-            TranslationUtils.tr("Postęp importowania {name}...").format(
+            TranslationUtils.tr("Import inprogress {name}...").format(
                 name=gpkg_path.split("\\")[-1]
             )
         )
@@ -750,11 +746,9 @@ class Geo360:
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
+                TranslationUtils.tr("Warning"),
                 TranslationUtils.tr(
-                    "Nie wskazano miejsca zapisu pliku .gpkg\n"
-                    "Wskazanie pliku jest wymagane przez managera warstw QGIS.\n"
-                    "Operacja przerwana."
+                    "No output GeoPackage (.gpkg) file was specified. This file is required by the QGIS layer manager. Operation cancelled."
                 ),
             )
             return False
@@ -766,11 +760,9 @@ class Geo360:
             except OSError as e:
                 MessageUtils.pushMessageBoxWarning(
                     self.dlg,
-                    TranslationUtils.tr("Ostrzeżenie"),
+                    TranslationUtils.tr("Warning"),
                     TranslationUtils.tr(
-                        "Wskazany plik GeoPackage jest używany przez\n"
-                        "inny proces zewnętrzny lub przez istniejącą warstwę.\n"
-                        "Operacja przerwana."
+                        "The specified GeoPackage file is in use by another process or an existing layer. Operation aborted."
                     ),
                 )
                 return False
@@ -784,21 +776,21 @@ class Geo360:
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
             msgBox = QMessageBox(self.dlg)
             msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
-            msgBox.setWindowTitle(TranslationUtils.tr("Informacja"))
+            msgBox.setWindowTitle(TranslationUtils.tr("Information"))
             msgBox.setText(
                 TranslationUtils.tr(
-                    "Plik już istnieje.\n"
-                    "Czy chcesz stworzyć nowy plik (stary plik GPKG zostanie usunięty)?\n"
-                    "Czy chcesz dopisać dane do starego pliku?"
+                    "File already exists.\n"
+                    "Do you want to create a new file (the existing GPKG file will be deleted)?\n"
+                    "Or append data to the existing file?"
                 )
             )
 
             zatwierdz_role = QtCompat.qmessageboxApplyRole(QtWidgets)
             anuluj_role = QtCompat.qmessageboxResetRole(QtWidgets)
 
-            nowy_plik_button = msgBox.addButton(TranslationUtils.tr("Nowy plik"), zatwierdz_role)
-            dopisanie_plik_button = msgBox.addButton(TranslationUtils.tr("Dopisanie do pliku"), zatwierdz_role)
-            anuluj_button = msgBox.addButton(TranslationUtils.tr("Anuluj"), anuluj_role)
+            nowy_plik_button = msgBox.addButton(TranslationUtils.tr("New file"), zatwierdz_role)
+            dopisanie_plik_button = msgBox.addButton(TranslationUtils.tr("Append data"), zatwierdz_role)
+            anuluj_button = msgBox.addButton(TranslationUtils.tr("Cancel"), anuluj_role)
             QtCompat.dialogExec(msgBox)
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
@@ -882,7 +874,7 @@ class Geo360:
         if not vlayer.isValid():
             MessageUtils.pushLogCritical(
                 TranslationUtils.tr(
-                    "Niepowodzenie podczas ładowania warstwy z istniejącej GeoPaczki: {path}"
+                    "Failed to load layer from existing GeoPackage: {path}"
                 ).format(path=gpkg_path)
             )
             return False
@@ -898,15 +890,14 @@ class Geo360:
         except KeyError:
             MessageUtils.pushLogWarning(
                 TranslationUtils.tr(
-                    "W wybranym pliku GeoPaczki nie znaleziono wymaganego atrybutu: {col}"
+                    "Required attribute not found in the selected GeoPackage file: {col}"
                 ).format(col=col_name)
             )
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
+                TranslationUtils.tr("Warning"),
                 TranslationUtils.tr(
-                    "Wybrany plik nie zawiera wymaganych atrybutów.\n"
-                    "Plik uszkodzony lub powstał przy użycia innego narzędzia."
+                    "The selected file does not contain the required attributes. The file may be corrupted or created using another tool."
                 ),
             )
             self.action_activate.setEnabled(False)
@@ -975,15 +966,15 @@ class Geo360:
         if not path or path == "":
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
-                TranslationUtils.tr("Nie wskazano ścieżki do pliku/folderu"),
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No file/folder path specified"),
             )
             return False
         elif not os.path.exists(path):
             MessageUtils.pushMessageBoxWarning(
                 self.dlg,
-                TranslationUtils.tr("Ostrzeżenie"),
-                TranslationUtils.tr("Wskazano nieistniejącą ścieżkę do odczytu plików/folderu"),
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("Specified path for reading files/folder does not exist"),
             )
             return False
         else:
