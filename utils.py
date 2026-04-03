@@ -7,6 +7,15 @@ import processing
 import sys
 import time
 
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QUrl,
+    QUrlQuery,
+    QEventLoop,
+    QTimer,
+    QT_VERSION_STR,
+)
+
 from qgis.core import (
     Qgis,
     QgsMessageLog,
@@ -22,7 +31,6 @@ from qgis.utils import iface
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
-from qgis.PyQt.QtCore import QUrl, QUrlQuery, QEventLoop, QTimer, QT_VERSION_STR
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
 from .constants import (
     TIMEOUT_MS,
@@ -52,6 +60,14 @@ from functools import partial
 import lxml.etree as ET
 
 from . import PLUGIN_NAME
+
+class TranslationUtils:
+    """Tłumaczenia Qt; kontekst = PLUGIN_NAME z metadata.txt (np. PhotoViewer360)."""
+
+    @staticmethod
+    def tr(message: str) -> str:
+        """Zwraca przetłumaczony tekst (QCoreApplication.translate)."""
+        return QCoreApplication.translate(PLUGIN_NAME, message)
 
 class LayersUtils:
     
@@ -249,7 +265,7 @@ class MessageUtils:
     @staticmethod
     def pushMessage(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            'Informacja',
+            TranslationUtils.tr('Informacja'),
             message,
             level=Qgis.Info,
             duration=10
@@ -258,7 +274,7 @@ class MessageUtils:
     @staticmethod
     def pushSuccess(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            'Sukces',
+            TranslationUtils.tr('Sukces'),
             message,
             level=Qgis.Success,
             duration=10
@@ -267,9 +283,18 @@ class MessageUtils:
     @staticmethod
     def pushWarning(iface, message: str) -> None:
         iface.messageBar().pushMessage(
-            'Ostrzeżenie',
+            TranslationUtils.tr('Ostrzeżenie'),
             message,
             level=Qgis.Warning,
+            duration=10
+        )
+
+    @staticmethod
+    def pushCritical(iface, message: str) -> None:
+        iface.messageBar().pushMessage(
+            TranslationUtils.tr('Błąd'),
+            message,
+            level=Qgis.Critical,
             duration=10
         )
 
@@ -317,12 +342,12 @@ class NetworkUtils:
         http_reason = reply.attribute(reason_attr)
         
         if http_status and http_status >= HTTP_ERROR_THRESHOLD:
-            return False, MSG_HTTP_ERROR.format(http_status, http_reason)
+            return False, TranslationUtils.tr(MSG_HTTP_ERROR).format(http_status, http_reason)
         
         if error_code == timeout_err:
-            return False, MSG_TIMEOUT.format(url_str)
+            return False, TranslationUtils.tr(MSG_TIMEOUT).format(url_str)
             
-        return False, MSG_NETWORK_ERROR.format(error_str, url_str)
+        return False, TranslationUtils.tr(MSG_NETWORK_ERROR).format(error_str, url_str)
 
     def _hasErrorOccurred(self, reply):
         """Sprawdza czy wystąpił błąd w odpowiedzi"""
@@ -377,7 +402,7 @@ class NetworkUtils:
 
         raw_data = reply_content.content()
         if len(raw_data) == 0:
-            return False, MSG_EMPTY_CONTENT.format(url)
+            return False, TranslationUtils.tr(MSG_EMPTY_CONTENT).format(url)
             
         try:
             data = bytes(raw_data).decode(DEFAULT_ENCODING)
@@ -392,7 +417,7 @@ class NetworkUtils:
         try:
             return True, json.loads(result)
         except json.JSONDecodeError as e:
-            return False, MSG_JSON_DECODE_ERROR.format(str(e))
+            return False, TranslationUtils.tr(MSG_JSON_DECODE_ERROR).format(str(e))
   
     def downloadFile(self, url, dest_path, obj=None, timeout_ms=TIMEOUT_MS):
         request = QNetworkRequest(QUrl(url))
@@ -414,7 +439,7 @@ class NetworkUtils:
                 if reply.bytesAvailable() > 0:
                     f.write(reply.readAll().data())
         except IOError as e:
-            return False, MSG_FILE_WRITE_ERROR.format(str(e))
+            return False, TranslationUtils.tr(MSG_FILE_WRITE_ERROR).format(str(e))
             
         return self._finilizeDownload(reply, url)
     
@@ -436,7 +461,7 @@ class NetworkUtils:
             canceled_error = self._getErrorEnum(ERR_CANCELED)
             if reply.error() == canceled_error:
                 reply.deleteLater()
-                return False, MSG_DOWNLOAD_CANCELED
+                return False, TranslationUtils.tr(MSG_DOWNLOAD_CANCELED)
             
             error_res = self._handleReplyError(reply, url)
             reply.deleteLater()
@@ -461,7 +486,7 @@ class ServiceAPI:
             if is_success:
                 return True, result
             time.sleep(2)
-        return False, "Nieudana próba połączenia"
+        return False, TranslationUtils.tr("Nieudana próba połączenia")
 
     def retreiveFile(self, url, destFolder, obj):
         file_name = url.split('/')[-1]
@@ -559,7 +584,7 @@ class ServiceAPI:
         # próba połączenia z serwerem np. gugik
         is_success, _ = self.network_utils.fetchContent(ULDK_URL, timeout_ms=TIMEOUT_MS)
         if not is_success and self.iface:
-            MessageUtils.pushWarning(self.iface, MSG_NO_CONNECTION)
+            MessageUtils.pushWarning(self.iface, TranslationUtils.tr(MSG_NO_CONNECTION))
         return is_success
 
 
@@ -568,9 +593,15 @@ class ServiceAPI:
             try:
                 os.remove(path)
             except PermissionError:
-                MessageUtils.pushLogWarning(f'Nie udało się usunąć pliku {path} - plik jest używany przez inny proces')
+                MessageUtils.pushLogWarning(
+                    TranslationUtils.tr(
+                        "Nie udało się usunąć pliku {path} - plik jest używany przez inny proces"
+                    ).format(path=path)
+                )
             except OSError as e:
-                MessageUtils.pushLogWarning(f"Błąd podczas usuwania pliku {path}: {e}")
+                MessageUtils.pushLogWarning(
+                    TranslationUtils.tr("Błąd podczas usuwania pliku {path}: {err}").format(path=path, err=e)
+                )
 
 class ParsingUtils:
 
@@ -594,15 +625,21 @@ class ParsingUtils:
                 return 0.0
             val_numeric_candidate = parts[0]
         except IndexError:
-            MessageUtils.pushLogWarning(f"Błąd konwersji wartości na float: {value}")
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+            )
             return 0.0
         try:
             return float(val_numeric_candidate)
         except ValueError:
-            MessageUtils.pushLogWarning(f"Błąd konwersji wartości na float: {value}")
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+            )
             return 0.0
         except TypeError:
-            MessageUtils.pushLogWarning(f"Błąd konwersji wartości na float: {value}")
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Błąd konwersji wartości na float: {value}").format(value=value)
+            )
             return 0.0
 
 class VersionUtils:

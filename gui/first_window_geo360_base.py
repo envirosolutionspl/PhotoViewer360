@@ -9,8 +9,10 @@
 
 
 from qgis.PyQt import QtCore, QtGui, QtWidgets
-from ..utils import QtCompat
 
+from ..utils import QtCompat, TranslationUtils
+from qgsfilewidget import QgsFileWidget
+from qgsmaplayercombobox import QgsMapLayerComboBox
 
 class UiMain(object):
     def setupUi(self, main):
@@ -333,31 +335,28 @@ class UiMain(object):
         QtCore.QMetaObject.connectSlotsByName(main)
 
     def retranslateUi(self, main):
-        _translate = QtCore.QCoreApplication.translate
-        main.setWindowTitle(_translate("main", "PhotoViewer360"))
-        self.lbl_title.setText(_translate("main", "Wybierz dane do przeglądania zdjęć panoramicznych"))
-        self.label_3.setText(_translate("main", "Wybierz folder ze zdjęciami z georeferencją i azymutem"))
-        self.label.setText(_translate("main", "Wybierz ścieżkę zapisu paczki GeoPackage z warstwą punktową zdjęć"))
-        self.fromPhotos_btn.setText(_translate("main", "Importuj"))
-        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab2), _translate("main", "Wybór zdjęć"))
-        self.label_2.setText(_translate("main", "Wybierz warstwę wektorową"))
-        self.fromLayer_btn.setText(_translate("main", "Przeglądaj"))
-        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab1), _translate("main", "Wybór warstwy w QGIS"))
-        self.label_11.setText(_translate("main", "Wybierz plik GeoPackage utworzony za pomocą wtyczki PhotoViewer360"))
-        self.fromGPKG_btn.setText(_translate("main", "Przeglądaj"))
-        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab3), _translate("main", "Wybór warstwy punktowej GPKG"))
-        self.groupBox.setTitle(_translate("main", "Informacje o wtyczce"))
-        self.label_6.setText(_translate("main", "Wersja wtyczki:"))
-        self.label_8.setText(_translate("main", "1.0"))
-        self.label_5.setText(_translate("main", "Nazwa wtyczki:"))
-        self.lbl_copyrights_2.setText(_translate("main", "<html><head/><body><p><a href=\"http://www.envirosolutions.pl/\"><span style=\" text-decoration: underline; color:#0000ff;\">EnviroSolutions Sp. z o.o.</span></a></p></body></html>"))
-        self.label_7.setText(_translate("main", "Twórca:"))
-        self.label_9.setText(_translate("main", "PhotoViewer360"))
-        self.label_4.setText(_translate("main", "Właściciel:"))
-        self.lbl_email_3.setText(_translate("main", "<html><head/><body><p><a href=\"https://klaster.pro\"><span style=\" text-decoration: underline; color:#0000ff;\">KLASTER Robert M.</span></a></p></body></html>"))
-        self.groupBox_2.setTitle(_translate("main", "Dokumentacja"))
-        self.label_14.setText(_translate("main", "Instrukcja użytkownika:"))
-        self.lbl_copyrights_3.setText(_translate("main", "<html><head/><body><p><a href=\"https://github.com/envirosolutionspl/PhotoViewer360/blob/master/README.md\"><span style=\" text-decoration: underline; color:#0000ff;\">Plik README</span></a></p></body></html>"))
-        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab), _translate("main", "Informacje"))
-from qgsfilewidget import QgsFileWidget
-from qgsmaplayercombobox import QgsMapLayerComboBox
+        main.setWindowTitle(TranslationUtils.tr("PhotoViewer360"))
+        self.lbl_title.setText(TranslationUtils.tr("Wybierz dane do przeglądania zdjęć panoramicznych"))
+        self.label_3.setText(TranslationUtils.tr("Wybierz folder ze zdjęciami z georeferencją i azymutem"))
+        self.label.setText(TranslationUtils.tr("Wybierz ścieżkę zapisu paczki GeoPackage z warstwą punktową zdjęć"))
+        self.fromPhotos_btn.setText(TranslationUtils.tr("Importuj"))
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab2), TranslationUtils.tr("Wybór zdjęć"))
+        self.label_2.setText(TranslationUtils.tr("Wybierz warstwę wektorową"))
+        self.fromLayer_btn.setText(TranslationUtils.tr("Przeglądaj"))
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab1), TranslationUtils.tr("Wybór warstwy w QGIS"))
+        self.label_11.setText(TranslationUtils.tr("Wybierz plik GeoPackage utworzony za pomocą wtyczki PhotoViewer360"))
+        self.fromGPKG_btn.setText(TranslationUtils.tr("Przeglądaj"))
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab3), TranslationUtils.tr("Wybór warstwy punktowej GPKG"))
+        self.groupBox.setTitle(TranslationUtils.tr("Informacje o wtyczce"))
+        self.label_6.setText(TranslationUtils.tr("Wersja wtyczki:"))
+        self.label_8.setText(TranslationUtils.tr("1.0"))
+        self.label_5.setText(TranslationUtils.tr("Nazwa wtyczki:"))
+        self.lbl_copyrights_2.setText(TranslationUtils.tr("<html><head/><body><p><a href=\"http://www.envirosolutions.pl/\"><span style=\" text-decoration: underline; color:#0000ff;\">EnviroSolutions Sp. z o.o.</span></a></p></body></html>"))
+        self.label_7.setText(TranslationUtils.tr("Twórca:"))
+        self.label_4.setText(TranslationUtils.tr("Właściciel:"))
+        self.lbl_email_3.setText(TranslationUtils.tr("<html><head/><body><p><a href=\"https://klaster.pro\"><span style=\" text-decoration: underline; color:#0000ff;\">KLASTER Robert M.</span></a></p></body></html>"))
+        self.groupBox_2.setTitle(TranslationUtils.tr("Dokumentacja"))
+        self.label_14.setText(TranslationUtils.tr("Instrukcja użytkownika:"))
+        self.lbl_copyrights_3.setText(TranslationUtils.tr("<html><head/><body><p><a href=\"https://github.com/envirosolutionspl/PhotoViewer360/blob/master/README.md\"><span style=\" text-decoration: underline; color:#0000ff;\">Plik README</span></a></p></body></html>"))
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab), TranslationUtils.tr("Informacje"))
+

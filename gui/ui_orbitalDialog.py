@@ -10,7 +10,7 @@ import os
 
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 from .. import plugin_dir
-from ..utils import QtCompat
+from ..utils import QtCompat, TranslationUtils
 
 from ..constants import IMAGES_DIRECTORY
 
@@ -141,5 +141,4 @@ class UiOrbitalDialog(object):
         QtCore.QMetaObject.connectSlotsByName(orbitalDialog)
 
     def retranslateUi(self, orbitalDialog):
-        _translate = QtCore.QCoreApplication.translate
-        orbitalDialog.setWindowTitle(_translate("orbitalDialog", "PhotoViewer360"))
+        orbitalDialog.setWindowTitle(TranslationUtils.tr("PhotoViewer360"))

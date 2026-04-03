@@ -3,6 +3,8 @@ from qgis.core import QgsPoint, QgsGeometry
 
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from ..utils import TranslationUtils
+
 
 class TransformGeometry:
 
@@ -82,7 +84,9 @@ class TransformGeometry:
 
         else:
             QMessageBox.information(
-                None, "Information", str("Vector type is not supported.")
+                None,
+                TranslationUtils.tr("Information"),
+                TranslationUtils.tr("Vector type is not supported."),
             )
             return None
 
