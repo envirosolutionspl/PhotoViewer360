@@ -37,6 +37,7 @@ from qgis.PyQt import QtWidgets
 import processing
 
 from .utils import MessageUtils, QtCompat, TranslationUtils
+
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
 
@@ -439,6 +440,7 @@ class Geo360:
                     TranslationUtils.tr("Niepowodzenie podczas atualizacji okna dialogowego.")
                 )
 
+
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
@@ -565,7 +567,8 @@ class Geo360:
 
                 # uzupełnienie wartości dla atrybutu azymut, w przypadku braku danych o azymucie w metadanych zdjęcia
                 azymut_value = feature[COLUMN_YAW]
-                if str(azymut_value) == "NULL" or azymut_value == None:
+
+                if str(azymut_value) == "NULL" or azymut_value is None:
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
                     MessageUtils.pushLogWarning(
@@ -577,7 +580,7 @@ class Geo360:
                 # uzupełnienie wartości dla atrybutu data_wykonania
                 data_value = feature[GPKP_COLUMNS_DICT["timestamp"]]
 
-                if str(data_value) == "NULL":
+                if str(data_value) == "NULL" or data_value is None:
                     sciezka_zdjecie_value = feature[COLUMN_NAME]
                     sciezka_zdjecie_value = sciezka_zdjecie_value.replace("\\", "/")
                     sciezka_zdjecie_open = open(sciezka_zdjecie_value, "rb")
@@ -600,14 +603,21 @@ class Geo360:
         """Usunięcie wszystkich obiektów w warstwie"""
 
         vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
-        vlayer.startEditing()
-        if not vlayer.isEditable():
+        if not vlayer.isValid():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas ladowania warstwy do wyczyszczenia: {gpkg_path}")
+            return
+
+        if not vlayer.startEditing():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas rozpoczecia edycji warstwy: {gpkg_path}")
             return
 
         for feat in vlayer.getFeatures():
             vlayer.deleteFeature(feat.id())
-        vlayer.commitChanges()
 
+        if not vlayer.commitChanges():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas zapisu zmian przy czyszczeniu warstwy: {gpkg_path}")
+            vlayer.rollBack()
+            return
         try:
             self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
@@ -618,20 +628,35 @@ class Geo360:
 
         vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
         if not vlayer.isValid():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas ladowania warstwy do polaczenia: {gpkg_path}"
+            )
             return
 
-        vlayer.startEditing()
+        if not vlayer.startEditing():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas rozpoczecia edycji warstwy: {gpkg_path}"
+            )
+            return
+
+        idx = vlayer.fields().indexFromName("fid")
         for sourcefeat in overwrite.getFeatures():
             newfeat = QgsFeature()
             newfeat.setGeometry(sourcefeat.geometry())
             newfeat.setAttributes(sourcefeat.attributes())
-            idx = overwrite.fields().indexFromName("fid")
 
             if idx != -1:
                 newfeat[idx] = None
 
             vlayer.addFeature(newfeat)
-        vlayer.commitChanges()
+
+        if not vlayer.commitChanges():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas zapisu zmian przy laczeniu warstw: {gpkg_path}"
+            )
+            vlayer.rollBack()
+            return
+
         self.use_layer = str(vlayer.name())
 
     def dopisaniePlikButtonClicked(self, photo_path, gpkg_path):
