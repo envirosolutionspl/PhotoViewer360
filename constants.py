@@ -1,5 +1,6 @@
 ENV_MENU_NAME = "EnviroSolutions"
 
+I18N_CONTEXT = "TranslationUtils"
 DEFAULT_ENCODING = 'utf-8'
 
 # url do sprawdzania połączenia z internetem

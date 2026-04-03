@@ -33,6 +33,7 @@ from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
 from .constants import (
+    I18N_CONTEXT,
     TIMEOUT_MS,
     MAX_ATTEMPTS,
     ULDK_URL,
@@ -62,12 +63,12 @@ import lxml.etree as ET
 from . import PLUGIN_NAME
 
 class TranslationUtils:
-    """Tłumaczenia Qt; kontekst = PLUGIN_NAME z metadata.txt (np. PhotoViewer360)."""
+    """Tłumaczenia Qt; kontekst: constants.I18N_CONTEXT (zgodny z .ts)."""
 
     @staticmethod
     def tr(message: str) -> str:
         """Zwraca przetłumaczony tekst (QCoreApplication.translate)."""
-        return QCoreApplication.translate(PLUGIN_NAME, message)
+        return QCoreApplication.translate(I18N_CONTEXT, message)
 
 class LayersUtils:
     

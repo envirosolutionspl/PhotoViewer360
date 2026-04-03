@@ -22,7 +22,7 @@
 """
 import os
 
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QSettings, QThread, QTranslator, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -76,6 +76,15 @@ class Geo360:
     def __init__(self, iface):
 
         self.iface = iface
+        self.translator = None
+        locale_full = QSettings().value("locale/userLocale", "en") or "en"
+        locale = locale_full[:2] if len(locale_full) >= 2 else "en"
+        locale_path = os.path.join(plugin_dir, "i18n", f"photoviewer360_{locale}.qm")
+        if os.path.isfile(locale_path):
+            self.translator = QTranslator()
+            if self.translator.load(locale_path):
+                QCoreApplication.installTranslator(self.translator)
+
         self.canvas = self.iface.mapCanvas()
         self.project = QgsProject.instance()
         thread_count = QThread.idealThreadCount()
@@ -299,6 +308,10 @@ class Geo360:
 
     def unload(self):
         """Załadowanie narzędzi PhotoViewer360"""
+
+        if self.translator is not None:
+            QCoreApplication.removeTranslator(self.translator)
+            self.translator = None
 
         # zamykanie otwartych okien wtyczki i dezaktywacja celownika
         self.action_activate.setEnabled(False)
