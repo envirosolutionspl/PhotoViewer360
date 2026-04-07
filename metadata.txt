@@ -18,8 +18,8 @@ tracker= https://github.com/envirosolutionspl/PhotoViewer360/issues
 repository= https://github.com/envirosolutionspl/PhotoViewer360
 
 changelog=
-      Wersja 2.0.0
-	* Lorem ipsum
+  Wersja 1.1.4
+    * Dodanie danych testowych do wtyczki
 #  Wersja 1.1.4
 #    * Dodanie danych testowych do wtyczki
 #  Wersja 1.1.3
