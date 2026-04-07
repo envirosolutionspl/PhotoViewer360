@@ -233,7 +233,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         for feature in self.layer.getFeatures():
             if feature.attribute(GPKP_COLUMNS_DICT["filename"]) == name_img.replace(".jpg", ""):
                 date_time = feature.attribute(GPKP_COLUMNS_DICT["timestamp"])
-                self.data_wykonania = str(date_time.toString(iso_fmt)).replace("T", " ")
+                self.data_wykonania = str(date_time.toString(iso_fmt)).replace("T", " ").replace("Z", "")
                 self.nr_drogi = str(feature.attribute(GPKP_COLUMNS_DICT["roadname"]))
                 self.nazwa_ulicy = str(feature.attribute(GPKP_COLUMNS_DICT["streetname"]))
                 self.numer_odcinka = str(feature.attribute(GPKP_COLUMNS_DICT["sectionname"]))
