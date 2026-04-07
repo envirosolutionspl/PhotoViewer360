@@ -266,22 +266,22 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <translation>Błąd podczas pobierania nazwy pliku z warstwy.</translation>
     </message>
     <message>
-        <location filename="../Geo360Dialog.py" line="462"/>
+        <location filename="../Geo360Dialog.py" line="464"/>
         <source>Specify screenshot location</source>
         <translation>Wskaż lokalizacje zrzutu ekranu</translation>
     </message>
     <message>
-        <location filename="../Geo360Dialog.py" line="462"/>
+        <location filename="../Geo360Dialog.py" line="466"/>
         <source>PNG(*.png);;JPEG(*.jpg)</source>
         <translation>PNG(*.png);;JPEG(*.jpg)</translation>
     </message>
     <message>
-        <location filename="../Geo360Dialog.py" line="497"/>
+        <location filename="../Geo360Dialog.py" line="493"/>
         <source>Layer assigned to the view has been removed. Please select another layer in the plugin window.</source>
         <translation>Usunięto warstwę przypisaną do widoku. Należy wybrać inną warstwę w oknie wtyczki.</translation>
     </message>
     <message>
-        <location filename="../Geo360Dialog.py" line="733"/>
+        <location filename="../Geo360Dialog.py" line="729"/>
         <source>Error removing RubberBand object: {err}</source>
         <translation>Błąd podczas usuwania obiektu RubberBand: {err}</translation>
     </message>
@@ -316,77 +316,77 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <translation>Błąd konwersji wartości na float: {value}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="122"/>
+        <location filename="../modules/viewer_widget.py" line="123"/>
         <source>Photo file not found.</source>
         <translation>Nie znaleziono pliku zdjęcia.</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="124"/>
+        <location filename="../modules/viewer_widget.py" line="125"/>
         <source>Error loading photo.</source>
         <translation>Błąd podczas wczytywania zdjęcia.</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="149"/>
+        <location filename="../modules/viewer_widget.py" line="150"/>
         <source>File not found: {path}</source>
         <translation>Nie znaleziono pliku {path}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="154"/>
+        <location filename="../modules/viewer_widget.py" line="155"/>
         <source>Error reading file {path}</source>
         <translation>Błąd podczas odczytu pliku {path}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="382"/>
+        <location filename="../modules/viewer_widget.py" line="381"/>
         <source>Selected new point with index: {fid}</source>
         <translation>Wybrano nowy punkt o indeksie fid: {fid}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="402"/>
+        <location filename="../modules/viewer_widget.py" line="400"/>
         <source>Failed to update window view.</source>
         <translation>Aktualizacja widoku okna się nie powiodła.</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="448"/>
+        <location filename="../modules/viewer_widget.py" line="447"/>
         <source>Path not found: /{img_dir}/{filename}</source>
         <translation>Nie znaleziono ścieżki /{img_dir}/{filename}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="455"/>
+        <location filename="../modules/viewer_widget.py" line="454"/>
         <source>Error loading photo /{img_dir}/{filename}</source>
         <translation>Błąd podczas wczytywania zdjęcia /{img_dir}/{filename}</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="469"/>
+        <location filename="../modules/viewer_widget.py" line="467"/>
         <source>Font files not found.</source>
         <translation>Nie znaleziono plików czczionek.</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="472"/>
+        <location filename="../modules/viewer_widget.py" line="470"/>
         <source>Error loading font files.</source>
         <translation>Błąd podczas wczytywania plików czczionek.</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="477"/>
+        <location filename="../modules/viewer_widget.py" line="475"/>
         <source>Road number:</source>
         <translation>Numer drogi:</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="480"/>
+        <location filename="../modules/viewer_widget.py" line="478"/>
         <source>Street name:</source>
         <translation>Nazwa ulicy:</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="482"/>
+        <location filename="../modules/viewer_widget.py" line="480"/>
         <source>Section number:</source>
         <translation>Numer odcinka:</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="484"/>
+        <location filename="../modules/viewer_widget.py" line="482"/>
         <source>Chainage:</source>
         <translation>Kilometraż:</translation>
     </message>
     <message>
-        <location filename="../modules/viewer_widget.py" line="486"/>
+        <location filename="../modules/viewer_widget.py" line="484"/>
         <source>Date:</source>
         <translation>Data:</translation>
     </message>
