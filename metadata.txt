@@ -7,7 +7,7 @@ description= PL: Wtyczka umożliwiająca import i wizualizację zdjęć panorami
     ENG: Plugin for for importing and visualising local panoramic images. 
 version= 2.0.0
 author= EnviroSolutions Sp. z o.o.
-email= office@envirosolutions.pl
+email= gis@envirosolutions.pl
 based on= EquirectangularViewer
 
 about= PL: Wtyczka pozwala na import zdjęć posiadających georeferencję i utworzenie z nich pliku GeoPackage, przeglądanie zdjęć panoramicznych i przechodzenie pomiędzy nimi poprzez kliknięcie na zdjęciu hotspota lub wskazanie punktu na mapie. Dodatkowo umożliwia śledzenie zwrotu kamery za pomocą radaru umieszczonego w punkcie na mapie, dla którego przeglądane jest zdjęcie oraz wygenerowanie raportu graficznego z aktualnym widokiem zdjęcia w formacie JPG/PNG. 
@@ -45,7 +45,7 @@ changelog=
 
 tags= images, local, cefpython, marzipano, EquirectangularViewer, equirectangular, Street View, 360, PhotoViewer360, panoramic photos
 
-homepage= https://github.com/envirosolutionspl/PhotoViewer360
+homepage= https://envirosolutions.pl/wtyczki-qgis/photoviewer360/
 category= Plugins
 icon= images/ikona_wtyczki.svg
 experimental= False
