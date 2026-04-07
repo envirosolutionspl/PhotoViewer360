@@ -32,6 +32,9 @@ Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programi
 8. Aby przeglądać zdjęcie w trybie pełnoekranowym należy wybrać drugie narzędzie z dolnej części wtyczki. W celu powrócenia do poprzedniego widoku należy ponownie kliknąć na ikonę narzędzia lub kliknąć przycisk ESC na klawiaturze.
 9. Aby dodać nowe zobrazowania do istniejącego już pliku .gpkg, należy usunąć istniejący zbiór podczytany do warstw QGIS, a następnie wybrać opcję `Dopisanie do pliku`.
 
+## Przykład użycia
+![photoviewer_360_gif_pl](https://github.com/user-attachments/assets/d0138d9a-3e16-45f2-b2eb-89f921a6a70f)
+
 ## Uwaga
 Do wtyczki załączono również dane w folderze [test_data](./test_data/test_data.zip) w formacie ZIP, które umożliwiają testowanie funkcjonalności narzędzia.
 
@@ -76,6 +79,9 @@ QGIS Plugin for importing and visualising local panoramic images. Based on Equir
 7. In order to generate a graphic report, select the tool with the camera icon from the bottom of the plugin, and then indicate the location of the generated file and the target format.
 8. To view a photo in full screen mode, select the second tool from the bottom of the plugin. To return to the previous view, click the tool icon again or click the ESC button on the keyboard.
 9. To add new rasters to an existing .gpkg file, you must remove the exisiting datalaset loaded into QGIS layers, and then select the option `Append data`.
+
+## Usage Example
+![photoviewer_360_gif_en](https://github.com/user-attachments/assets/1c8595ff-cadf-4d2a-8b60-fbd150e0a6c8)
 
 ## Attention
 The plugin also includes data in the [test_data](./test_data/test_data.zip) folder in ZIP format, which enables testing of the tool’s functionality.
