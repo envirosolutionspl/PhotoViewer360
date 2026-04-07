@@ -28,12 +28,12 @@ temp_dir = tempfile.gettempdir()
 
 PLUGIN_NAME = ''
 PLUGIN_VERSION = ''
-with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r') as pluginMetadataFile:
+with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r', encoding='utf-8') as pluginMetadataFile:
     for line in pluginMetadataFile:
         if line.startswith("version="):
-            PLUGIN_VERSION = line.strip().split('=')[-1]
+            PLUGIN_VERSION = line.strip().split("=", 1)[-1].strip()
         elif line.startswith("name="):
-            PLUGIN_NAME = line.strip().split('=')[-1]
+            PLUGIN_NAME = line.strip().split("=", 1)[-1].strip()
 
 def classFactory(iface):
     from .Geo360 import Geo360

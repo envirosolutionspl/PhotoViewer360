@@ -9,12 +9,13 @@ import os
 import unicodedata
 
 from .constants import INDUSTRIES, FEED_URL
+from .utils import TranslationUtils
 
 
 class QgisFeed:
     def __init__(self, selected_industry, plugin_name):
         self.s = QgsSettings()
-        self.industries_dict = INDUSTRIES
+        self.industries_dict = {k: TranslationUtils.tr(v) for k, v in INDUSTRIES.items()}
 
         self.industry_decoded = [key for key, val in self.industries_dict.items() if val == selected_industry]
         self.plugin_name_slug = self.createSlug(plugin_name)
