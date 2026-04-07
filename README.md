@@ -39,6 +39,9 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 Rekomendowane wersje QGIS: 3.34.4.
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
+## Kontakt
+
+Wtyczka została stworzona przez ****EnviroSolutions**. W razie pytań lub potrzeby wsparcia skontaktuj się z nami przez e-mail:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
 
 # PhotoViewer360
 
@@ -81,3 +84,6 @@ The necessary condition for the correct operation of the plugin is to have the Q
 Recomended version of QGIS: 3.34.4.
 If the EquirectangularViewer plugin is installed, please uninstall it in order to the PhotoViewer360 plugin work properly.
 
+## Contact
+
+The plugin was developed by ****EnviroSolutions**. For questions or support, contact us at:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
