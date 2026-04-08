@@ -477,7 +477,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         if nazwa_ulicy != "NULL":
             draw.text((10, 116), TranslationUtils.tr("Street name:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 132), nazwa_ulicy, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 148), TranslationUtils.tr("Segment number:"), fill=(0, 0, 0), font=font_bold)
+            draw.text((10, 148), TranslationUtils.tr("Section number:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 164), numer_odcinka, fill=(0, 0, 0), font=font_regular)
             draw.text((10, 180), TranslationUtils.tr("Chainage:"), fill=(0, 0, 0), font=font_bold)
             draw.text((10, 196), kilometraz, fill=(0, 0, 0), font=font_regular)
