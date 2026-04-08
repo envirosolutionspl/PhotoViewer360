@@ -20,18 +20,20 @@
  *                                                                         *
  ***************************************************************************/
 """
-import sys, os
-
-try:
-    sys.path.append(r"C:\eclipse\plugins\org.python.pydev.core_8.3.0.202104101217\pysrc")
-    sys.path.append(
-        "/home/fragalop/eclipse/plugins/org.python.pydev.core_8.3.0.202104101217/pysrc"
-    )
-    from pydevd import *
-except ImportError:
-    None
+import os
+import tempfile
 
 plugin_dir = os.path.dirname(__file__)
+temp_dir = tempfile.gettempdir()
+
+PLUGIN_NAME = ''
+PLUGIN_VERSION = ''
+with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r', encoding='utf-8') as pluginMetadataFile:
+    for line in pluginMetadataFile:
+        if line.startswith("version="):
+            PLUGIN_VERSION = line.strip().split("=", 1)[-1].strip()
+        elif line.startswith("name="):
+            PLUGIN_NAME = line.strip().split("=", 1)[-1].strip()
 
 PLUGIN_NAME = ''
 PLUGIN_VERSION = ''

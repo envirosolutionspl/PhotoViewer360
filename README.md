@@ -20,24 +20,31 @@ Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programi
 
 ## Instrukcja użytkownika
 1. Wtyczkę należy zainstalować w QGISie jako ZIP bądź wgrać pliki wtyczki do lokalizacji C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins.
-2. Aby uruchomić wtyczkę należy kliknąć na ikonę aparatu, co wywoła otwarcie okna do importu zdjęć panoramicznych.
+2. Aby uruchomić wtyczkę należy kliknąć na ikonę drzewa '360', co wywoła otwarcie okna do importu zdjęć panoramicznych.
 3. Należy wybrać jedną z trzech opcji wgrania zdjęć do przeglądania:
     - Zakładka "Wybór zdjęć"- należy wybrać folder ze zdjęciami oraz ścieżkę zapisu nowego pliku GeoPackage. Następnie należy kliknąć na "Importuj", co utworzy plik .gpkg i uruchomi „celownik” – narzędzie do wskazania na mapie punktu,
     - Zakładka "Wybór warstwy w QGIS" - należy wskazać warstwę punktową, która dodana jest do projektu QGIS (utworzona wcześniej poprzez narzędzie z pierwszej zakładki wtyczki), a następnie kliknąć „Przeglądaj”, co uruchomi narzędzie „celownik”,
     - Zakładka "Wybór warstwy punktowej GPKG" - należy wskazać lokalizację na komputerze warstwy punktowej (utworzonej wcześniej poprzez narzędzie z pierwszej zakładki wtyczki), a następnie kliknąć „Przeglądaj”, co uruchomi narzędzie „celownik”.
 4. Po wskazaniu bądź utworzeniu pliku GPKG uruchomi się narzędzie "celownik", a widok mapy przybliży się do pełnego zakresu warstwy. Fioletowym "celownikiem" należy kliknąć na wybrany punkt należący do warstwy punktowej, co otworzy okno wtyczki służące do przeglądania zdjęć panoramicznych. W momencie skorzystania z innego narzędzia poza wtyczką, w celu ponownego włączenia narzędzia "celownik", należy kliknąć na ikonę umieszczoną w górnym panelu QGISa (ikona po prawej stronie od głównej ikony wtyczki).
 5. Wyświetlone zdjęcie panoramiczne można przeglądać posługując się narzędziami nawigującymi (strzałki, +, -) umieszczonymi w dolnej części okna wtyczki lub przesuwając obraz „łapką” oraz używając scrolla myszki do przybliżania i oddalania widoku. 
-6. W celu przejścia do kolejnego zdjęcia można wybrać je poprzez kliknięcie punktu na mapie bądź kliknięcie jednego z wyświetlających się na zdjęciu hotspotów. Hotspoty są punktami znajdującymi się w promieniu 10 metrów od punktu aktualnie przeglądanego zdjęcia. Hotspot znajdujący się dalej niż 6 metrów od aktualnego punktu będzie miał mniejszy rozmiar.
+6. W celu przejścia do kolejnego zdjęcia można wybrać je poprzez kliknięcie punktu na mapie bądź kliknięcie jednego z wyświetlających się na zdjęciu hotspotów. Hotspoty są punktami znajdującymi się w promieniu 8 metrów od punktu aktualnie przeglądanego zdjęcia.
 7. W celu wygenerowania raportu graficznego należy z dolnej części wtyczki wybrać narzędzie z ikoną aparatu, a następnie wskazać lokalizację generowanego pliku oraz docelowy format.
 8. Aby przeglądać zdjęcie w trybie pełnoekranowym należy wybrać drugie narzędzie z dolnej części wtyczki. W celu powrócenia do poprzedniego widoku należy ponownie kliknąć na ikonę narzędzia lub kliknąć przycisk ESC na klawiaturze.
+9. Aby dodać nowe zobrazowania do istniejącego już pliku .gpkg, należy usunąć istniejący zbiór podczytany do warstw QGIS, a następnie wybrać opcję `Dopisanie do pliku`.
+
+## Przykład użycia
+![photoviewer_360_gif_pl](https://github.com/user-attachments/assets/d0138d9a-3e16-45f2-b2eb-89f921a6a70f)
 
 ## Uwaga
-Do wtyczki załączono również dane w folderze [test_data](./test_data/test_data.zip) w formacie ZIP, które umożliwiają testowanie funkcjonalności narzędzia.
+Do wtyczki załączono również dane w folderze [test_data](https://envirosolutions.pl/photoviewer360_test_data.zip) w formacie ZIP, które umożliwiają testowanie funkcjonalności narzędzia.
 
 Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.28.0 lub wyższej.
 Rekomendowane wersje QGIS: 3.34.4.
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
+## Kontakt
+
+Wtyczka została stworzona przez ****EnviroSolutions**. W razie pytań lub potrzeby wsparcia skontaktuj się z nami przez e-mail:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
 
 # PhotoViewer360
 
@@ -68,14 +75,21 @@ QGIS Plugin for importing and visualising local panoramic images. Based on Equir
     - Tab "Wybór warstwy punktowej GPKG" - indicate the location of the point layer on the computer (previously created using the tool from the first tab of the plugin), then click on "Przeglądaj", which will start the "viewfinder".
 4. After selecting or creating a GPKG file, the "viewfinder" tool will be launched and the map view will zoom to the full range of the layer. With the violet "viewfinder", click on the selected point belonging to the point layer, which will open the plugin window for viewing panoramic photos. When using a tool other than the plugin, in order to reenable the "viewfinder" tool, click on the icon in the top panel of QGIS (the icon to the right of the plugin's main icon).
 5. The displayed panoramic photo can be viewed using the navigation tools (arrows, +, -) located at the bottom of the plugin window or by moving the image with the Pan Tool and using the mouse scroll to zoom in and out.
-6. In order to go to the next photo, you can select it by clicking a point on the map or clicking one of the hotspots displayed in the photo. Hotspots are points located within 10 meters from the point of the currently viewed photo. Hotspot more than 6 meters from the current point will be smaller.
+6. In order to go to the next photo, you can select it by clicking a point on the map or clicking one of the hotspots displayed in the photo. Hotspots are points located within 8 meters from the point of the currently viewed photo.
 7. In order to generate a graphic report, select the tool with the camera icon from the bottom of the plugin, and then indicate the location of the generated file and the target format.
 8. To view a photo in full screen mode, select the second tool from the bottom of the plugin. To return to the previous view, click the tool icon again or click the ESC button on the keyboard.
+9. To add new rasters to an existing .gpkg file, you must remove the exisiting datalaset loaded into QGIS layers, and then select the option `Append data`.
+
+## Usage Example
+![photoviewer_360_gif_en](https://github.com/user-attachments/assets/1c8595ff-cadf-4d2a-8b60-fbd150e0a6c8)
 
 ## Attention
-The plugin also includes data in the [test_data](./test_data/test_data.zip) folder in ZIP format, which enables testing of the tool’s functionality.
+The plugin also includes data in the [test_data](https://envirosolutions.pl/photoviewer360_test_data.zip) folder in ZIP format, which enables testing of the tool’s functionality.
 
 The necessary condition for the correct operation of the plugin is to have the QGIS 3.28.0 version or higher.
 Recomended version of QGIS: 3.34.4.
 If the EquirectangularViewer plugin is installed, please uninstall it in order to the PhotoViewer360 plugin work properly.
 
+## Contact
+
+The plugin was developed by ****EnviroSolutions**. For questions or support, contact us at:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.

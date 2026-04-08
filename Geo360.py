@@ -20,104 +20,120 @@
  *                                                                         *
  ***************************************************************************/
 """
+import os
 
-
-from qgis.gui import QgsMapToolIdentify
-from qgis.PyQt.QtCore import Qt, QSettings, QThread, QVariant, QCoreApplication
-from qgis.PyQt.QtGui import QIcon, QCursor, QPixmap
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressBar, QApplication, QToolBar, QWidget
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QSettings, QThread, QTranslator, QVariant
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QApplication,
+    QDialog,
+    QMessageBox,
+    QProgressBar,
+    QToolBar,
+)
 from qgis.core import *
-from PyQt5 import QtWidgets, QtCore
-from PyQt5 import uic
+from qgis.PyQt import QtWidgets
 import processing
 
-from . import plugin_dir
+from .utils import MessageUtils, QtCompat, TranslationUtils
+
 from .Geo360Dialog import Geo360Dialog
-from PhotoViewer360.gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
-import PhotoViewer360.config as config
-from PhotoViewer360.utils.log import log
-from PhotoViewer360.utils.qgsutils import qgsutils
-from functools import partial
+from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
+
+from .constants import (
+    GPKG_FILTER_EXTENSION,
+    TEMPORATORY_FILES_LIST,
+    GPKP_COLUMNS_CHECK,
+    GPKP_COLUMNS_ADD_LIST,
+    GPKP_COLUMNS_DICT,
+    GPKP_COLUMNS_DELETE_LIST,
+    COLUMN_NAME,
+    COLUMN_YAW,
+    ENV_MENU_NAME,
+    DEFAULT_YAW_DEGREES,
+    DUPLICATES_PREVIEW_LIMIT,
+    PROGRESS,
+    UI_PLUGIN_ICON_PATH,
+    UI_TARGET_ICON_PATH,
+    QGIS_SETTINGS_KEYS,
+    QGIS_FEED_MIN_VERSION_INT,
+)
+
 from collections import defaultdict
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
-import time, os, sys
 from pathlib import Path
 from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
-from PyQt5.QtWidgets import QDialog, QComboBox
-from qgis.utils import iface
 import importlib.util
-
 
 from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
 
-try:
-    from pydevd import *
-except ImportError:
-    None
-
-class QuietHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
+from . import plugin_dir, temp_dir
 
 class Geo360:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
 
-        self.config = None
         self.iface = iface
+        self.translator = None
+        locale_full = QSettings().value("locale/userLocale", "en") or "en"
+        locale = locale_full[:2] if len(locale_full) >= 2 else "en"
+        locale_path = os.path.join(plugin_dir, "i18n", f"photoviewer360_{locale}.qm")
+        if os.path.isfile(locale_path):
+            self.translator = QTranslator()
+            if self.translator.load(locale_path):
+                QCoreApplication.installTranslator(self.translator)
+
         self.canvas = self.iface.mapCanvas()
-        self.project=QgsProject.instance()
-        threadcount = QThread.idealThreadCount()
+        self.project = QgsProject.instance()
+        thread_count = QThread.idealThreadCount()
         self.settings = QgsSettings() 
         self.exifread_path = os.path.join(plugin_dir, 'libs', 'exifread_3_0_0')
 
-        if Qgis.QGIS_VERSION_INT >= 31000:
+        if Qgis.QGIS_VERSION_INT >= QGIS_FEED_MIN_VERSION_INT:
             from .qgis_feed import QgisFeed
 
-            self.selected_industry = self.settings.value("selected_industry", None)
-            show_dialog = self.settings.value("showDialog", True, type=bool)
+            self.selected_industry = self.settings.value(
+                "selected_industry", None
+            )
+            show_dialog = self.settings.value(
+                "showDialog", True, type=bool
+            )
 
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
 
-            select_indust_session = self.settings.value('selected_industry')
+            select_indust_session = self.settings.value(
+                "selected_industry"
+            )
 
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
             self.feed.initFeed()
     
         # use all available cores and parallel rendering
-        QgsApplication.setMaxThreads(threadcount)
-        QSettings().setValue("/qgis/parallel_rendering", True)
+        QgsApplication.setMaxThreads(thread_count)
+        QSettings().setValue(QGIS_SETTINGS_KEYS["PARALLEL_RENDERING"], True)
         # OpenCL acceleration
-        QSettings().setValue("/core/OpenClEnabled", True)
-        self.orbitalViewer = None
-        self.server = None
-        self.actions = []
-        self.make_server()
+        QSettings().setValue(QGIS_SETTINGS_KEYS["OPENCL_ENABLED"], True)
+        self.orbital_viewer = None
 
         self.dlg = FirstWindowGeo360Dialog()
-        self.settings = QgsSettings()
-        self.useLayer = ""
+        self.use_layer = ""
         self.is_press_button = False
 
-        # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u"&EnviroSolutions")
+        self.menu = "&" + TranslationUtils.tr(ENV_MENU_NAME)
         self.layer = None
-        self.mapTool = None
-
+        self.map_tool = None
 
         # toolbar
-        self.toolbar = self.iface.mainWindow().findChild(QToolBar, "EnviroSolutions")
+        self.toolbar = self.iface.mainWindow().findChild(QToolBar, ENV_MENU_NAME)
 
         if not self.toolbar:
-            self.toolbar = self.iface.addToolBar(u"EnviroSolutions")
-            self.toolbar.setObjectName(u"EnviroSolutions")
+            self.toolbar = self.iface.addToolBar(ENV_MENU_NAME)
+            self.toolbar.setObjectName(ENV_MENU_NAME)
 
         # noinspection PyMethodMayBeStatic
 
@@ -133,9 +149,9 @@ class Geo360:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate("PhotoViewer360", message)
+        return TranslationUtils.tr(message)
 
-    def add_action(
+    def addAction(
             self,
             icon_path,
             text,
@@ -212,47 +228,31 @@ class Geo360:
 
         return action
 
-    def import_exifread(self):
+    def importExifread(self):
         """Sprawdza dostępność biblioteki 'exifread'"""
 
         exifread_spec = importlib.util.find_spec('exifread')
         
         if os.path.exists(self.exifread_path):
-            QgsMessageLog.logMessage(
-                "Znaleziono lokalną wersję biblioteki'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
-              
-            QgsMessageLog.logMessage(
-                "Użyto lokalnej wersji biblioteki 'exifread'",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Found local version of the 'exifread' library."))
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Using local version of the 'exifread' library."))
             return True  
 
         elif exifread_spec is not None:
-            from exifread import process_file
-            QgsMessageLog.logMessage(
-                "Znaleziono bibliotekę 'exifread' w QGIS",
-                "PhotoViewer360",
-                level=Qgis.Info
-            )
+            from exifread import processFile
+            MessageUtils.pushLogInfo(TranslationUtils.tr("Found 'exifread' library in QGIS"))
             return True  
         
         else:
-            from .libs.exifread_3_0_0.exifread import process_file
-            
-            QgsMessageLog.logMessage(
-                "Nie znaleziono lokalnej wersji 'exifread'. Proszę zainstalować bibliotekę.",
-                "PhotoViewer360",
-                level=Qgis.Critical
+            from .libs.exifread_3_0_0.exifread import processFile
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Local 'exifread' library not found. Please install the library.")
             )
-            iface.messageBar().pushMessage(
-                "PhotoViewer360",
-                "Biblioteka 'exifread' nie została odnaleziona - wtyczka będzie działać niepoprawnie. Proszę zainstalować bibliotekę.",
-                level=Qgis.Critical,
-                duration=10
+            MessageUtils.pushCritical(
+                self.iface,
+                TranslationUtils.tr(
+                    "'exifread' library not found - plugin may not function correctly. Please install the library.",
+                ),
             )
             return False        
         
@@ -260,21 +260,19 @@ class Geo360:
     def initGui(self):
         """Dodanie narzędzia PhotoViewer360"""
 
-        log.initLogging()
-
-        
         # Dodanie narzędzia PhotoViewer360
-        self.action = self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/ikona_wtyczki.svg"),
-            text=u"PhotoViewer360",
+        self.action = self.addAction(
+            icon_path=QIcon(plugin_dir + UI_PLUGIN_ICON_PATH),
+            text=plugin_name,
+
             callback=self.run,
             parent=self.iface.mainWindow(),
         )
 
         # Dodanie narzędzia PhotoViewer360 aktywacja
-        self.action_activate= self.add_action(
-            icon_path=QIcon(plugin_dir + "/images/target.png"),
-            text=u"PhotoViewer360 aktywacja",
+        self.action_activate= self.addAction(
+            icon_path=QIcon(plugin_dir + UI_TARGET_ICON_PATH),
+            text=f"{plugin_name} {TranslationUtils.tr('activation')}",
             callback=self.activate,
             parent=self.iface.mainWindow(),
             enabled_flag=False,
@@ -286,19 +284,20 @@ class Geo360:
         # informacje o wersji
         self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
         self.dlg.label_8.setText('%s' % (plugin_version))
+        self.dlg.label_9.setText(plugin_name)
         self.dlg.lbl_pluginVersion_3.setText('%s %s' % (plugin_name, plugin_version))
         ##TODO docelowo ma być wsparcie dla poniższeko komponentu i dolny pasek wtyczki
-        # self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
+        #self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
 
         # eventy
 
         # obsługa zdarzeń wciśnięć przycisków w oknie PhotoViewer360
         self.dlg.fromLayer_btn.clicked.connect(self.fromLayer_btn_clicked)
-        self.dlg.fromPhotos_btn.clicked.connect(self.fromPhotos_btn_clicked)
-        self.dlg.fromGPKG_btn.clicked.connect(self.fromGPKG_btn_clicked)
+        self.dlg.fromPhotos_btn.clicked.connect(self.importPhotos)
+        self.dlg.fromGPKG_btn.clicked.connect(self.browseGpkg)
 
         # obsługa ścieżek do plików/folderów w oknie PhotoViewer360
-        self.dlg.mQgsFileWidget_save_gpkg.setFilter(config.GPKG_FILTER_EXTENSION)
+        self.dlg.mQgsFileWidget_save_gpkg.setFilter(TranslationUtils.tr(GPKG_FILTER_EXTENSION))
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
@@ -311,12 +310,16 @@ class Geo360:
     def unload(self):
         """Załadowanie narzędzi PhotoViewer360"""
 
+        if self.translator is not None:
+            QCoreApplication.removeTranslator(self.translator)
+            self.translator = None
+
         # zamykanie otwartych okien wtyczki i dezaktywacja celownika
         self.action_activate.setEnabled(False)
         self.iface.actionPan().trigger()
 
-        if self.orbitalViewer != None:
-            self.orbitalViewer.close()
+        if self.orbital_viewer is not None:
+            self.orbital_viewer.close()
 
         if self.dlg != None:
             self.dlg.close()  
@@ -324,58 +327,25 @@ class Geo360:
         # ponowne załadowanie narzędzi
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&EnviroSolutions'),
+                self.menu,
                 action)
             self.iface.removeToolBarIcon(action)
             self.toolbar.removeAction(action)
-            self.close_server()
+
+        # usuwanie katalogu plików tymczasowych
+        for nazwa_pliku_tymczasowego in TEMPORATORY_FILES_LIST:
+            try:
+                os.remove(os.path.join(temp_dir, nazwa_pliku_tymczasowego))
+            except OSError as e:
+                pass
 
         # remove the toolbar
         del self.toolbar
-
-    def close_server(self):
-        """Close Local server"""
-
-        # Close server
-        if self.server is not None:
-            self.server.shutdown()
-            time.sleep(1)
-            self.server.server_close()
-            while self.server_thread.is_alive():
-                self.server_thread.join()
-            self.server = None
-
-    def make_server(self):
-        """Create Local server"""
-
-        # Close server
-        self.close_server()
-        # Create Server
-        directory = (
-                QgsApplication.qgisSettingsDirPath().replace("\\", "/")
-                + config.SERVER_DIRECTORY
-        )
-
-        try:
-            self.server = ThreadingHTTPServer(
-                (config.IP, config.PORT),
-                partial(QuietHandler, directory=directory),
-            )
-            self.server_thread = Thread(
-                target=self.server.serve_forever,
-                name="http_server",
-            )
-            self.server_thread.daemon = True
-            print("Serving at port: %s" % self.server.server_address[1])
-            time.sleep(1)
-            self.server_thread.start()
-        except Exception:
-            print("Server Error")
-
+        
     def run(self):
         """Run after pressing the plugin"""
         # Sprawdzenie dostępności biblioteki 'exifread'
-        if not self.import_exifread():
+        if not self.importExifread():
             return 
         # wywołanie okna "PhotoViewer360" po wciśnięciu ikony aparatu
         self.dlg.show()
@@ -383,91 +353,105 @@ class Geo360:
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
 
-        if self.qgisfeed_dialog.exec_() == QDialog.Accepted:
-            self.selected_branch = self.qgisfeed_dialog.comboBox.currentText()
+        if QtCompat.dialogExec(self.qgisfeed_dialog) == QDialog.Accepted:
+            self.selected_branch = self.qgisfeed_dialog.combo_box.currentText()
             
             #Zapis w QGIS3.ini
             self.settings.setValue("selected_industry", self.selected_branch)  
             self.settings.setValue("showDialog", False) 
 
-    def click_feature(self):
+    def clickPointOnMapFeature(self):
         """Obsługa wybrania punktu na mapie"""
 
         lys = self.project.mapLayers().values()
 
         for layer in lys:
-            if layer.name() == self.useLayer:
+            if layer.name() == self.use_layer:
                 self.layer = layer
                 break
 
-        self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
-        self.iface.mapCanvas().setMapTool(self.mapTool)
+        self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
+        self.iface.mapCanvas().setMapTool(self.map_tool)
 
     def activate(self):
         """Obsługa narzędzia PhotoViewer360 aktywacja (powrót do wybrania punktu na mapie)"""
 
         layer = self.dlg.mapLayerComboBox.currentText()
         layer = self.project.mapLayersByName(layer.split(" ")[0])[0]
-        self.iface.messageBar().pushMessage("Informacja", "Korzystasz z warstwy: " + self.useLayer, level=Qgis.Info, duration=-1)
+        MessageUtils.pushMessage(
+            self.iface,
+            TranslationUtils.tr("Using layer: {layer}").format(layer=self.use_layer),
+        )
         self.layer = layer
-        self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
-        self.iface.mapCanvas().setMapTool(self.mapTool)
-        self.click_feature()
+        self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
+        self.iface.mapCanvas().setMapTool(self.map_tool)
+        self.clickPointOnMapFeature()
 
     def fromLayer_btn_clicked(self):
         """Obsługa przycisku "Przeglądaj" do wybrania warstwy z projektu QGIS"""
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
         good_layer = False
-        layerName = self.dlg.mapLayerComboBox.currentText()
-        self.useLayer = layerName
+        layer_name = self.dlg.mapLayerComboBox.currentText()
+        self.use_layer = layer_name
 
         try:
-            self.layer = self.project.mapLayersByName(layerName.split(" ")[0])[0]
+            self.layer = self.project.mapLayersByName(layer_name.split(" ")[0])[0]
 
             # zdiagnozowanie czy wybrana wartwa została utworzona przez wtyczkę PhotoViewer360 (poprzez znalezienie kolumny "sciezka_zdjecie")
             for field in self.layer.fields():
-                if field.name() == "sciezka_zdjecie":
+                if field.name() == COLUMN_NAME:
                     good_layer = True
 
-            if good_layer == True:
-                self.mapTool = SelectTool(self.iface, parent=self, queryLayer=self.layer)
-                self.iface.mapCanvas().setMapTool(self.mapTool)
+            if good_layer:
+                self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
+                self.iface.mapCanvas().setMapTool(self.map_tool)
                 self.dlg.hide()
-                self.click_feature()
+                self.clickPointOnMapFeature()
             else:
-                self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                     "Podana warstwa punktowa nie zawiera geotagowanych zdjęć")
+                MessageUtils.pushMessageBoxWarning(
+                    self.dlg,
+                    TranslationUtils.tr("Warning"),
+                    TranslationUtils.tr("The selected point layer does not contain geotagged photos"),
+                )
                 return False
 
         except IndexError:
-            self.iface.messageBar().pushCritical("Ostrzeżenie:",
-                                                 "Nie wskazano warstwy geopackage z geotagowanymi zdjęciami")
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No GeoPackage layer with geotagged photos selected"),
+            )
             return False
+        
+        self.action_activate.setEnabled(True)
 
-    def create_gpkg(self, photo_path, gpkg_path):
+    def createGpkg(self, photo_path, gpkg_path):
         """Stworzenie GeoPaczki na bazie wskazanego folderu ze zdjęciami oraz późniejsza jej modyfikacja"""
 
         # Processing feedback
-        def progress_changed(progress):
+        def progressChanged(progress):
             """Funkcja pokazująca progres podczas pracy narzędzia "Importuj geotagowane zdjęcia" """
             try:
-                self.progress.setValue(5 + int(progress*34/100))
+                self.progress.setValue(PROGRESS["IMPORT_START"] + int(progress * (PROGRESS["IMPORT_AFTER_TOOL"] - PROGRESS["IMPORT_START"]) / 100))
                 QApplication.processEvents()
             except RuntimeError:
-                pass
+                MessageUtils.pushLogWarning(
+                    TranslationUtils.tr("Failed to update dialog window.")
+                )
 
         try:
-            self.progress.setValue(5)
+            self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
-            pass
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Failed to update dialog window.")
+            )
                 
         gpkg_path = os.path.join(gpkg_path)
 
         try:
             f = QgsProcessingFeedback()
-            f.progressChanged.connect(progress_changed)
+            f.progressChanged.connect(progressChanged)
 
             # uruchomienie narzędzia "Importuj geotagowane zdjęcia"
             processing.run(
@@ -475,19 +459,24 @@ class Geo360:
                 {
                 "FOLDER": photo_path,
                 "RECURSIVE": False,
-                "OUTPUT":gpkg_path,
+                "OUTPUT": gpkg_path,
                 },
                 feedback=f
             )
 
-        except:
-            print("Tool Import Geotagged Photos failed!")
+        except Exception as exc:
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr(
+                    "Failed to import photos using the 'native:importphotos' tool. Error: {err}"
+                ).format(err=exc)
+            )
 
         try:
-            self.progress.setValue(40)
-
+            self.progress.setValue(PROGRESS["IMPORT_AFTER_TOOL"])
         except RuntimeError:
-            pass
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Failed to update dialog window.")
+            )
 
         gpkg_name = Path(gpkg_path).stem
 
@@ -495,181 +484,227 @@ class Geo360:
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
 
         if not vlayer.isValid():
-            print("Layer failed to load!")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr("Failed to load layer after loading the GeoPackage.")
+            )
         else:
             # start edycji GeoPaczki
             vlayer.startEditing()
 
             # dodanie nowych kolumn do warstwy
         
-            field_type=QVariant.String
-            generated_fature_list=[QgsField(x,field_type) for x in config.GPKP_COLUMNS_ADD_LIST]
+            # field_type = QMetaType.Type.QString
+            field_type = QVariant.String
+            generated_fature_list=[QgsField(x,field_type) for x in GPKP_COLUMNS_ADD_LIST]
             vlayer.dataProvider().addAttributes(generated_fature_list)
             vlayer.updateFields()
 
-            # modyfikacja już utworzonych kolumn (zmiana nazwy lub całkowite usunięcie atrybutu)
+            # modyfikacja już utworzonych kolumn (zmiana nazw atrybutów)
             for field_idx,field in enumerate(vlayer.fields()):
-                GPKP_COLUMNS_CHANGE_DICT=defaultdict(str,config.GPKP_COLUMNS_CHANGE_DICT)
-                if GPKP_COLUMNS_CHANGE_DICT[field.name()]:
-                    new_value=GPKP_COLUMNS_CHANGE_DICT[field.name()]
+                GPKP_COLUMNS_CHANGE_DICT_local = defaultdict(str, GPKP_COLUMNS_DICT)
+                if GPKP_COLUMNS_CHANGE_DICT_local[field.name()]:
+                    new_value=GPKP_COLUMNS_CHANGE_DICT_local[field.name()]
                     old_value=field.name()
-                    self.rename_name_field(vlayer, old_value, new_value)
-                if field.name() in config.GPKP_COLUMNS_DELETE_LIST:
-                    vlayer.dataProvider().deleteAttributes([field_idx])
-                    vlayer.updateFields()
+                    self.renameNameField(vlayer, old_value, new_value)
+
+            # usuwanie zbędnych atrybutów z GeoPaczki, które powstały podczas processingu
+            is_cleaned = False
+            while not is_cleaned:
+                is_cleaned = True
+                for field_idx,field in enumerate(vlayer.fields()):        
+                    if field.name() in GPKP_COLUMNS_DELETE_LIST:
+                        is_cleaned = False
+                        vlayer.dataProvider().deleteAttributes([field_idx])
+                        vlayer.updateFields()
+                        break
 
             features = vlayer.getFeatures()
             number_of_features = vlayer.featureCount()
+            progressbar_div = int(number_of_features / (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"]))
+            if progressbar_div == 0: 
+                progressbar_div = 1
             time_progress = 0
 
             # modyfikacja wartości atrybutów
+            field_map = vlayer.dataProvider().fieldNameMap()
             for feature in features:
-
                 time_progress += 1
-                try:
-                    self.progress.setValue(45+int(int(50*time_progress)/number_of_features))
-                    QApplication.processEvents()
-                except RuntimeError:
-                    pass
+                # aktualizowanie paska postępu tylko, kiedy ma to sens
+                if time_progress % progressbar_div == 0:
+                    try:
+                        progress_attr = PROGRESS["IMPORT_AFTER_TOOL"] + int(
+                            (PROGRESS["IMPORT_ATTRIBUTES_DONE"] - PROGRESS["IMPORT_AFTER_TOOL"])
+                            * time_progress
+                            / number_of_features
+                        )
+                        self.progress.setValue(progress_attr)
+                        QApplication.processEvents()
+                    except RuntimeError:
+                        MessageUtils.pushLogWarning(
+                            TranslationUtils.tr("Failed to update dialog window.")
+                        )
                 
                 # uzupełnienie wartości dla atrybutów: nr_drogi, nazwa_ulicy, numer_odcinka, kilometraz
-                nazwa_zdjecia = feature["nazwa_zdjecia"]
-
+                nazwa_zdjecia = feature[GPKP_COLUMNS_DICT["filename"]]
                 try:
                     nr_drogi = nazwa_zdjecia.split("_")[0]
                     nazwa_ulicy = nazwa_zdjecia.split("_")[1]
                     numer_odcinka = nazwa_zdjecia.split("_")[2]
                     kilometraz = nazwa_zdjecia.split("_")[3]
-
                 except IndexError:
                     nr_drogi = nazwa_zdjecia
                     nazwa_ulicy = None
                     numer_odcinka = None
                     kilometraz = None
-                                                               
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["nr_drogi"]: nr_drogi}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["nazwa_ulicy"]: nazwa_ulicy}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["numer_odcinka"]: numer_odcinka}})
-                vlayer.dataProvider().changeAttributeValues(
-                    {feature.id(): {vlayer.dataProvider().fieldNameMap()["kilometraz"]: kilometraz}})
 
+                vlayer.dataProvider().changeAttributeValues({
+                        feature.id(): {
+                            field_map[GPKP_COLUMNS_ADD_LIST[0]]: nr_drogi,
+                            field_map[GPKP_COLUMNS_ADD_LIST[1]]: nazwa_ulicy,
+                            field_map[GPKP_COLUMNS_ADD_LIST[2]]: numer_odcinka,
+                            field_map[GPKP_COLUMNS_ADD_LIST[3]]: kilometraz
+                            }
+                    })
                 # uzupełnienie wartości dla atrybutu azymut, w przypadku braku danych o azymucie w metadanych zdjęcia
-                azymut_value = feature["azymut"]
+                azymut_value = feature[COLUMN_YAW]
 
-                if str(azymut_value) == "NULL":
+                if str(azymut_value) == "NULL" or azymut_value is None:
                     vlayer.dataProvider().changeAttributeValues(
-                        {feature.id(): {vlayer.dataProvider().fieldNameMap()["azymut"]: 310}})
-                else:
-                    pass    
+                        {feature.id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: DEFAULT_YAW_DEGREES}})
+                    MessageUtils.pushLogWarning(
+                        TranslationUtils.tr(
+                            "Invalid input data. Setting default value for 'azimuth' attribute at fid: {fid}."
+                        ).format(fid=feature.id())
+                    )
 
                 # uzupełnienie wartości dla atrybutu data_wykonania
-                data_value = feature["data_wykonania"]
-
-                if str(data_value) == "NULL":
-                    sciezka_zdjecie_value = feature["sciezka_zdjecie"]
+                data_value = feature[GPKP_COLUMNS_DICT["timestamp"]]
+                if str(data_value) == "NULL" or data_value is None:
+                    sciezka_zdjecie_value = feature[COLUMN_NAME]
                     sciezka_zdjecie_value = sciezka_zdjecie_value.replace("\\", "/")
                     sciezka_zdjecie_open = open(sciezka_zdjecie_value, "rb")
-                    tags = process_file(sciezka_zdjecie_open)
+                    tags = processFile(sciezka_zdjecie_open)
                     self.dataTime = tags["EXIF DateTimeOriginal"]
                     vlayer.dataProvider().changeAttributeValues(
                         {feature.id(): {
-                            vlayer.dataProvider().fieldNameMap()["data_wykonania"]: str(self.dataTime)}})
+                            field_map[GPKP_COLUMNS_DICT["timestamp"]]: str(self.dataTime)}})
                     sciezka_zdjecie_open.close()
 
         try:
-            self.progress.setValue(95)
+            self.progress.setValue(PROGRESS["IMPORT_ATTRIBUTES_DONE"])
         except RuntimeError:
             pass
 
         vlayer.commitChanges()
         return vlayer
 
-    def usuniecie_wartosci_gpkg(self, gpkg_path):
+    def usuniecieWartosciGpkg(self, gpkg_path):
         """Usunięcie wszystkich obiektów w warstwie"""
 
-        lys = self.project.mapLayers().values()
+        vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
+        if not vlayer.isValid():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas ladowania warstwy do wyczyszczenia: {gpkg_path}")
+            return
 
-        for layer in lys:
-            if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
-                layer.startEditing()
+        if not vlayer.startEditing():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas rozpoczecia edycji warstwy: {gpkg_path}")
+            return
 
-                for feat in layer.getFeatures():
-                    layer.deleteFeature(feat.id())
-                layer.commitChanges()
+        for feat in vlayer.getFeatures():
+            vlayer.deleteFeature(feat.id())
 
+        if not vlayer.commitChanges():
+            MessageUtils.pushLogCritical(f"Niepowodzenie podczas zapisu zmian przy czyszczeniu warstwy: {gpkg_path}")
+            vlayer.rollBack()
+            return
         try:
-            self.progress.setValue(5)
+            self.progress.setValue(PROGRESS["IMPORT_START"])
         except RuntimeError:
             pass
 
-    def polaczenie_warstw(self, gpkg_path, overwrite):
+    def polaczenieWarstw(self, gpkg_path, overwrite):
         """Połączenie dwóch Geopaczek (starego gpkg i gpkg z nowymi obiektami)"""
 
-        lys = self.project.mapLayers().values()
-        for layer in lys:
-            if layer.name() == gpkg_path.split("\\")[-1].split(".")[0]:
-                layer.startEditing()
+        vlayer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
+        if not vlayer.isValid():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas ladowania warstwy do polaczenia: {gpkg_path}"
+            )
+            return
 
-                for sourcefeat in overwrite.getFeatures():
-                    newfeat = QgsFeature()
-                    newfeat.setGeometry(sourcefeat.geometry())
-                    newfeat.setAttributes(sourcefeat.attributes())
-                    idx = overwrite.fields().indexFromName("fid")
+        if not vlayer.startEditing():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas rozpoczecia edycji warstwy: {gpkg_path}"
+            )
+            return
 
-                    if idx is not None:  # check if there is an "fid" attribute
-                        newfeat[idx] = None  # clear attribute
+        idx = vlayer.fields().indexFromName("fid")
+        for sourcefeat in overwrite.getFeatures():
+            newfeat = QgsFeature()
+            newfeat.setGeometry(sourcefeat.geometry())
+            newfeat.setAttributes(sourcefeat.attributes())
 
-                    layer.addFeature(newfeat)
-                layer.commitChanges()
+            if idx != -1:
+                newfeat[idx] = None
 
-                self.useLayer = str(layer.name())
+            vlayer.addFeature(newfeat)
 
-    def dopisanie_plik_button_clicked(self, photo_path, gpkg_path):
+        if not vlayer.commitChanges():
+            MessageUtils.pushLogCritical(
+                f"Niepowodzenie podczas zapisu zmian przy laczeniu warstw: {gpkg_path}"
+            )
+            vlayer.rollBack()
+            return
+
+        self.use_layer = str(vlayer.name())
+
+    def dopisaniePlikButtonClicked(self, photo_path, gpkg_path):
         """Obsługa wyboru przycisku dopisania danych do GeoPaczki"""
 
         try:
-            self.progress.setValue(2)
+            self.progress.setValue(PROGRESS["IMPORT_START"] // 2)
         except RuntimeError:
             pass
+          
+        vlayer_overwrite = self.createGpkg(photo_path, os.path.join(temp_dir, TEMPORATORY_FILES_LIST[0]))
+        self.polaczenieWarstw(gpkg_path, vlayer_overwrite)
 
-        vlayer_overwrite = self.create_gpkg(photo_path, os.path.join(plugin_dir, "temporary_files", "overwrite.gpkg"))
-        self.polaczenie_warstw(gpkg_path, vlayer_overwrite)
+    def _gpkgFields(self, *keys):
+        """
+        Zwraca nazwy pól (kolumn) z GeoPackage na podstawie GPKP_COLUMNS_DICT.
+        """
+        if not keys:
+            return list(GPKP_COLUMNS_DICT.values())
+        return [GPKP_COLUMNS_DICT[key] for key in keys]
 
-    def usuwanie_duplikatow(self, gpkg_path):
+    def usuwanieDuplikatow(self, gpkg_path):
+
         """uruchomienie narzędzia do wykrywania duplikatów w warstwie po wybranych atrybutach"""
 
         duplicate = processing.run(
             "native:removeduplicatesbyattribute",
             {
                 "INPUT": gpkg_path,
-                "FIELDS": [
-                    "nazwa_zdjecia",
-                    "długosc geog",
-                    "szerokosc geog",
-                    "data_wykonania",
-                ],
-                "OUTPUT": plugin_dir + "/temporary_files/no_duplicates.gpkg",
-                "DUPLICATES": plugin_dir + "/temporary_files/duplicates.gpkg"
+                "FIELDS": self._gpkgFields(),
+                "OUTPUT": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[2]),
+                "DUPLICATES": os.path.join(temp_dir, TEMPORATORY_FILES_LIST[1])
             }
         )
 
         if duplicate["DUPLICATE_COUNT"] > 0:    # obsługa wykrycia duplikatów w warstwie
 
-            self.usuniecie_wartosci_gpkg(gpkg_path)
+            self.usuniecieWartosciGpkg(gpkg_path)
 
             try:
-                self.progress.setValue(96)
+                self.progress.setValue(PROGRESS["DUPLICATES_BEFORE_MERGE"])
             except RuntimeError:
                 pass
 
             layer_no_duplicate = QgsVectorLayer(duplicate["OUTPUT"], "no_duplicate", "ogr")
-            self.polaczenie_warstw(gpkg_path, layer_no_duplicate)
+            self.polaczenieWarstw(gpkg_path, layer_no_duplicate)
 
             try:
-                self.progress.setValue(98)
+                self.progress.setValue(PROGRESS["DUPLICATES_AFTER_MERGE"])
             except RuntimeError:
                 pass
 
@@ -678,97 +713,133 @@ class Geo360:
             layer_duplicate = QgsVectorLayer(duplicate["DUPLICATES"], "duplicate", "ogr")
 
             for feat_duplic in layer_duplicate.getFeatures():
-                sciezka_zdjecie_value = feat_duplic["nazwa_zdjecia"]
+                sciezka_zdjecie_value = feat_duplic[GPKP_COLUMNS_DICT["filename"]]
                 sciezka_zdjecie_list.append(sciezka_zdjecie_value)
 
-            if len(sciezka_zdjecie_list) <= 20:
+            if len(sciezka_zdjecie_list) <= DUPLICATES_PREVIEW_LIMIT:
                 lista_zdjec = str(sciezka_zdjecie_list)
             else:
-                lista_zdjec = str(sciezka_zdjecie_list[0:19]) + " ... "
+                lista_zdjec = str(sciezka_zdjecie_list[0:DUPLICATES_PREVIEW_LIMIT-1]) + " ... "
 
             # wyświetlenie okna z informacją duplikatach
-            msgbox = QMessageBox(QMessageBox.Information, "Ostrzeżenie:",
-                                    f"Usunięto {duplicate['DUPLICATE_COUNT']} duplikatów.\n\n"
-                                    f"Duplikaty stwierdzono na podstawie atrybutów: "
-                                    f"nazwa_zdjecia, długosc geog, szerokosc geog, data_wykonania.\n\n"
-                                    f"Stwierdzono duplikaty zdjęć: \n"
-                                    f"{lista_zdjec}")
-            msgbox.exec_()
+            MessageUtils.pushMessageBoxInfo(
+                self.iface.mainWindow(),
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr(
+                    "Removed {count} duplicates. Duplicates were identified based on attributes: photo_name, longitude, latitude, capture_date. Duplicate photos: {lista}"
+                ).format(count=duplicate["DUPLICATE_COUNT"], lista=lista_zdjec),
+            )
 
-    def fromPhotos_btn_clicked(self):
+    def importPhotos(self):
         """Obsługa przycisku "Importuj" do stworzenia GeoPaczki z geotagowanych zdjęć z wybranego folderu """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         photo_path = self.dlg.mQgsFileWidget_search_photo.filePath()
         if not self.checkSavePath(photo_path):
             return False
         
-                # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
+        # sprawdzenie, czy w folderze ze zdjęciami są pliki zdjęć (.jpg)
         files = os.listdir(photo_path)
         rozszerzenia = []
 
         for file in files:
             rozszerzenie = file.split(".")
             rozszerzenia.append(rozszerzenie[-1])
-            
 
         if ("jpg" not in rozszerzenia):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "We wskazanym folderze ze zdjęciami brak plików z rozszerzeniem .jpg").exec_()
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No .jpg files were found in the selected photo folder"),
+            )
             return False
 
         gpkg_path = self.dlg.mQgsFileWidget_save_gpkg.filePath()
-        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
-        if gpkg_path.find(".gpkg") == -1:
-            gpkg_path = gpkg_path + ".gpkg"
 
         # stworzenie paska postępu
-        progressMessageBar = self.iface.messageBar().createMessage("Postęp importowania " + gpkg_path.split("\\")[-1] + "...")
+        progress_message_bar = self.iface.messageBar().createMessage(
+            TranslationUtils.tr("Import inprogress {name}...").format(
+                name=gpkg_path.split("\\")[-1]
+            )
+        )
         self.progress = QProgressBar()
-        self.progress.setMaximum(100)
-        self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.progress.setMaximum(PROGRESS["COMPLETE"])
+        self.progress.setAlignment(QtCompat.alignmentLeftVcenter(Qt))
 
         if not gpkg_path or gpkg_path == "": # obsługa nie wskazania ściężki zapisu GeoPaczki
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano wskazano miejsca zapisu plików").exec_()
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr(
+                    "No output GeoPackage (.gpkg) file was specified. This file is required by the QGIS layer manager. Operation cancelled."
+                ),
+            )
             return False
+        
+        # sprawdzanie, czy plik nie jest używany przez inny proces zewnętrzny lub przez istniejącą warstwę 
+        if os.path.exists(gpkg_path):
+            try:
+                os.rename(gpkg_path, gpkg_path)
+            except OSError as e:
+                MessageUtils.pushMessageBoxWarning(
+                    self.dlg,
+                    TranslationUtils.tr("Warning"),
+                    TranslationUtils.tr(
+                        "The specified GeoPackage file is in use by another process or an existing layer. Operation aborted."
+                    ),
+                )
+                return False
+
+        # sprawdzenie rozszerzenia pliku wpisanego przez użytkownika
+        if Path(gpkg_path).suffix.lower() != ".gpkg":
+            gpkg_path = gpkg_path + ".gpkg"
 
         elif os.path.exists(gpkg_path): # obsługa wskazania już istnięjącego pliku Geopaczki
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
-            msgBox = QMessageBox(QMessageBox.Information, "Informacja",
-                                 "Plik już istnieje.\n"
-                                 "Czy chcesz stworzyć nowy plik (stary plik GPKG zostanie usunięty)?\n"
-                                 "Czy chcesz dopisać dane do starego pliku?")
+            msgBox = QMessageBox(self.dlg)
+            msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
+            msgBox.setWindowTitle(TranslationUtils.tr("Information"))
+            msgBox.setText(
+                TranslationUtils.tr(
+                    "File already exists.\n"
+                    "Do you want to create a new file (the existing GPKG file will be deleted)?\n"
+                    "Or append data to the existing file?"
+                )
+            )
 
-            nowy_plik_button = msgBox.addButton("Nowy plik", QtWidgets.QMessageBox.ApplyRole)
-            dopisanie_plik_button = msgBox.addButton("Dopisanie do pliku", QtWidgets.QMessageBox.ApplyRole)
-            anuluj_button = msgBox.addButton("Anuluj", QtWidgets.QMessageBox.ResetRole)
-            msgBox.exec_()
+            zatwierdz_role = QtCompat.qmessageboxApplyRole(QtWidgets)
+            anuluj_role = QtCompat.qmessageboxResetRole(QtWidgets)
+
+            nowy_plik_button = msgBox.addButton(TranslationUtils.tr("New file"), zatwierdz_role)
+            dopisanie_plik_button = msgBox.addButton(TranslationUtils.tr("Append data"), zatwierdz_role)
+            anuluj_button = msgBox.addButton(TranslationUtils.tr("Cancel"), anuluj_role)
+            QtCompat.dialogExec(msgBox)
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
-                progressMessageBar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
+                progress_message_bar.layout().addWidget(self.progress)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
 
                 try:
                     self.progress.setValue(0)
                 except RuntimeError:
                     pass
 
-                self.usuniecie_wartosci_gpkg(gpkg_path)
-                self.dopisanie_plik_button_clicked(photo_path, gpkg_path)
+                self.usuniecieWartosciGpkg(gpkg_path)
+                self.dopisaniePlikButtonClicked(photo_path, gpkg_path)
 
             elif msgBox.clickedButton() == dopisanie_plik_button:  # obsługa przycisku do dodania nowych danych do pliku gpkg (do danych z istniejącego pliku zostaną dopisane nowe)
-                progressMessageBar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
+                progress_message_bar.layout().addWidget(self.progress)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
 
                 try:
                     self.progress.setValue(0)
                 except RuntimeError:
                     pass
 
-                self.dopisanie_plik_button_clicked(photo_path, gpkg_path)
-                self.usuwanie_duplikatow(gpkg_path)
+                self.dopisaniePlikButtonClicked(photo_path, gpkg_path)
+                self.usuwanieDuplikatow(gpkg_path)
 
             elif msgBox.clickedButton() == anuluj_button:   # obsługa anulowania zdarzenia
                 return False
@@ -784,39 +855,39 @@ class Geo360:
 
             layer = QgsVectorLayer(gpkg_path, Path(gpkg_path).stem, "ogr")
             self.project.addMapLayer(layer)
-            self.useLayer = str(layer.name())
+            self.use_layer = str(layer.name())
 
             try:
-                self.progress.setValue(100)
+                self.progress.setValue(PROGRESS["COMPLETE"])
             except RuntimeError:
                 pass
 
             # ukrycie okna PhotoViewer360
             self.dlg.hide()
-            self.click_feature()
+            self.action_activate.setEnabled(True)
+            self.clickPointOnMapFeature()
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
-            progressMessageBar.layout().addWidget(self.progress)
-            self.iface.messageBar().pushWidget(progressMessageBar, Qgis.Info)
+            progress_message_bar.layout().addWidget(self.progress)
+            self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
             self.progress.setValue(0)
-            vlayer = self.create_gpkg(photo_path, gpkg_path)
+            vlayer = self.createGpkg(photo_path, gpkg_path)
             self.project.addMapLayer(vlayer)
-            self.useLayer = str(vlayer.name())
+            self.use_layer = str(vlayer.name())
 
             try:
-                self.progress.setValue(100)
+                self.progress.setValue(PROGRESS["COMPLETE"])
             except RuntimeError:
                 pass
 
             self.dlg.hide()
-            self.click_feature()
+            self.clickPointOnMapFeature()
 
-    def fromGPKG_btn_clicked(self):
+    def browseGpkg(self):
         """Obsługa przycisku "Przeglądaj" do wczytania już istniejącej GeoPaczki nie wczytanej w projekcie QGIS 
         (GeoPaczka musi być utworzona przez tą wtyczkę) """
 
         self.is_press_button = True
-        self.action_activate.setEnabled(True)
 
         gpkg_path = os.path.join(self.dlg.mQgsFileWidget_search_gpkg.filePath())
         if not self.checkSavePath(gpkg_path):
@@ -825,16 +896,47 @@ class Geo360:
 
         vlayer = QgsVectorLayer(gpkg_path, gpkg_name, "ogr")
         if not vlayer.isValid():
-            print("Layer failed to load!")
+            MessageUtils.pushLogCritical(
+                TranslationUtils.tr(
+                    "Failed to load layer from existing GeoPackage: {path}"
+                ).format(path=gpkg_path)
+            )
+            return False
+        
+        # sprawdzanie poprawności GeoPaczki, pliki powstałe poza wtyczką są odrzucane
+        col_name = GPKP_COLUMNS_CHECK[0]
+        try:
+            for feature in vlayer.getFeatures():
+                for name in GPKP_COLUMNS_CHECK:
+                    col_name = name
+                    atrybut = feature.attribute(name)
+                break
+        except KeyError:
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr(
+                    "Required attribute not found in the selected GeoPackage file: {col}"
+                ).format(col=col_name)
+            )
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr(
+                    "The selected file does not contain the required attributes. The file may be corrupted or created using another tool."
+                ),
+            )
+            self.action_activate.setEnabled(False)
             return False
 
         self.project.addMapLayer(vlayer)
 
-        self.useLayer = vlayer.name()
+        self.use_layer = vlayer.name()
         self.dlg.hide()
-        self.click_feature()
+        self.action_activate.setEnabled(True)
+        self.clickPointOnMapFeature()
 
-    def rename_name_field(self, rlayer, oldname, newname):
+        return True
+
+    def renameNameField(self, rlayer, oldname, newname):
         """Funkcja zmieniająca nazwy atrybutów w warstwie"""
 
         findex = rlayer.dataProvider().fieldNameIndex(oldname)
@@ -842,21 +944,29 @@ class Geo360:
             rlayer.dataProvider().renameAttributes({findex: newname})
             rlayer.updateFields()
 
-    def createNewViewer(self, featuresId=None, layer=None):
+    def createNewViewer(self, features_id=None, layer=None):
         """Funkcja uruchamia plik Geo360Dialog.py, który jest odpowiedzialny za obsługę okna StreetView (okna ze zdjęciami oraz nawigacją)"""
 
-        self.featuresId = featuresId
+        self.features_id = features_id
         self.canvas.refresh()
 
-        self.orbitalViewer = Geo360Dialog(
-            self.iface,
-            featuresId=featuresId,
-            layer=layer,
-            name_layer=self.useLayer,
-            parent=self,
-        )
+        pozycja_dockwidget = QtCompat.rightDockwidgetArea(Qt)
 
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.orbitalViewer)
+        if self.orbital_viewer is not None:
+            self.orbital_viewer.updateViewerDialog(
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+            )
+        else:
+            self.orbital_viewer = Geo360Dialog(
+                self.iface,
+                features_id=features_id,
+                layer=layer,
+                name_layer=self.use_layer,
+                parent=self,
+            )
+            self.iface.addDockWidget(pozycja_dockwidget, self.orbital_viewer)
 
     def layerRemoved(self):
         """Obsługa usunięcia warstwy z projektu QGIS"""
@@ -867,21 +977,29 @@ class Geo360:
         for one_layer in lys:
             layers_name.append(one_layer.name())
 
-        if (self.useLayer not in layers_name):
+        if (self.use_layer not in layers_name):
             self.action_activate.setEnabled(False)
             self.iface.actionPan().trigger()
 
-            if self.orbitalViewer != None:
-                self.orbitalViewer.close()
+            if self.orbital_viewer is not None:
+                self.orbital_viewer.close()
 
     def checkSavePath(self, path):
         """Funkcja sprawdza czy ścieżka jest poprawna i zwraca Boolean"""
 
         if not path or path == "":
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Nie wskazano ścieżki do pliku/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("No file/folder path specified"),
+            )
             return False
         elif not os.path.exists(path):
-            QMessageBox(QMessageBox.Warning, "Ostrzeżenie:", "Wskazano nieistniejącą ścieżkę do odczytu plików/folderu").exec_()
+            MessageUtils.pushMessageBoxWarning(
+                self.dlg,
+                TranslationUtils.tr("Warning"),
+                TranslationUtils.tr("Specified path for reading files/folder does not exist"),
+            )
             return False
         else:
             return True

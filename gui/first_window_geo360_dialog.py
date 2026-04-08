@@ -6,7 +6,7 @@
  Show local equirectangular images.
                              -------------------
         begin                : 2022-08-08
-        copyright            : (C) 2025 by EnviroSolutions Sp z o.o.
+        copyright            : (C) 2026 by EnviroSolutions Sp z o.o.
         email                : office@envirosolutions.pl
  ***************************************************************************/
 /***************************************************************************
@@ -22,6 +22,8 @@
 import os
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import pyqtSignal
+
+from ..utils import QtCompat
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -39,6 +41,9 @@ class FirstWindowGeo360Dialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.mQgsFileWidget_search_photo.setOptions(
+            QtCompat.qfiledialogShowDirsOnly(QtWidgets)
+        )
         #self.folder_fileWidget.setStorageMode(QgsFileWidget.GetDirectory)
 
     def closeEvent(self, event):

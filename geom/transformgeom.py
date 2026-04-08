@@ -1,10 +1,10 @@
 import math
 from qgis.core import QgsPoint, QgsGeometry
 
-from PyQt5.QtWidgets import QMessageBox
+from ..utils import MessageUtils, TranslationUtils
 
 
-class transformGeometry:
+class TransformGeometry:
 
     # Rotates a geometry.
     # (c) Stefan Ziegler
@@ -81,8 +81,10 @@ class transformGeometry:
             return QgsGeometry().fromMultiPolygon([coords])
 
         else:
-            QMessageBox.information(
-                None, "Information", str("Vector type is not supported.")
+            MessageUtils.pushMessageBoxInfo(
+                None,
+                TranslationUtils.tr("Information"),
+                TranslationUtils.tr("Vector type is not supported."),
             )
             return None
 

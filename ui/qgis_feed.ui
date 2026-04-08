@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Nowości EnviroSolutions - Wybór branży</string>
+   <string>EnviroSolutions Updates - Industry Selection</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="0" rowspan="2" colspan="2">
@@ -57,7 +57,7 @@
         </size>
        </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Pomóż nam lepiej dostosować&lt;br/&gt;bezpłatne wtyczki.&lt;br/&gt;Wskaż którą branżę reprezentujesz.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Help us better customize&lt;br/&gt;free plugins.&lt;br/&gt;Please indicate which industry you represent.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
      </item>
@@ -74,57 +74,57 @@
        </property>
        <item>
         <property name="text">
-         <string>Nie wybrano</string>
+         <string>Not selected</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Energetyka/OZE</string>
+         <string>Energy / Renewable Energy</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Urząd</string>
+         <string>Public Administration</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Transport/Drogi</string>
+         <string>Transport/Infrastructure</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Planowanie/Geodezja</string>
+         <string>Planning/Surveying/Geodesy</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>WodKan</string>
+         <string>Water and Wastewater</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Środowisko</string>
+         <string>Environment</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Rolnictwo/Leśnictwo</string>
+         <string>Agriculture/Forestry</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Telkom</string>
+         <string>Telecommunications</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Edukacja</string>
+         <string>Education</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Inne</string>
+         <string>Other</string>
         </property>
        </item>
        <item>
@@ -134,7 +134,7 @@
        </item>
        <item>
         <property name="text">
-         <string>Nieruchomości</string>
+         <string>Real Estate</string>
         </property>
        </item>
       </widget>
@@ -183,7 +183,7 @@
        <item row="0" column="1">
         <widget class="QPushButton" name="pushButton">
          <property name="text">
-          <string>Zapisz</string>
+          <string>Save</string>
          </property>
         </widget>
        </item>
