@@ -42,6 +42,115 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 Rekomendowane wersje QGIS: 3.34.4.
 W celu poprawnego działania wtyczki PhotoViewer360, należy odinstalować wtyczkę EquirectangularViewer (jeśli była wcześniej zainstalowana).
 
+## Setup środowiska (macOS)
+W celu zapewnienia poprawnego funkcjonowania wtyczki, konieczne jest zainstalowanie wymaganych pakietów, które nie są domyślnie wspierane przez system macOS.
+
+# Krok 1 - Pobranie właściwych plików
+
+1.1
+Uruchom konsolę Pythona z poziomu QGIS (Wtyczki -> Konsola Pythona)
+
+```python
+import sys
+import platform
+
+print(sys.version)
+print(platform.machine())
+```
+
+1.2
+Przejdź na stronę:
+https://pypi.org/project/pillow/#files
+
+1.3 
+Dobierz plik .whl
+
+Popularne rozszerzenia to:
+cp312 = CPython 3.12
+cp311 = Cpython 3.11
+x86_64 = Intel/Rosetta
+arm64 = Apple Silicon
+
+Przykład:
+- Python 3.12
+- x86_64
+
+*pillow-12.2.0-cp312-cp312-macosx_10_13_x86_64.whl*
+
+1.4
+Przejdź na stronę:
+https://pypi.org/project/PyOpenGL/#files
+
+1.5
+Pobierz plik:
+pyopengl-3.1.10-py3-none-any.whl
+
+# Krok 2 - Rozpakowanie plików
+```bash
+cd ~/Downloads
+```
+```bash
+mkdir pillow_unpack
+unzip pillow-*.whl -d pillow_unpack
+```
+```bash
+mkdir opengl_unpack
+unzip PyOpenGL-*.whl -d opengl_unpack
+```
+
+# Krok 3 - Skopiowanie bibliotek do wtyczki
+W terminalu wpisz:
+
+```bash
+PLUGIN="<TU_WKLEJ_ŚCIEŻKĘ_DO_FOLDERU_PhotoViewer360>"
+```
+```bash
+mkdir -p "$PLUGIN/libs"
+```
+```bash
+cp -R ~/Downloads/pillow_unpack/PIL "$PLUGIN/libs/"
+cp -R ~/Downloads/opengl_unpack/OpenGL "$PLUGIN/libs/"
+```
+Po tym kroku struktura powinna wyglądać tak:
+
+PhotoViewer360/
+    -libs/
+        -PIL/
+        -OpenGL/
+
+# Krok 4  Odblokowanie plików
+W terminalu wpisz:
+
+```bash
+xattr -dr com.apple.quarantine "$PLUGIN/libs"
+```
+
+# Krok 5 Podpisanie plików
+W terminalu wpisz:
+
+```bash
+find "$PLUGIN/libs" \
+\( -name "*.so" -o -name "*.dylib" -o -path "*/.dylibs/*" \) -print0 | \
+xargs -0 -I {} codesign --force --sign - "{}"
+```
+# Krok 6 Restart QGIS
+- Zamknij program QGIS.
+- Uruchom go ponownie.
+- Włącz wtyczkę.
+
+# Krok 7 Test
+W konsoli python QGIS wklej:
+```python
+from PIL import Image
+from OpenGL.GL import glPushMatrix
+
+print("PIL podegrał się poprawnie", Image.__file__)
+print("OpenGL podegrał się poprawnie")
+```
+# Najczęstsze problemy
+- No module named PIL -> Pillow nie jest w libs lub została pobrana nieprawidłowa wersja
+- code signature not valid -> nie wykonano xattr + codesign
+
 ## Kontakt
 
 Wtyczka została stworzona przez ****EnviroSolutions**. W razie pytań lub potrzeby wsparcia skontaktuj się z nami przez e-mail:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
@@ -89,6 +198,117 @@ The plugin also includes data in the [test_data](https://envirosolutions.pl/phot
 The necessary condition for the correct operation of the plugin is to have the QGIS 3.28.0 version or higher.
 Recomended version of QGIS: 3.34.4.
 If the EquirectangularViewer plugin is installed, please uninstall it in order to the PhotoViewer360 plugin work properly.
+
+## Environment setup (macOS)
+
+For the plugin to work properly, you need to install required packages that macOS does not ship by default.
+
+# Step 1 - Download the correct files
+
+1.1  
+Open python console in QGIS (Plugins → Python Console):
+
+```python
+import sys
+import platform
+
+print(sys.version)
+print(platform.machine())
+```
+
+1.2
+Go to the page:
+https://pypi.org/project/pillow/#files
+
+1.3 
+Pick proper .whl file
+
+Common extensions are:
+cp312 = CPython 3.12
+cp311 = Cpython 3.11
+x86_64 = Intel/Rosetta
+arm64 = Apple Silicon
+
+Example:
+- Python 3.12
+- x86_64
+
+*pillow-12.2.0-cp312-cp312-macosx_10_13_x86_64.whl*
+
+1.4
+Go to the page:
+https://pypi.org/project/PyOpenGL/#files
+
+1.5
+Download the file:
+pyopengl-3.1.10-py3-none-any.whl
+
+# Step 2 - Unpacking the files
+
+```bash
+cd ~/Downloads
+```
+```bash
+mkdir pillow_unpack
+unzip pillow-*.whl -d pillow_unpack
+```
+```bash
+mkdir opengl_unpack
+unzip PyOpenGL-*.whl -d opengl_unpack
+```
+
+# Step 3 - Copying libraries into the plugin
+In terminal type:
+```bash
+PLUGIN="<PASTE_PATH_TO_PhotoViewer360_FOLDER>"
+```
+```bash
+mkdir -p "$PLUGIN/libs"
+```
+```bash
+cp -R ~/Downloads/pillow_unpack/PIL "$PLUGIN/libs/"
+cp -R ~/Downloads/opengl_unpack/OpenGL "$PLUGIN/libs/"
+```
+
+After this step the structure should look like:
+
+PhotoViewer360/
+    -libs/
+        -PIL/
+        -OpenGL/
+
+# Step 4  Unlocking files
+In the terminal type:
+
+```bash
+xattr -dr com.apple.quarantine "$PLUGIN/libs"
+```
+
+# Step 5 Signing files
+In the terminal type:
+
+```bash
+find "$PLUGIN/libs" \
+\( -name "*.so" -o -name "*.dylib" -o -path "*/.dylibs/*" \) -print0 | \
+xargs -0 -I {} codesign --force --sign - "{}"
+```
+# Step 6 Restart QGIS
+- Close the QGIS program.
+- Start it again.
+- Enable the plugin.
+
+# Step 7 Test
+In the QGIS python console paste:
+```python
+from PIL import Image
+from OpenGL.GL import glPushMatrix
+
+print("PIL loaded correctly", Image.__file__)
+print("OpenGL loaded correctly")
+```
+# Most common problems
+- No module named PIL -> Pillow is not in libs or the wrong version was downloaded
+- code signature not valid -> xattr + codesign were not run
 
 ## Contact
 

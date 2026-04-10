@@ -22,9 +22,14 @@
 """
 import os
 import tempfile
+import sys
 
 plugin_dir = os.path.dirname(__file__)
 temp_dir = tempfile.gettempdir()
+libs_dir = os.path.join(plugin_dir, "libs")
+
+if libs_dir not in sys.path:
+    sys.path.insert(0, libs_dir)
 
 PLUGIN_NAME = ''
 PLUGIN_VERSION = ''
@@ -34,15 +39,6 @@ with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r', encoding
             PLUGIN_VERSION = line.strip().split("=", 1)[-1].strip()
         elif line.startswith("name="):
             PLUGIN_NAME = line.strip().split("=", 1)[-1].strip()
-
-PLUGIN_NAME = ''
-PLUGIN_VERSION = ''
-with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r') as pluginMetadataFile:
-    for line in pluginMetadataFile:
-        if line.startswith("version="):
-            PLUGIN_VERSION = line.strip().split('=')[-1]
-        elif line.startswith("name="):
-            PLUGIN_NAME = line.strip().split('=')[-1]
 
 def classFactory(iface):
     from .Geo360 import Geo360
