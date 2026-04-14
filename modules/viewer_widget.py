@@ -15,6 +15,7 @@ from OpenGL.GLU import (
 )
 
 from PIL import Image, ImageFont, ImageDraw
+from . import pil_image_compat
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtGui import QPainter, QPixmap
 
@@ -485,7 +486,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             draw.text((10, 228), data_wykonania, fill=(0, 0, 0), font=font_regular)
 
         self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
-        self.qimage_description_data = image.toqimage()
+        self.qimage_description_data = pil_image_compat.toqimage(image)
 
         return True
 
