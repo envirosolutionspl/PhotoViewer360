@@ -469,6 +469,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         # gdy użytkownik nie wskaże pliku -> nic nie rób
         if not image_path:
             return
+        
+        # dodanie rozszerzenia do nazwy pliku (Linux)
+        _base_path, file_ext = os.path.splitext(image_path)
+        if file_ext not in ['.png', '.jpg']:
+            image_path += '.png' if _ext == 'PNG(*.png)' else '.jpg'
 
         self.gl_widget.screenShot(image_path)
 
