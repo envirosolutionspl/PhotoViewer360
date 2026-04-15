@@ -36,7 +36,7 @@ Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych w programi
 ![photoviewer_360_gif_pl](https://github.com/user-attachments/assets/d0138d9a-3e16-45f2-b2eb-89f921a6a70f)
 
 ## Uwaga
-Do wtyczki załączono również dane w folderze [test_data](./test_data/test_data.zip) w formacie ZIP, które umożliwiają testowanie funkcjonalności narzędzia.
+Do wtyczki udostępniamu również dane testowe [test_data.zip](https://envirosolutions.pl/photoviewer360_test_data.zip) w formacie ZIP, które umożliwiają sprawdzenie funkcjonalności narzędzia.
 
 Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.28.0 lub wyższej.
 Rekomendowane wersje QGIS: 3.34.4.
@@ -84,7 +84,7 @@ QGIS Plugin for importing and visualising local panoramic images. Based on Equir
 ![photoviewer_360_gif_en](https://github.com/user-attachments/assets/1c8595ff-cadf-4d2a-8b60-fbd150e0a6c8)
 
 ## Attention
-The plugin also includes data in the [test_data](./test_data/test_data.zip) folder in ZIP format, which enables testing of the tool’s functionality.
+The plugin also includes test data in the [test_data.zip](https://envirosolutions.pl/photoviewer360_test_data.zip) file in ZIP format, which enables testing of the tool’s functionality.
 
 The necessary condition for the correct operation of the plugin is to have the QGIS 3.28.0 version or higher.
 Recomended version of QGIS: 3.34.4.
