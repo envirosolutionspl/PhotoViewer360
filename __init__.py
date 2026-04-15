@@ -35,15 +35,6 @@ with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r', encoding
         elif line.startswith("name="):
             PLUGIN_NAME = line.strip().split("=", 1)[-1].strip()
 
-PLUGIN_NAME = ''
-PLUGIN_VERSION = ''
-with open(os.path.join(os.path.dirname(__file__), 'metadata.txt'), 'r') as pluginMetadataFile:
-    for line in pluginMetadataFile:
-        if line.startswith("version="):
-            PLUGIN_VERSION = line.strip().split('=')[-1]
-        elif line.startswith("name="):
-            PLUGIN_NAME = line.strip().split('=')[-1]
-
 def classFactory(iface):
     from .Geo360 import Geo360
 
