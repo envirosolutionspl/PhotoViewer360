@@ -590,6 +590,51 @@ class Geo360:
                             field_map[GPKP_COLUMNS_DICT["timestamp"]]: str(self.dataTime)}})
                     sciezka_zdjecie_open.close()
 
+
+            # naprawa azymutów o wartości 0.0
+            i, spot_to_mend = 0, 0
+            features = vlayer.getFeatures()
+            features_list = []
+            for f in features:
+                features_list.append(f)
+            while spot_to_mend < number_of_features:
+                if features_list[i][COLUMN_YAW] != 0:
+                    if i > spot_to_mend:        
+                        if spot_to_mend == 0:
+                            # jeśli pierwszy był błędny to przypisujemy mu pierwszą napotkaną wartość
+                            new_yaw = features_list[i][COLUMN_YAW]
+                            vlayer.dataProvider().changeAttributeValues(
+                                {features_list[0].id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: new_yaw}})
+                            features_list[0][COLUMN_YAW] = new_yaw
+                            spot_to_mend += 1
+                        else:
+                            # przypisujemy poprzedniemu elementowi średnią naprawionego i aktualnego
+                            new_yaw = (features_list[spot_to_mend-1][COLUMN_YAW]+features_list[i][COLUMN_YAW])/2
+                            vlayer.dataProvider().changeAttributeValues(
+                                {features_list[i-1].id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: new_yaw}})
+                            features_list[i-1][COLUMN_YAW] = new_yaw
+                            i -= 1
+                    else: # czyli: i == spot_to_mend, wszystko gra -> przesuwamy się dalej
+                        i += 1
+                        spot_to_mend += 1
+                else:  
+                    if i == number_of_features-1:
+                        if spot_to_mend > 0:
+                            new_yaw = features_list[spot_to_mend-1][COLUMN_YAW] 
+                            vlayer.dataProvider().changeAttributeValues(
+                                {features_list[i].id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: new_yaw}})
+                            features_list[i][COLUMN_YAW] = new_yaw
+                            continue   
+                        if spot_to_mend == 0:
+                            # wszystkie zdjęcia mają 0 w odczytach azymutu
+                            MessageUtils.pushLogWarning(
+                                TranslationUtils.tr(
+                                    "Invalid input data. All values of the 'azymut' attribute have a value of 0.0"
+                                )
+                    )
+                            break 
+                    i += 1
+
         try:
             self.progress.setValue(PROGRESS["IMPORT_ATTRIBUTES_DONE"])
         except RuntimeError:
