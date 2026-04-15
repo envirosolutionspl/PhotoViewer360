@@ -611,6 +611,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.update()
 
         pixmap.save(image_path)
-        os.startfile(image_path)
+        if hasattr(os,'startfile'):
+            os.startfile(image_path)
 
 
