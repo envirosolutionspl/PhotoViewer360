@@ -659,6 +659,37 @@ class VersionUtils:
         """
         return platform.system().lower()
 
+    @staticmethod
+    def addLocalLibPath(path, force=False):
+        """
+        Dodaje do zmiennych środowiskowych lokalizację folderu z modułami.
+        Parametr force pozwala na wymuszenie pierwszeństwa modułów lokalnych nad wbudowanymi. 
+        W przypadku wybiórczego dodawania modułów zaleca się umieszczanie modułów w osobnych folderach.
+
+        :param path: Ścieżka do folderu zawierającego moduły
+        :type path: str
+
+        :param force: Wartość True powoduje dodanie lokalnej lokalizacji w kolejce przed modułami wbudowanymi.
+                      False dodaje moduł na końcu kolejki. Wtedy lokalne foldery brane są pod uwagę tylko wtedy,
+                      gdy importer nie znajdzie modułu w swoich zasobach.  
+        :type force: bool
+
+        :returns: Zwraca False jeśli folder path nie istnieje
+        :rtype: bool
+        """
+        lib_path = os.path.abspath(path)
+        # Usuwamy ścieżkę ze zmiennych środowiskowych jeśli już istnieje
+        sys.path = [p for p in sys.path if os.path.abspath(p) != lib_path]
+
+        if os.path.exists(lib_path):
+            if force:
+                sys.path.insert(0, lib_path)
+            else:
+                sys.path.append(lib_path)
+        else:
+            return False
+        return True
+
 class QtCompat:
     """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
 
