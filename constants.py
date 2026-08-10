@@ -6,6 +6,10 @@ DEFAULT_ENCODING = 'utf-8'
 # url do sprawdzania połączenia z internetem
 ULDK_URL = 'https://uldk.gugik.gov.pl/'
 
+# Lokalizacja lokalnych modułów
+LIBS_PATH = "libs"
+LIB_EXIFREAD_PATH = "exifread_3_5_1"
+
 # wersja Qt6
 QT_VER = {
     6: "6."
