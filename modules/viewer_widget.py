@@ -4,6 +4,21 @@ import math
 import os
 
 from ..utils import MessageUtils, QtCompat, VersionUtils, TranslationUtils
+from .. import plugin_dir
+from ..constants import (
+    WHITE_HOTSPOT_OBJ_FILENAME,
+    BLACK_HOTSPOT_OBJ_FILENAME,
+    NOIMAGE_JPG_FILENAME,
+    HOTSPOT_BASE_TEST_COLOR,
+    HOTSPOT_BASE_BRIGHT_COLOR,
+    DESC_BALOON_FILENAME,
+    FONT_NAME,
+    IMAGES_DIRECTORY,
+    LIBS_PATH,
+    LIB_OPENGL_PATH,
+)
+
+VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPENGL_PATH))
 
 from OpenGL.GL import *
 from OpenGL.GLU import (
@@ -22,18 +37,7 @@ from qgis.PyQt.QtGui import QPainter, QPixmap
 # QtCompat: from qgis.PyQt import QtOpenGLWidgets
 QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
 
-from ..constants import (
-    WHITE_HOTSPOT_OBJ_FILENAME,
-    BLACK_HOTSPOT_OBJ_FILENAME,
-    NOIMAGE_JPG_FILENAME,
-    HOTSPOT_BASE_TEST_COLOR,
-    HOTSPOT_BASE_BRIGHT_COLOR,
-    DESC_BALOON_FILENAME,
-    FONT_NAME,
-    IMAGES_DIRECTORY,
-)
 
-from .. import plugin_dir
 
 class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
     """ QWidget Renderujący Widok Perspektywiczny na podstawie zdjęcia EquiProstokątnego """
@@ -89,7 +93,6 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.hot_spot_last_rgb = 0
         self.viewport = []
 
-        
     def loadTexture(self, nazwa_pliku):
         """
         Wczytuje zdjęcie do pamięci OpenGL lub je odświeża. Nazwa zostaje zapamiętana w klasie ViewerWidget.
