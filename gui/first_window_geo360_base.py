@@ -87,7 +87,7 @@ class UiMain(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.mQgsFileWidget_search_photo.sizePolicy().hasHeightForWidth())
         self.mQgsFileWidget_search_photo.setSizePolicy(sizePolicy)
-        self.mQgsFileWidget_search_photo.setStorageMode(QgsFileWidget.GetDirectory)
+        self.mQgsFileWidget_search_photo.setStorageMode(QgsFileWidget.StorageMode.GetDirectory)
         self.mQgsFileWidget_search_photo.setOptions(
             QtCompat.qfiledialogShowDirsOnly(QtWidgets)
         )
@@ -111,7 +111,7 @@ class UiMain(object):
         self.mQgsFileWidget_save_gpkg.setFileWidgetButtonVisible(True)
         self.mQgsFileWidget_save_gpkg.setUseLink(False)
         self.mQgsFileWidget_save_gpkg.setFullUrl(False)
-        self.mQgsFileWidget_save_gpkg.setStorageMode(QgsFileWidget.SaveFile)
+        self.mQgsFileWidget_save_gpkg.setStorageMode(QgsFileWidget.StorageMode.SaveFile)
         self.mQgsFileWidget_save_gpkg.setObjectName("mQgsFileWidget_save_gpkg")
         self.verticalLayout_2.addWidget(self.mQgsFileWidget_save_gpkg)
         self.fromPhotos_btn = QtWidgets.QPushButton(self.verticalLayoutWidget_2)
