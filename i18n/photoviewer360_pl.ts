@@ -316,6 +316,16 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <translation>Błąd konwersji wartości na float: {value}</translation>
     </message>
     <message>
+        <location filename="../utils.py" line="691"/>
+        <source>Could not add local module for given location: {path}</source>
+        <translation>Nie można było dodać lokalnego modułu dla podanej lokalizacji: {path}</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py" line="23"/>
+        <source>Local &apos;OpenGL&apos; library not found - plugin may not function correctly.</source>
+        <translation>Nie znaleziono lokalnej wersji &apos;OpenGL&apos; - wtyczka może nie funkcjonować poprawnie.</translation>
+    </message>
+    <message>
         <location filename="../modules/viewer_widget.py" line="123"/>
         <source>Photo file not found.</source>
         <translation>Nie znaleziono pliku zdjęcia.</translation>

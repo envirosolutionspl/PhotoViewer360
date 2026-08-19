@@ -687,6 +687,9 @@ class VersionUtils:
             else:
                 sys.path.append(lib_path)
         else:
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Could not add local module for given location: {path}").format(path=lib_path)
+            )
             return False
         return True
 

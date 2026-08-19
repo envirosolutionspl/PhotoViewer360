@@ -18,7 +18,10 @@ from ..constants import (
     LIB_OPENGL_PATH,
 )
 
-VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPENGL_PATH))
+if not VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPENGL_PATH)):
+    MessageUtils.pushLogWarning(
+            TranslationUtils.tr("Local 'OpenGL' library not found - plugin may not function correctly.")
+        )
 
 from OpenGL.GL import *
 from OpenGL.GLU import (
