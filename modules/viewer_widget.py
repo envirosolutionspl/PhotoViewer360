@@ -12,6 +12,7 @@ from OpenGL.GLU import (
     gluPerspective,
     gluQuadricTexture,
     gluSphere,
+    gluErrorString,
 )
 
 from PIL import Image, ImageFont, ImageDraw
@@ -93,8 +94,11 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         """
         Czyści stos nieobsłużonych błędów OpenGL
         """
-        while glGetError() != GL_NO_ERROR:
-            pass
+        while True:
+            gl_error = glGetError()
+            if gl_error == GL_NO_ERROR:
+                break
+            MessageUtils.pushLogCritical(f"Unexpected OpenGL Error: ({str(gl_error)}): {gluErrorString(gl_error).decode()}")
         glMatrixMode(mode)
         
     def loadTexture(self, nazwa_pliku):
