@@ -303,7 +303,7 @@ class Geo360:
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
-        self.dlg.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.dlg.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.Filter.PointLayer)
         self.dlg.mapLayerComboBox.setShowCrs(True)
 
         # obsługa usunięcia warstwy w oknie PhotoViewer360
@@ -355,7 +355,7 @@ class Geo360:
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
 
-        if QtCompat.dialogExec(self.qgisfeed_dialog) == QDialog.Accepted:
+        if self.qgisfeed_dialog.exec() == QDialog.DialogCode.Accepted:
             self.selected_branch = self.qgisfeed_dialog.combo_box.currentText()
             
             #Zapis w QGIS3.ini
@@ -801,7 +801,7 @@ class Geo360:
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
             msgBox = QMessageBox(self.dlg)
-            msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
+            msgBox.setIcon(QMessageBox.Icon.Information)
             msgBox.setWindowTitle(TranslationUtils.tr("Information"))
             msgBox.setText(
                 TranslationUtils.tr(
@@ -817,11 +817,11 @@ class Geo360:
             nowy_plik_button = msgBox.addButton(TranslationUtils.tr("New file"), zatwierdz_role)
             dopisanie_plik_button = msgBox.addButton(TranslationUtils.tr("Append data"), zatwierdz_role)
             anuluj_button = msgBox.addButton(TranslationUtils.tr("Cancel"), anuluj_role)
-            QtCompat.dialogExec(msgBox)
+            msgBox.exec()
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
                 progress_message_bar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
 
                 try:
                     self.progress.setValue(0)
@@ -833,7 +833,7 @@ class Geo360:
 
             elif msgBox.clickedButton() == dopisanie_plik_button:  # obsługa przycisku do dodania nowych danych do pliku gpkg (do danych z istniejącego pliku zostaną dopisane nowe)
                 progress_message_bar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
 
                 try:
                     self.progress.setValue(0)
@@ -871,7 +871,7 @@ class Geo360:
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
             progress_message_bar.layout().addWidget(self.progress)
-            self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+            self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
             self.progress.setValue(0)
             vlayer = self.createGpkg(photo_path, gpkg_path)
             self.project.addMapLayer(vlayer)
