@@ -20,7 +20,7 @@ from ..constants import (
 
 if not VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPENGL_PATH)):
     MessageUtils.pushLogWarning(
-            TranslationUtils.tr("Local 'OpenGL' library not found - plugin may not function correctly.")
+            TranslationUtils.tr("Local 'OpenGL' library folder not found - the version bundled with QGIS will be used if available.")
         )
 
 from OpenGL.GL import *

@@ -322,8 +322,8 @@ Czy chcesz dopisać dane do starego pliku?</translation>
     </message>
     <message>
         <location filename="../modules/viewer_widget.py" line="23"/>
-        <source>Local &apos;OpenGL&apos; library not found - plugin may not function correctly.</source>
-        <translation>Nie znaleziono lokalnej wersji &apos;OpenGL&apos; - wtyczka może nie funkcjonować poprawnie.</translation>
+        <source>Local &apos;OpenGL&apos; library folder not found - the version bundled with QGIS will be used if available.</source>
+        <translation>Nie znaleziono lokalnego folderu biblioteki „OpenGL”. Jeśli będzie dostępna, zostanie użyta wersja dołączona do pakietu QGIS.</translation>
     </message>
     <message>
         <location filename="../modules/viewer_widget.py" line="123"/>
