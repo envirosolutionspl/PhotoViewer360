@@ -30,6 +30,7 @@ from OpenGL.GLU import (
     gluPerspective,
     gluQuadricTexture,
     gluSphere,
+    gluErrorString,
 )
 
 from PIL import Image, ImageFont, ImageDraw
@@ -94,8 +95,19 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.hotspot_fid = None
         self.hot_spot_test = False
         self.hot_spot_last_rgb = 0
-        self.viewport = []
+        self.viewport = [0, 0, 0, 0]
 
+    def glMatrixMode(self, mode):
+        """
+        Czyści stos nieobsłużonych błędów OpenGL
+        """
+        while True:
+            gl_error = glGetError()
+            if gl_error == GL_NO_ERROR:
+                break
+            MessageUtils.pushLogCritical(f"Unexpected OpenGL Error: ({str(gl_error)}): {gluErrorString(gl_error).decode()}")
+        glMatrixMode(mode)
+        
     def loadTexture(self, nazwa_pliku):
         """
         Wczytuje zdjęcie do pamięci OpenGL lub je odświeża. Nazwa zostaje zapamiętana w klasie ViewerWidget.
@@ -194,10 +206,10 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         Funkcja ustawiająca projekcję perspektywiczną.
 
         """
-        glMatrixMode(GL_PROJECTION)
+        self.glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(90, self.width() / self.height(), 0.1, 1000)
-        glMatrixMode(GL_MODELVIEW)
+        self.glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         self.viewport = glGetIntegerv(GL_VIEWPORT)
 
@@ -272,12 +284,17 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         """
         if self.image_description_data is not None:  
             glLoadIdentity()
-            glMatrixMode(GL_PROJECTION)
+            self.glMatrixMode(GL_PROJECTION)
             glPushMatrix()
             glLoadIdentity()
 
-            gluOrtho2D(0, self.viewport[2], self.viewport[3], 0)
-            glMatrixMode(GL_MODELVIEW)
+            gluOrtho2D(
+                0,
+                self.viewport[2] if self.viewport[2] > 0 else 1,
+                self.viewport[3] if self.viewport[3] > 0 else 1,
+                0,
+            )
+            self.glMatrixMode(GL_MODELVIEW)
             glPushMatrix()
             glLoadIdentity()    
 
@@ -295,7 +312,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             # finalizacja GL
             glColor3f(1, 1, 1) 
             glPopMatrix()
-            glMatrixMode(GL_PROJECTION)
+            self.glMatrixMode(GL_PROJECTION)
             glPopMatrix()
             return True
         else:
@@ -335,12 +352,17 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         hot_spot_selected = -1
 
         glLoadIdentity()
-        glMatrixMode(GL_PROJECTION)
+        self.glMatrixMode(GL_PROJECTION)
         glPushMatrix()
         glLoadIdentity()
 
-        gluOrtho2D(0, self.viewport[2], self.viewport[3], 0)
-        glMatrixMode(GL_MODELVIEW)
+        gluOrtho2D(
+            0,
+            self.viewport[2] if self.viewport[2] > 0 else 1,
+            self.viewport[3] if self.viewport[3] > 0 else 1,
+            0,
+        )
+        self.glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
         glLoadIdentity()    
 
@@ -372,7 +394,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
 
         # finalizacja GL
         glPopMatrix()
-        glMatrixMode(GL_PROJECTION)
+        self.glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         
         # wyzwalanie odświeżenia, które spowoduje wygenerowanie drugiej klatki porównawczej
@@ -529,7 +551,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
-        glMatrixMode(GL_PROJECTION)
+        self.glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
 
