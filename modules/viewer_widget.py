@@ -4,6 +4,24 @@ import math
 import os
 
 from ..utils import MessageUtils, QtCompat, VersionUtils, TranslationUtils
+from .. import plugin_dir
+from ..constants import (
+    WHITE_HOTSPOT_OBJ_FILENAME,
+    BLACK_HOTSPOT_OBJ_FILENAME,
+    NOIMAGE_JPG_FILENAME,
+    HOTSPOT_BASE_TEST_COLOR,
+    HOTSPOT_BASE_BRIGHT_COLOR,
+    DESC_BALOON_FILENAME,
+    FONT_NAME,
+    IMAGES_DIRECTORY,
+    LIBS_PATH,
+    LIB_OPENGL_PATH,
+)
+
+if not VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPENGL_PATH)):
+    MessageUtils.pushLogWarning(
+            TranslationUtils.tr("Local 'OpenGL' library folder not found - the version bundled with QGIS will be used if available.")
+        )
 
 from OpenGL.GL import *
 from OpenGL.GLU import (
@@ -23,18 +41,7 @@ from qgis.PyQt.QtGui import QPainter, QPixmap
 # QtCompat: from qgis.PyQt import QtOpenGLWidgets
 QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
 
-from ..constants import (
-    WHITE_HOTSPOT_OBJ_FILENAME,
-    BLACK_HOTSPOT_OBJ_FILENAME,
-    NOIMAGE_JPG_FILENAME,
-    HOTSPOT_BASE_TEST_COLOR,
-    HOTSPOT_BASE_BRIGHT_COLOR,
-    DESC_BALOON_FILENAME,
-    FONT_NAME,
-    IMAGES_DIRECTORY,
-)
 
-from .. import plugin_dir
 
 class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
     """ QWidget Renderujący Widok Perspektywiczny na podstawie zdjęcia EquiProstokątnego """
