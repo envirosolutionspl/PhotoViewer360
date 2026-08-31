@@ -36,7 +36,7 @@ from qgis.core import *
 from qgis.PyQt import QtWidgets
 import processing
 
-from .utils import MessageUtils, QtCompat, TranslationUtils
+from .utils import MessageUtils, QtCompat, TranslationUtils, VersionUtils
 
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
@@ -58,6 +58,8 @@ from .constants import (
     UI_TARGET_ICON_PATH,
     QGIS_SETTINGS_KEYS,
     QGIS_FEED_MIN_VERSION_INT,
+    LIB_EXIFREAD_PATH,
+    LIBS_PATH,
 )
 
 from collections import defaultdict
@@ -90,7 +92,8 @@ class Geo360:
         self.project = QgsProject.instance()
         thread_count = QThread.idealThreadCount()
         self.settings = QgsSettings() 
-        self.exifread_path = os.path.join(plugin_dir, 'libs', 'exifread_3_0_0')
+
+        self.exifread_path = os.path.join(plugin_dir, LIBS_PATH, LIB_EXIFREAD_PATH)
 
         if Qgis.QGIS_VERSION_INT >= QGIS_FEED_MIN_VERSION_INT:
             from .qgis_feed import QgisFeed
@@ -236,15 +239,14 @@ class Geo360:
         if os.path.exists(self.exifread_path):
             MessageUtils.pushLogInfo(TranslationUtils.tr("Found local version of the 'exifread' library."))
             MessageUtils.pushLogInfo(TranslationUtils.tr("Using local version of the 'exifread' library."))
+            VersionUtils.addLocalLibPath(self.exifread_path, force=True)
             return True  
 
         elif exifread_spec is not None:
-            from exifread import processFile
             MessageUtils.pushLogInfo(TranslationUtils.tr("Found 'exifread' library in QGIS"))
             return True  
         
         else:
-            from .libs.exifread_3_0_0.exifread import processFile
             MessageUtils.pushLogCritical(
                 TranslationUtils.tr("Local 'exifread' library not found. Please install the library.")
             )
@@ -428,7 +430,7 @@ class Geo360:
 
     def createGpkg(self, photo_path, gpkg_path):
         """Stworzenie GeoPaczki na bazie wskazanego folderu ze zdjęciami oraz późniejsza jej modyfikacja"""
-
+        from exifread import process_file as processFile
         # Processing feedback
         def progressChanged(progress):
             """Funkcja pokazująca progres podczas pracy narzędzia "Importuj geotagowane zdjęcia" """
