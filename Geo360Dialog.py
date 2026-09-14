@@ -112,16 +112,16 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         self.actual_point_dx = None
         self.actual_point_sx = None
         self.actual_point_orientation = QgsRubberBand(
-            self.iface.mapCanvas(), QgsWkbTypes.LineGeometry
+            self.iface.mapCanvas(), QgsWkbTypes.GeometryType.LineGeometry
         )
         self.position_dx = QgsRubberBand(
-            self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
+            self.iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry
         )
         self.position_int = QgsRubberBand(
-            self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
+            self.iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry
         )
         self.position_sx = QgsRubberBand(
-            self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
+            self.iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry
         )
 
         self.selected_features = QgsMapUtils.getToFeature(self.layer, self.features_id)
@@ -266,7 +266,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
                     self.layer.name(),
                     selectedFeaturesOnly=True,
                     featureLimit=-1,
-                    geometryCheck=QgsFeatureRequest.GeometryAbortOnInvalid,
+                    geometryCheck=QgsFeatureRequest.InvalidGeometryCheck.GeometryAbortOnInvalid,
                 ),
                 "TARGET_CRS": QgsCoordinateReferenceSystem(CRS_EPSG_3857),
                 "OUTPUT": "TEMPORARY_OUTPUT",
@@ -430,7 +430,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.fullScreen()
             self.btn_fullscreen.setChecked(False)
 
@@ -516,7 +516,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         # stworzenie radaru na mapie (pokazuje skierowanie zdjęcia)
         self.actual_point_orientation = QgsRubberBand(
             self.iface.mapCanvas(),
-            QgsWkbTypes.LineGeometry,
+            QgsWkbTypes.GeometryType.LineGeometry,
         )
 
         self.actual_point_orientation.setColor(QtCompat.setGlobalColor(Qt, "magenta"))
@@ -675,31 +675,31 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
         self.position_dx = QgsRubberBand(
             self.iface.mapCanvas(),
-            QgsWkbTypes.PointGeometry,
+            QgsWkbTypes.GeometryType.PointGeometry,
         )
 
         self.position_dx.setWidth(6)
-        self.position_dx.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.position_dx.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.position_dx.setIconSize(6)
         self.position_dx.setColor(QColor(0, 102, 153))
 
         self.position_sx = QgsRubberBand(
             self.iface.mapCanvas(),
-            QgsWkbTypes.PointGeometry,
+            QgsWkbTypes.GeometryType.PointGeometry,
         )
 
         self.position_sx.setWidth(5)
-        self.position_sx.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.position_sx.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.position_sx.setIconSize(4)
         self.position_sx.setColor(QColor(0, 102, 153))
 
         self.position_int = QgsRubberBand(
             self.iface.mapCanvas(),
-            QgsWkbTypes.PointGeometry,
+            QgsWkbTypes.GeometryType.PointGeometry,
         )
 
         self.position_int.setWidth(5)
-        self.position_int.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.position_int.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.position_int.setIconSize(3)
         self.position_int.setColor(QtCompat.setGlobalColor(Qt, "white"))
 

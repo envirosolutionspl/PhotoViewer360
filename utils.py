@@ -214,10 +214,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxCritical(parent, title: str, message: str):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessageboxCriticalIcon())
+        msg_box.setIcon(QMessageBox.Icon.Critical)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -227,10 +227,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxInfo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessageboxInformationIcon())
+        msg_box.setIcon(QMessageBox.Icon.Information)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -240,10 +240,10 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxWarning(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessageboxWarningIcon())
+        msg_box.setIcon(QMessageBox.Icon.Warning)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        msg_box.setStandardButtons(QtCompat.qmessageboxOkButton())
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
 
         if hasattr(parent, 'plugin_icon'):
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
@@ -252,23 +252,23 @@ class MessageUtils:
     @staticmethod
     def pushMessageBoxYesNo(parent, title, message):
         msg_box = QMessageBox(parent)
-        msg_box.setIcon(QtCompat.qmessageboxQuestionIcon())
+        msg_box.setIcon(QMessageBox.Icon.Question)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(
-            QtCompat.qmessageboxYesButton() or
-            QtCompat.qmessageboxNoButton()
+            QMessageBox.StandardButton.Yes or
+            QMessageBox.StandardButton.No
         )
 
         result = msg_box.exec()
-        return result == QtCompat.qmessageboxYesButton()
+        return result == QMessageBox.StandardButton.Yes
 
     @staticmethod
     def pushMessage(iface, message: str) -> None:
         iface.messageBar().pushMessage(
             TranslationUtils.tr('Information'),
             message,
-            level=Qgis.Info,
+            level=Qgis.MessageLevel.Info,
             duration=10
         )
     
@@ -277,7 +277,7 @@ class MessageUtils:
         iface.messageBar().pushMessage(
             TranslationUtils.tr('Success'),
             message,
-            level=Qgis.Success,
+            level=Qgis.MessageLevel.Success,
             duration=10
         )
 
@@ -286,7 +286,7 @@ class MessageUtils:
         iface.messageBar().pushMessage(
             TranslationUtils.tr('Warning'),
             message,
-            level=Qgis.Warning,
+            level=Qgis.MessageLevel.Warning,
             duration=10
         )
 
@@ -295,7 +295,7 @@ class MessageUtils:
         iface.messageBar().pushMessage(
             TranslationUtils.tr('Error'),
             message,
-            level=Qgis.Critical,
+            level=Qgis.MessageLevel.Critical,
             duration=10
         )
 
@@ -304,7 +304,7 @@ class MessageUtils:
         QgsMessageLog.logMessage(
             message,
             tag=PLUGIN_NAME,
-            level=Qgis.Info
+            level=Qgis.MessageLevel.Info
         )
 
     @staticmethod
@@ -312,7 +312,7 @@ class MessageUtils:
         QgsMessageLog.logMessage(
             message,
             tag=PLUGIN_NAME,
-            level=Qgis.Warning
+            level=Qgis.MessageLevel.Warning
         )
 
     @staticmethod
@@ -320,7 +320,7 @@ class MessageUtils:
         QgsMessageLog.logMessage(
             message,
             tag=PLUGIN_NAME,
-            level=Qgis.Critical
+            level=Qgis.MessageLevel.Critical
         )
 
 class NetworkUtils:
@@ -398,7 +398,7 @@ class NetworkUtils:
         error_code = blocking_request.get(request)
         reply_content = blocking_request.reply()
         
-        if error_code != QgsBlockingNetworkRequest.NoError:
+        if error_code != QgsBlockingNetworkRequest.ErrorCode.NoError:
             return self._handleReplyError(reply_content, url)
 
         raw_data = reply_content.content()
@@ -659,49 +659,42 @@ class VersionUtils:
         """
         return platform.system().lower()
 
+    @staticmethod
+    def addLocalLibPath(path, force=False):
+        """
+        Dodaje do zmiennych środowiskowych lokalizację folderu z modułami.
+        Parametr force pozwala na wymuszenie pierwszeństwa modułów lokalnych nad wbudowanymi. 
+        W przypadku wybiórczego dodawania modułów zaleca się umieszczanie modułów w osobnych folderach.
+
+        :param path: Ścieżka do folderu zawierającego moduły
+        :type path: str
+
+        :param force: Wartość True powoduje dodanie lokalnej lokalizacji w kolejce przed modułami wbudowanymi.
+                      False dodaje moduł na końcu kolejki. Wtedy lokalne foldery brane są pod uwagę tylko wtedy,
+                      gdy importer nie znajdzie modułu w swoich zasobach.  
+        :type force: bool
+
+        :returns: Zwraca False jeśli folder path nie istnieje
+        :rtype: bool
+        """
+        lib_path = os.path.abspath(path)
+        # Usuwamy ścieżkę ze zmiennych środowiskowych jeśli już istnieje
+        sys.path = [p for p in sys.path if os.path.abspath(p) != lib_path]
+
+        if os.path.exists(lib_path):
+            if force:
+                sys.path.insert(0, lib_path)
+            else:
+                sys.path.append(lib_path)
+        else:
+            MessageUtils.pushLogWarning(
+                TranslationUtils.tr("Could not add local module for given location: {path}").format(path=lib_path)
+            )
+            return False
+        return True
+
 class QtCompat:
     """Zbiór pomocniczych metod do sprawdzania dostępności atrybutów/enumów Qt."""
-
-    @staticmethod
-    def qmessageboxWarningIcon():
-        return QMessageBox.Icon.Warning if hasattr(QMessageBox, "Icon") else QMessageBox.Warning
-
-    @staticmethod
-    def qmessageboxInformationIcon():
-        return QMessageBox.Icon.Information if hasattr(QMessageBox, "Icon") else QMessageBox.Information
-
-    @staticmethod
-    def qmessageboxCriticalIcon():
-        return QMessageBox.Icon.Critical if hasattr(QMessageBox, "Icon") else QMessageBox.Critical
-
-    @staticmethod
-    def qmessageboxQuestionIcon():
-        return QMessageBox.Icon.Question if hasattr(QMessageBox, "Icon") else QMessageBox.Question
-
-    @staticmethod
-    def qmessageboxOkButton():
-        if hasattr(QMessageBox, "StandardButton"):
-            return QMessageBox.StandardButton.Ok
-        return QMessageBox.Ok
-
-    @staticmethod
-    def qmessageboxYesButton():
-        if hasattr(QMessageBox, "StandardButton"):
-            return QMessageBox.StandardButton.Yes
-        return QMessageBox.Yes
-
-    @staticmethod
-    def qmessageboxNoButton():
-        if hasattr(QMessageBox, "StandardButton"):
-            return QMessageBox.StandardButton.No
-        return QMessageBox.No
-
-    @staticmethod
-    def dialogExec(dialog):
-        exec_fn = getattr(dialog, "exec", None)
-        if callable(exec_fn):
-            return exec_fn()
-        return dialog.exec_()
 
     @staticmethod
     def alignmentLeftVcenter(QtClass):
@@ -710,7 +703,6 @@ class QtCompat:
                 QtClass.AlignmentFlag.AlignLeft | QtClass.AlignmentFlag.AlignVCenter
             )
         return QtClass.AlignLeft | QtClass.AlignVCenter
-
 
     @staticmethod
     def rightDockwidgetArea(QtClass):

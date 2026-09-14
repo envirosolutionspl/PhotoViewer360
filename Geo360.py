@@ -36,7 +36,7 @@ from qgis.core import *
 from qgis.PyQt import QtWidgets
 import processing
 
-from .utils import MessageUtils, QtCompat, TranslationUtils
+from .utils import MessageUtils, QtCompat, TranslationUtils, VersionUtils
 
 from .Geo360Dialog import Geo360Dialog
 from .gui.first_window_geo360_dialog import FirstWindowGeo360Dialog
@@ -58,6 +58,8 @@ from .constants import (
     UI_TARGET_ICON_PATH,
     QGIS_SETTINGS_KEYS,
     QGIS_FEED_MIN_VERSION_INT,
+    LIB_EXIFREAD_PATH,
+    LIBS_PATH,
 )
 
 from collections import defaultdict
@@ -90,7 +92,8 @@ class Geo360:
         self.project = QgsProject.instance()
         thread_count = QThread.idealThreadCount()
         self.settings = QgsSettings() 
-        self.exifread_path = os.path.join(plugin_dir, 'libs', 'exifread_3_0_0')
+
+        self.exifread_path = os.path.join(plugin_dir, LIBS_PATH, LIB_EXIFREAD_PATH)
 
         if Qgis.QGIS_VERSION_INT >= QGIS_FEED_MIN_VERSION_INT:
             from .qgis_feed import QgisFeed
@@ -236,15 +239,14 @@ class Geo360:
         if os.path.exists(self.exifread_path):
             MessageUtils.pushLogInfo(TranslationUtils.tr("Found local version of the 'exifread' library."))
             MessageUtils.pushLogInfo(TranslationUtils.tr("Using local version of the 'exifread' library."))
+            VersionUtils.addLocalLibPath(self.exifread_path, force=True)
             return True  
 
         elif exifread_spec is not None:
-            from exifread import processFile
             MessageUtils.pushLogInfo(TranslationUtils.tr("Found 'exifread' library in QGIS"))
             return True  
         
         else:
-            from .libs.exifread_3_0_0.exifread import processFile
             MessageUtils.pushLogCritical(
                 TranslationUtils.tr("Local 'exifread' library not found. Please install the library.")
             )
@@ -301,7 +303,7 @@ class Geo360:
 
 
         # obsługa wybrania warstwy z projektu w oknie PhotoViewer360
-        self.dlg.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.dlg.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.Filter.PointLayer)
         self.dlg.mapLayerComboBox.setShowCrs(True)
 
         # obsługa usunięcia warstwy w oknie PhotoViewer360
@@ -353,7 +355,7 @@ class Geo360:
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
 
-        if QtCompat.dialogExec(self.qgisfeed_dialog) == QDialog.Accepted:
+        if self.qgisfeed_dialog.exec() == QDialog.DialogCode.Accepted:
             self.selected_branch = self.qgisfeed_dialog.combo_box.currentText()
             
             #Zapis w QGIS3.ini
@@ -428,7 +430,7 @@ class Geo360:
 
     def createGpkg(self, photo_path, gpkg_path):
         """Stworzenie GeoPaczki na bazie wskazanego folderu ze zdjęciami oraz późniejsza jej modyfikacja"""
-
+        from exifread import process_file as processFile
         # Processing feedback
         def progressChanged(progress):
             """Funkcja pokazująca progres podczas pracy narzędzia "Importuj geotagowane zdjęcia" """
@@ -799,7 +801,7 @@ class Geo360:
 
             # stworzenie okienka wyboru przy sytuacji istnienia gpkg
             msgBox = QMessageBox(self.dlg)
-            msgBox.setIcon(QtCompat.qmessageboxInformationIcon())
+            msgBox.setIcon(QMessageBox.Icon.Information)
             msgBox.setWindowTitle(TranslationUtils.tr("Information"))
             msgBox.setText(
                 TranslationUtils.tr(
@@ -815,11 +817,11 @@ class Geo360:
             nowy_plik_button = msgBox.addButton(TranslationUtils.tr("New file"), zatwierdz_role)
             dopisanie_plik_button = msgBox.addButton(TranslationUtils.tr("Append data"), zatwierdz_role)
             anuluj_button = msgBox.addButton(TranslationUtils.tr("Cancel"), anuluj_role)
-            QtCompat.dialogExec(msgBox)
+            msgBox.exec()
 
             if msgBox.clickedButton() == nowy_plik_button:  # obsługa przycisku do stworzenia nowego pliku gpkg (dane z istniejącego pliku zostaną skasowane)
                 progress_message_bar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
 
                 try:
                     self.progress.setValue(0)
@@ -831,7 +833,7 @@ class Geo360:
 
             elif msgBox.clickedButton() == dopisanie_plik_button:  # obsługa przycisku do dodania nowych danych do pliku gpkg (do danych z istniejącego pliku zostaną dopisane nowe)
                 progress_message_bar.layout().addWidget(self.progress)
-                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+                self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
 
                 try:
                     self.progress.setValue(0)
@@ -869,7 +871,7 @@ class Geo360:
 
         else: # obsługa wskazania ścieżki zapisu gpkg (bez komplikacji)
             progress_message_bar.layout().addWidget(self.progress)
-            self.iface.messageBar().pushWidget(progress_message_bar, Qgis.Info)
+            self.iface.messageBar().pushWidget(progress_message_bar, Qgis.MessageLevel.Info)
             self.progress.setValue(0)
             vlayer = self.createGpkg(photo_path, gpkg_path)
             self.project.addMapLayer(vlayer)
