@@ -608,8 +608,27 @@ class Geo360:
                             features_list[0][COLUMN_YAW] = new_yaw
                             spot_to_mend += 1
                         else:
-                            # przypisujemy poprzedniemu elementowi średnią naprawionego i aktualnego
-                            new_yaw = (features_list[spot_to_mend-1][COLUMN_YAW]+features_list[i][COLUMN_YAW])/2
+                            # interpolujemy kąt na podstawie sąsiednich poprawnych kątów
+                            
+                            # Normalizacja kątów
+                            angle1 = features_list[spot_to_mend-1][COLUMN_YAW] % 360
+                            angle2 = features_list[i][COLUMN_YAW] % 360
+
+                            # Różnica skierowana
+                            diff = (angle2 - angle1) % 360
+
+                            # Przesuwamy różnicę do zakresu [-180, 180)
+                            if diff >= 180:
+                                diff -= 360
+
+                            # Ustalamy krok dla kliku kątów do poprawy
+                            step = diff / (i - spot_to_mend + 1)
+
+                            # Obliczanie kąta, aby wszystkie kąty miały równe odchylenia między poprawnymi kątami
+                            result = angle1 + (i - spot_to_mend)*step
+
+                            # Normalizacja wyniku
+                            new_yaw = result % 360
                             vlayer.dataProvider().changeAttributeValues(
                                 {features_list[i-1].id(): {vlayer.dataProvider().fieldNameMap()[COLUMN_YAW]: new_yaw}})
                             features_list[i-1][COLUMN_YAW] = new_yaw
