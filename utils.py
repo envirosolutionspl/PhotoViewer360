@@ -1,7 +1,8 @@
 import datetime
 from typing import List, Dict, Any
 import json
-import os, platform
+import os 
+import platform
 import importlib
 import processing
 import sys
@@ -27,7 +28,7 @@ from qgis.core import (
     QgsProject,
     QgsRectangle,
 )
-from qgis.utils import iface
+# from qgis.utils import iface
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
@@ -82,10 +83,14 @@ class LayersUtils:
     @staticmethod
     def layerToCrs(layer, dest_crs):
         """zamiana układu na 1992"""
-        proc = processing.run("native:reprojectlayer",
-                    {'INPUT': layer,
-                        'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{dest_crs}'),
-                        'OUTPUT': 'TEMPORARY_OUTPUT'})
+        proc = processing.run(
+            "native:reprojectlayer",
+            {
+                'INPUT': layer,
+                'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{dest_crs}'),
+                'OUTPUT': 'TEMPORARY_OUTPUT'
+            }
+        )
         return proc['OUTPUT']
 
     @staticmethod
@@ -126,14 +131,14 @@ class LayersUtils:
                 punktyList.append(bbox.center())
             else:
                 params = {
-                    'TYPE':0,
-                    'EXTENT':bbox,
-                    'HSPACING':density,
-                    'VSPACING':density,
-                    'HOVERLAY':0,
-                    'VOVERLAY':0,
-                    'CRS':QgsCoordinateReferenceSystem('EPSG:2180'),
-                    'OUTPUT':'memory:TEMPORARY_OUTPUT'
+                    'TYPE': 0,
+                    'EXTENT': bbox,
+                    'HSPACING': density,
+                    'VSPACING': density,
+                    'HOVERLAY': 0,
+                    'VOVERLAY': 0,
+                    'CRS': QgsCoordinateReferenceSystem('EPSG:2180'),
+                    'OUTPUT': 'memory:TEMPORARY_OUTPUT'
                 }
                 proc = processing.run("qgis:creategrid", params)
                 punkty = proc['OUTPUT']
@@ -201,8 +206,10 @@ class FileUtils:
         file_path = f'{file_path}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.txt'
         if file_name_from_url:
             obj_list = [{**obj, 'url': obj.get('url', '').split('/')[-1]} for obj in obj_list]
-        valid_headers = {header: key for header, key in headers.items() if
-                        any(key in obj for obj in obj_list)}
+        valid_headers = {
+            header: key for header, key in headers.items() 
+            if any(key in obj for obj in obj_list)
+        }
         with open(file_path, 'w') as report_file:
             report_file.write(','.join(valid_headers.keys()) + '\n')
             for obj in obj_list:
@@ -249,6 +256,7 @@ class MessageUtils:
             msg_box.setWindowIcon(QIcon(parent.plugin_icon))
 
         msg_box.exec()
+
     @staticmethod
     def pushMessageBoxYesNo(parent, title, message):
         msg_box = QMessageBox(parent)

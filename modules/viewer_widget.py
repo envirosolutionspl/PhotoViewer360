@@ -23,7 +23,52 @@ if not VersionUtils.addLocalLibPath(os.path.join(plugin_dir, LIBS_PATH, LIB_OPEN
             TranslationUtils.tr("Local 'OpenGL' library folder not found - the version bundled with QGIS will be used if available.")
         )
 
-from OpenGL.GL import *
+from OpenGL.GL import (
+    glGetError,
+    glMatrixMode,
+    glLoadIdentity,
+    glClearColor,
+    glClear,
+    glEnable,
+    glDisable,
+    glGenTextures,
+    glBindTexture,
+    glTexParameteri,
+    glTexImage2D,
+    glGenerateMipmap,
+    glViewport,
+    glPushMatrix,
+    glPopMatrix,
+    glBegin,
+    glEnd,
+    glVertex3fv,
+    glColor3f,
+    glColor3ub,
+    glTranslatef,
+    glRotatef,
+    glReadPixels,
+    glDrawPixels,
+    glBlendFunc,
+    glGetIntegerv,
+    glRasterPos,
+    GL_NO_ERROR,
+    GL_PROJECTION,
+    GL_MODELVIEW,
+    GL_COLOR_BUFFER_BIT,
+    GL_DEPTH_BUFFER_BIT,
+    GL_TEXTURE_2D,
+    GL_TRIANGLES,
+    GL_LINEAR,
+    GL_BLEND,
+    GL_RGBA,
+    GL_UNSIGNED_BYTE,
+    GL_SRC_ALPHA,
+    GL_VIEWPORT,
+    GL_ONE_MINUS_SRC_ALPHA,
+    GL_TEXTURE_MIN_FILTER,
+    GL_TEXTURE_MAG_FILTER,
+    GL_FRAMEBUFFER_SRGB,
+)
 from OpenGL.GLU import (
     gluNewQuadric,
     gluOrtho2D,
@@ -53,7 +98,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self, parent, iface,
         direction,
         nazwa_pliku, data_wykonania="", nr_drogi="", nazwa_ulicy="NULL", numer_odcinka="", kilometraz=""
-        ):
+    ):
         """
         Widget wyświetlający podgląd equiprostokątnego zdjęcie w formie podglądu 360
 
@@ -105,7 +150,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             gl_error = glGetError()
             if gl_error == GL_NO_ERROR:
                 break
-            MessageUtils.pushLogCritical(f"Unexpected OpenGL Error: ({str(gl_error)}): {gluErrorString(gl_error).decode()}")
+            MessageUtils.pushLogCritical(
+                f"Unexpected OpenGL Error: ({str(gl_error)}): {gluErrorString(gl_error).decode()}"
+            )
         glMatrixMode(mode)
         
     def loadTexture(self, nazwa_pliku):
@@ -125,7 +172,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             image = image.transpose(Image.FLIP_TOP_BOTTOM)
             image_data = image.tobytes("raw", "RGBX", 0, -1)
 
-            if not hasattr(self, "texture_id"): # chyba jedna instancja tekstury wystarczy
+            if not hasattr(self, "texture_id"):  # chyba jedna instancja tekstury wystarczy
                 self.texture_id = glGenTextures(1)
             glBindTexture(GL_TEXTURE_2D, self.texture_id)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
@@ -332,9 +379,9 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         
         for i in range(0, len(self.hotspot_fid)):
             if test_color:
-                color = default_color + 10 + i # kolor ściśle związany z wykrywaniem kliknięcia
+                color = default_color + 10 + i  # kolor ściśle związany z wykrywaniem kliknięcia
             else:
-                color = default_color # kolor ściśle związany z wykrywaniem kliknięcia
+                color = default_color  # kolor ściśle związany z wykrywaniem kliknięcia
             glPushMatrix()
             glTranslatef(self.hotspot_x[i], self.hotspot_y[i], 0.301)  # Move 
             glBegin(GL_TRIANGLES)
@@ -377,7 +424,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         # pobranie punktu do testu
         # w cyklu są dwa wyświetlenia tej sekwencji - hot spot mruga i ta cecha odróżnia go od zdjęcia
         rgb = glReadPixels(p_x, self.viewport[3]-p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE)
-        if rgb[0] == rgb[1] == rgb[2] >= HOTSPOT_BASE_TEST_COLOR: # interesuje nasz idealny szary
+        if rgb[0] == rgb[1] == rgb[2] >= HOTSPOT_BASE_TEST_COLOR:  # interesuje nasz idealny szary
             current_rgb = rgb[0]
             last_rgb = self.hot_spot_last_rgb
             if current_rgb > last_rgb:
@@ -405,7 +452,7 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         # przeładowanie widoku w przypadku trafienia
         if hot_spot_selected != -1:
             self.parent.reloadView(hot_spot_selected)
-            self.hot_spot_last_rgb = 0 # zapobieganie podwójnemu kliknięciu
+            self.hot_spot_last_rgb = 0  # zapobieganie podwójnemu kliknięciu
             MessageUtils.pushLogInfo(
                 TranslationUtils.tr("Selected new point with index: {fid}").format(fid=hot_spot_selected)
             )
@@ -430,14 +477,14 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             return False 
 
     def setDataAboutPhoto(
-            self,
-            nazwa_pliku : str,
-            data_wykonania : str,
-            nr_drogi : str,
-            nazwa_ulicy : str,
-            numer_odcinka : str,
-            kilometraz : str
-        ):
+        self,
+        nazwa_pliku: str,
+        data_wykonania: str,
+        nr_drogi: str,
+        nazwa_ulicy: str,
+        numer_odcinka: str,
+        kilometraz: str
+    ):
         """
         Wprowadza dane opisowe zdjęcia do Widgetu
 
@@ -530,8 +577,8 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             self.hotspot_fid = []
             self.hotspot_x = []
             self.hotspot_y = []
-            scale = 0.104 # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
-            spectator_angle  = 0
+            scale = 0.104  # subiektywne skalowanie dystansu od obserwatora dla widoku OpenGL
+            spectator_angle = 0
 
             # określenie azymutu obserwatora
             for hotspot in self.coordinates:
@@ -546,8 +593,12 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
                     continue
 
                 self.hotspot_fid.append(hotspot['fid'])
-                self.hotspot_x.append(scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))
-                self.hotspot_y.append(scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle))                   
+                self.hotspot_x.append(
+                    scale*hotspot['distance']*math.cos(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                )
+                self.hotspot_y.append(
+                    scale*hotspot['distance']*math.sin(hotspot['azymut_obliczony'] + (270)*math.pi/180 - spectator_angle)
+                )                   
 
     def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
@@ -639,7 +690,5 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.update()
 
         pixmap.save(image_path)
-        if hasattr(os,'startfile'):
+        if hasattr(os, 'startfile'):
             os.startfile(image_path)
-
-
