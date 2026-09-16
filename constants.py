@@ -137,10 +137,10 @@ GPKP_COLUMNS_DICT = {
     "longitude": 'dlugosc_geog',
     "latitude": 'szerokosc_geog',
     "timestamp": 'data_wykonania',
-    "roadname" : 'nr_drogi',
-    "streetname" : 'nazwa_ulicy',
-    "sectionname" : 'numer_odcinka',
-    "locationmarker" : 'kilometraz'
+    "roadname": 'nr_drogi',
+    "streetname": 'nazwa_ulicy',
+    "sectionname": 'numer_odcinka',
+    "locationmarker": 'kilometraz'
 }
 
 # Lista atrybutów wymaganych do prawidłowej pracy z impotowaną GeoPaczką

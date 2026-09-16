@@ -30,8 +30,8 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'first_window_geo360_base.ui'))
 
 class FirstWindowGeo360Dialog(QtWidgets.QDialog, FORM_CLASS):
-
     closingPlugin = pyqtSignal()
+    
     def __init__(self, parent=None):
         """Constructor."""
         super(FirstWindowGeo360Dialog, self).__init__(parent)
@@ -44,7 +44,7 @@ class FirstWindowGeo360Dialog(QtWidgets.QDialog, FORM_CLASS):
         self.mQgsFileWidget_search_photo.setOptions(
             QtCompat.qfiledialogShowDirsOnly(QtWidgets)
         )
-        #self.folder_fileWidget.setStorageMode(QgsFileWidget.GetDirectory)
+        # self.folder_fileWidget.setStorageMode(QgsFileWidget.GetDirectory)
 
     def closeEvent(self, event):
         self.closingPlugin.emit()
