@@ -152,6 +152,11 @@
         <translation>Niepoprawne dane wejściowe. Ustawienie wartosci domyślnej w atrybucie &apos;azymut&apos; w pozycji fid: {fid}.</translation>
     </message>
     <message>
+        <location filename="../Geo360.py" line="632"/>
+        <source>Invalid input data. All values of the &apos;azymut&apos; attribute have a value of 0.0</source>
+        <translation>Niepoprawne dane wejściowe. Wszystkie wartości atrybutu &apos;azymut&apos; mają wartość 0.0</translation>
+    </message>
+    <message>
         <location filename="../Geo360.py" line="688"/>
         <source>Removed {count} duplicates. Duplicates were identified based on attributes: photo_name, longitude, latitude, capture_date. Duplicate photos: {lista}</source>
         <translation>Usunięto {count} duplikatów. Duplikaty stwierdzono na podstawie atrybutów: nazwa_zdjecia, długosc_geog, szerokosc_geog, data_wykonania. Stwierdzono duplikaty zdjęć: {lista}</translation>
