@@ -5,7 +5,7 @@ qgisMaximumVersion= 4.99
 supportsQt6=true
 description= PL: Wtyczka umożliwiająca import i wizualizację zdjęć panoramicznych. 
     ENG: Plugin for for importing and visualising local panoramic images. 
-version= 2.1.0
+version= 2.1.1
 author= EnviroSolutions Sp. z o.o.
 email= gis@envirosolutions.pl
 based on= EquirectangularViewer
@@ -18,12 +18,15 @@ tracker= https://github.com/envirosolutionspl/PhotoViewer360/issues
 repository= https://github.com/envirosolutionspl/PhotoViewer360
 
 changelog=
-  Wersja 2.1.0
-    * Poprawa kompatybilności z Qt6 i nowszym API QGIS
-    * Aktualizacja biblioteki ExifRead do wersji 3.5.1
-    * Dodanie lokalnej biblioteki PyOpenGL 3.1.10
-    * Poprawa stabilności obsługi renderowania OpenGL
-    * Dodanie automatycznej kontroli kompatybilności Qt5/Qt6
+  Wersja 2.1.1
+    * Poprawa testów bezpieczeństwa wtyczki 
+    * Poprawa lokalizacji danych testowych
+#  Wersja 2.1.0
+#    * Poprawa kompatybilności z Qt6 i nowszym API QGIS
+#    * Aktualizacja biblioteki ExifRead do wersji 3.5.1
+#    * Dodanie lokalnej biblioteki PyOpenGL 3.1.10
+#    * Poprawa stabilności obsługi renderowania OpenGL
+#    * Dodanie automatycznej kontroli kompatybilności Qt5/Qt6
 #  Wersja 2.0.1
 #    * Naprawa błędu podczas importowania modułu PIL na starszych wersjach QGIS
 #  Wersja 2.0.0
