@@ -19,9 +19,11 @@
 from __future__ import annotations
 
 import os
-from ..utils import VersionUtils, QT_VERSION_STR
+from ..utils import VersionUtils
 
-from PIL import Image, ImageFile
+from PIL import Image
+from qgis.PyQt.QtCore import QByteArray, QT_VERSION_STR
+from qgis.PyQt.QtGui import QImage, qRgba 
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -33,8 +35,6 @@ qt_version: str | None
 # If a version has already been imported, attempt it first
 
 qRgba: Callable[[int, int, int, int], int]
-from qgis.PyQt.QtCore import QByteArray, QT_VERSION_STR
-from qgis.PyQt.QtGui import QImage, qRgba 
 
 if VersionUtils.isCompatibleQtVersion(QT_VERSION_STR, 6):
     qt_version = "6"
@@ -66,7 +66,7 @@ def align8to32(bytes: bytes, width: int, mode: str) -> bytes:
         return bytes
 
     new_data = [
-        bytes[i * bytes_per_line : (i + 1) * bytes_per_line] + b"\x00" * extra_padding
+        bytes[i * bytes_per_line: (i + 1) * bytes_per_line] + b"\x00" * extra_padding
         for i in range(len(bytes) // bytes_per_line)
     ]
 
@@ -99,7 +99,10 @@ def _toqclass_helper(im: Image.Image | str | QByteArray) -> dict[str, Any]:
         format = getattr(qt_format, "Format_Indexed8")
         palette = im.getpalette()
         assert palette is not None
-        colortable = [rgb(*palette[i : i + 3]) for i in range(0, len(palette), 3)]
+        colortable = [
+            rgb(*palette[i: i + 3]) 
+            for i in range(0, len(palette), 3)
+        ]
     elif im.mode == "RGB":
         # Populate the 4th channel with 255
         im = im.convert("RGBA")
@@ -151,4 +154,3 @@ class ImageQt(QImage):
 
 def toqimage(im: Image.Image | str | QByteArray) -> ImageQt:
     return ImageQt(im)
-

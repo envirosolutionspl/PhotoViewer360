@@ -69,7 +69,14 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
     _index = ""
     is_window_full_screen = False
 
-    def __init__(self, iface, features_id=None, layer=None, name_layer="", parent = None):
+    def __init__(
+        self, 
+        iface, 
+        features_id=None, 
+        layer=None, 
+        name_layer="", 
+        parent=None
+    ):
 
         QDockWidget.__init__(self)
 
@@ -328,12 +335,12 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
             # dodanie parametrów do listy
             list_of_attribute_list.append({
-                    'x' : x,
-                    'y' : y,
-                    'azymut' : azymut*(math.pi/180),
-                    'fid' : index_feature,
-                    'azymut_obliczony' : azymut_obliczony*(math.pi/180),
-                    'distance' : distance,
+                    'x': x,
+                    'y': y,
+                    'azymut': azymut*(math.pi/180),
+                    'fid': index_feature,
+                    'azymut_obliczony': azymut_obliczony*(math.pi/180),
+                    'distance': distance,
                 })
             
         # usunięcie zaznaczenia selekcji
@@ -345,7 +352,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
             self.gl_widget.setHotSpots(coordinates=list_of_attribute_list)
 
         # przypisanie do zmiennej "self.old_bering" azumtu poprzedniego punktu z hotspot'a
-        self.old_bering  = self.new_bering
+        self.old_bering = self.new_bering
 
     def getImagePathFromLayer(self):
         """
@@ -411,7 +418,7 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         self.selected_features = QgsMapUtils.getToFeature(self.layer, new_id)
 
         # przypisanie danych z poprzedniego hotspotu do nowych zmiennych
-        self.current_direction = self.bearing_current # w celu zachowania kierunku radaru
+        self.current_direction = self.bearing_current  # w celu zachowania kierunku radaru
         
         # resetowanie RubberBand
         self.resetQgsRubberBand()
@@ -482,9 +489,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         # funkcja wywoływana w trakcie obrotu zdjęcia
 
         # zdefiniowanie kierunku radaru na mapie
-        if self.current_direction is not None: # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
+        if self.current_direction is not None:  # warunek wywołany po użyciu hotspotu, zachowanie kierunku radaru
             self.bearing = str(self.bearing_current * -180 / math.pi)
-        else: # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
+        else:  # warunek wywołany po wybraniu punktu na mapie, kierunek radaru wzięty z tabeli atrybutów
             self.bearing = self.selected_features.attribute(COLUMN_YAW)
 
         original_point = self.selected_features.geometry().asPoint()
@@ -634,11 +641,11 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         self.actual_point_orientation.addPoint(QgsPointXY(float(Ax), float(Ay)))
 
         # zdefiniowanie kierunku zdjęcia
-        if self.current_direction is not None: # warunek spełniony po wybraniu kolejnego hotspotu
+        if self.current_direction is not None:  # warunek spełniony po wybraniu kolejnego hotspotu
             angle = self.bearing_current
-        elif yaw is not None: # warunek dla przypadku, gdy obróciliśmy zdjęcie w oknie (kąt yaw - kąt o jaki obróciliśmy zdjęcie względem kierunku jazdy samochodu)
-            self.yaw = yaw * math.pi / -180 # kąt o jaki obrócono zdjęcie, potrzeby do ustawienia zdjęcia w odpowiednim kierunku w następnym hotspocie
-            self.bearing_current = float(self.bearing + yaw) * math.pi / -180 # kąt potrzebny do zachowania kierunku radaru w następnym hotspocie
+        elif yaw is not None:  # warunek dla przypadku, gdy obróciliśmy zdjęcie w oknie (kąt yaw - kąt o jaki obróciliśmy zdjęcie względem kierunku jazdy samochodu)
+            self.yaw = yaw * math.pi / -180  # kąt o jaki obrócono zdjęcie, potrzeby do ustawienia zdjęcia w odpowiednim kierunku w następnym hotspocie
+            self.bearing_current = float(self.bearing + yaw) * math.pi / -180  # kąt potrzebny do zachowania kierunku radaru w następnym hotspocie
             angle = float(self.bearing + yaw) * math.pi / -180
         else:
             angle = float(self.bearing) * math.pi / -180

@@ -58,26 +58,26 @@ class ViewerAnimation():
         self._kierunek_obrotu = ANIMATION_STOP
 
     def zoomIn(self):
-        self._kierunek_przyblizania= ANIMATION_ZOOM_IN
+        self._kierunek_przyblizania = ANIMATION_ZOOM_IN
         self._timer.setInterval(int(1000 / ANIMATION_FPS))
 
     def zoomOut(self):
-        self._kierunek_przyblizania= ANIMATION_ZOOM_OUT
+        self._kierunek_przyblizania = ANIMATION_ZOOM_OUT
         self._timer.setInterval(int(1000 / ANIMATION_FPS))
 
     def zoomStop(self):
-        self._kierunek_przyblizania= ANIMATION_STOP
+        self._kierunek_przyblizania = ANIMATION_STOP
 
     def lookUp(self):
-        self._kierunek_podnoszenia= ANIMATION_LOOK_UP
+        self._kierunek_podnoszenia = ANIMATION_LOOK_UP
         self._timer.setInterval(int(1000 / ANIMATION_FPS))
 
     def lookDown(self):
-        self._kierunek_podnoszenia= ANIMATION_LOOK_DOWN
+        self._kierunek_podnoszenia = ANIMATION_LOOK_DOWN
         self._timer.setInterval(int(1000 / ANIMATION_FPS))
 
     def lookStop(self):
-        self._kierunek_podnoszenia= ANIMATION_STOP
+        self._kierunek_podnoszenia = ANIMATION_STOP
 
     def countRotationSpeed(self, kierunek, predkosc):
         """
