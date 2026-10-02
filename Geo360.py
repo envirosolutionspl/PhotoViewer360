@@ -287,8 +287,6 @@ class Geo360:
         
         # informacje o wersji
         self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
-        self.dlg.label_8.setText('%s' % (plugin_version))
-        self.dlg.label_9.setText(plugin_name)
         self.dlg.lbl_pluginVersion_3.setText('%s %s' % (plugin_name, plugin_version))
         # TODO docelowo ma być wsparcie dla poniższeko komponentu i dolny pasek wtyczki
         # self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
