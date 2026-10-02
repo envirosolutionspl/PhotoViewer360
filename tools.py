@@ -19,8 +19,8 @@ class SelectTool(QgsMapToolIdentify):
 
         self.cursor = QCursor(
             QPixmap(small_image)
-        )
-
+        ) 
+ 
     def activate(self):
         self.canvas.setCursor(self.cursor)
 
