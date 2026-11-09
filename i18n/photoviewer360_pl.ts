@@ -83,6 +83,26 @@
         <source>Save</source>
         <translation>Zapisz</translation>
     </message>
+    <message>
+        <location filename="../ui/qgis_feed.ui"/>
+        <source>EnviroSolutions News</source>
+        <translation>Nowości EnviroSolutions</translation>
+    </message>
+    <message>
+        <location filename="../ui/qgis_feed.ui"/>
+        <source>Industry selection</source>
+        <translation>Wybór branży</translation>
+    </message>
+    <message>
+        <location filename="../ui/qgis_feed.ui"/>
+        <source>Help us better customize free plugins. Please indicate which industry you represent.</source>
+        <translation>Pomóż nam lepiej dostosować bezpłatne wtyczki. Wskaż, którą branżę reprezentujesz.</translation>
+    </message>
+    <message>
+        <location filename="../ui/qgis_feed.ui"/>
+        <source>Industry</source>
+        <translation>Branża</translation>
+    </message>
 </context>
 <context>
     <name>TranslationUtils</name>
@@ -525,6 +545,56 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <source>Information</source>
         <translation>Informacje</translation>
     </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Panoramic photo preview</source>
+        <translation>Podgląd zdjęcia panoramicznego</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Close preview</source>
+        <translation>Zamknij podgląd</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Look up</source>
+        <translation>Spójrz w górę</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Look down</source>
+        <translation>Spójrz w dół</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Turn left</source>
+        <translation>Obróć w lewo</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Turn right</source>
+        <translation>Obróć w prawo</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Zoom in</source>
+        <translation>Przybliż</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Zoom out</source>
+        <translation>Oddal</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Save view as image</source>
+        <translation>Zapisz widok jako obraz</translation>
+    </message>
+    <message>
+        <location filename="../gui/ui_orbitalDialog.py"/>
+        <source>Full screen</source>
+        <translation>Pełny ekran</translation>
+    </message>
 </context>
 <context>
     <name>main</name>
@@ -662,6 +732,26 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <location filename="../gui/first_window_geo360_base.ui" line="820"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;PhotoViewer360 &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;PhotoViewer360 &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../gui/first_window_geo360_base.ui"/>
+        <source>Help – plugin website</source>
+        <translation>Pomoc – strona wtyczki</translation>
+    </message>
+    <message>
+        <location filename="../ui/first_window_geo360_base.ui"/>
+        <source>Close plugin</source>
+        <translation>Zamknij wtyczkę</translation>
+    </message>
+    <message>
+        <location filename="../ui/first_window_geo360_base.ui"/>
+        <source>&lt;a href=&quot;https://envirosolutions.pl/?utm_source=plugins&amp;utm_medium=referral&amp;utm_campaign=photoviewer360&amp;utm_content=systemy_wsparcie#uslugi&quot; style=&quot;text-decoration:underline;&quot;&gt;GIS SYSTEMS AND SUPPORT&lt;/a&gt;</source>
+        <translation>&lt;a href=&quot;https://envirosolutions.pl/?utm_source=plugins&amp;utm_medium=referral&amp;utm_campaign=photoviewer360&amp;utm_content=systemy_wsparcie#uslugi&quot; style=&quot;text-decoration:underline;&quot;&gt;SYSTEMY I WSPARCIE GIS&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ui/first_window_geo360_base.ui"/>
+        <source>&lt;a href=&quot;https://envirosolutions.pl/oferta-szkoleniowa/?utm_source=plugins&amp;utm_medium=referral&amp;utm_campaign=photoviewer360&amp;utm_content=szkolenia_gis&quot; style=&quot;text-decoration:underline;&quot;&gt;GIS TRAINING&lt;/a&gt;</source>
+        <translation>&lt;a href=&quot;https://envirosolutions.pl/oferta-szkoleniowa/?utm_source=plugins&amp;utm_medium=referral&amp;utm_campaign=photoviewer360&amp;utm_content=szkolenia_gis&quot; style=&quot;text-decoration:underline;&quot;&gt;SZKOLENIA GIS&lt;/a&gt;</translation>
     </message>
 </context>
 </TS>

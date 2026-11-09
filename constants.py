@@ -186,3 +186,15 @@ QGIS_SETTINGS_KEYS = {
 }
 
 QGIS_FEED_MIN_VERSION_INT = 31000
+
+# ----------- Wygląd okien (motyw jasny/ciemny) -----------
+HOME_LINK = 'https://envirosolutions.pl/wtyczki-qgis/photoviewer360/'
+
+# Prefiks ścieżki ikon używany w url(...) arkuszy stylów w plikach .ui
+QSS_IMAGES_PREFIX = 'pv360img'
+
+# Kolor linków w stopce zależny od motywu
+FOOTER_LINK_COLORS = {'light': '#4a5250', 'dark': '#b8c0bc'}
+
+# Logo w stopce zależne od motywu (pliki w images/)
+FOOTER_LOGOS = {'light': 'es_logo_h.png', 'dark': 'es_logo_white.png'}

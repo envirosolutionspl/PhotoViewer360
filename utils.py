@@ -5,20 +5,24 @@ import os
 import platform
 import importlib
 import processing
+import re
 import sys
 import time
 
 from qgis.PyQt.QtCore import (
+    QByteArray,
     QCoreApplication,
     QUrl,
     QUrlQuery,
     QEventLoop,
     QTimer,
     QT_VERSION_STR,
+    Qt,
 )
 
 from qgis.core import (
     Qgis,
+    QgsApplication,
     QgsMessageLog,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -30,8 +34,9 @@ from qgis.core import (
 )
 # from qgis.utils import iface
 
-from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace
+from qgis.PyQt.QtWidgets import QMessageBox, QWidget
+from qgis.PyQt.QtGui import QIcon, QColor, QSurfaceFormat, QColorSpace, QPalette, QPixmap, QPainter
+from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManager 
 from .constants import (
     I18N_CONTEXT,
@@ -330,6 +335,74 @@ class MessageUtils:
             tag=PLUGIN_NAME,
             level=Qgis.MessageLevel.Critical
         )
+
+class ThemeUtils:
+    """Wspólne dla okien wtyczki (okno główne, okno QGIS Feed): motyw jasny/ciemny i logo."""
+
+    PLUGIN_DIR = os.path.dirname(__file__)
+
+    @staticmethod
+    def isDarkTheme():
+        """Ciemny motyw QGIS (np. Night Mapping) albo ciemna paleta systemu."""
+        name = ''
+        try:
+            name = (QgsApplication.themeName() or '').lower()
+        except AttributeError as e:
+            MessageUtils.pushLogCritical(f"Atrybut motywu jest niedostępny (AttributeError): {e}")
+        except RuntimeError as e:
+            MessageUtils.pushLogCritical(f"Aplikacja QGIS nie jest w pełni zainicjalizowana (RuntimeError): {e}")
+        except TypeError as e:
+            MessageUtils.pushLogCritical(f"Nieoczekiwany typ danych przy pobieraniu motywu (TypeError): {e}")
+        except Exception as e:
+            MessageUtils.pushLogCritical(f"Nieoczekiwany błąd ({type(e).__name__}): {e}")
+
+        if 'night' in name or 'dark' in name:
+            return True
+        return QgsApplication.palette().color(QPalette.ColorRole.Window).lightness() < 128
+
+    @staticmethod
+    def repolishAll(window):
+        """Pełne przeliczenie stylu okna i wszystkich jego widgetów (po zmianie właściwości "theme")."""
+        for widget in [window] + window.findChildren(QWidget):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            widget.update()
+
+    @staticmethod
+    def setLogo(label, filename, height):
+        """Wstawia logo z images/ do etykiety, w skali ekranu (bez rozpikselowania przy 125-150%)."""
+        pix = QPixmap(os.path.join(ThemeUtils.PLUGIN_DIR, 'images', filename))
+        if pix.isNull():
+            return
+        dpr = label.devicePixelRatioF()
+        pix = pix.scaledToHeight(int(height * dpr), Qt.TransformationMode.SmoothTransformation)
+        pix.setDevicePixelRatio(dpr)
+        label.setScaledContents(False)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setPixmap(pix)
+
+    @staticmethod
+    def tintedIcon(filename, color, size, dpr=1.0):
+        """Ikona SVG z images/ przemalowana na podany kolor (currentColor i kolory wpisane na sztywno),
+        wyrenderowana w skali ekranu - ostra przy 125-150%."""
+        path = os.path.join(ThemeUtils.PLUGIN_DIR, 'images', filename)
+        try:
+            with open(path, 'r', encoding='utf-8') as svg_file:
+                svg = svg_file.read()
+        except OSError as e:
+            MessageUtils.pushLogWarning(f"Nie można odczytać ikony {path} ({type(e).__name__}): {e}")
+            return QIcon()
+        svg = svg.replace('currentColor', color)
+        svg = re.sub(r'(stroke|fill):#[0-9a-fA-F]{3,6}', r'\1:%s' % color, svg)
+        svg = re.sub(r'(stroke|fill)="#[0-9a-fA-F]{3,6}"', r'\1="%s"' % color, svg)
+        renderer = QSvgRenderer(QByteArray(svg.encode('utf-8')))
+        pix = QPixmap(int(size * dpr), int(size * dpr))
+        pix.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pix)
+        renderer.render(painter)
+        painter.end()
+        pix.setDevicePixelRatio(dpr)
+        return QIcon(pix)
 
 class NetworkUtils:
 
