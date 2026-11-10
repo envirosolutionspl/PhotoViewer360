@@ -70,7 +70,6 @@ from .tools import SelectTool
 from .qgis_feed import QgisFeedDialog
 import importlib.util
 
-from . import PLUGIN_VERSION as plugin_version
 from . import PLUGIN_NAME as plugin_name
 
 from . import plugin_dir, temp_dir
@@ -285,11 +284,10 @@ class Geo360:
         # will be set False in run()
         self.first_start = True
         
-        # informacje o wersji
-        self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
-        self.dlg.lbl_pluginVersion_3.setText('%s %s' % (plugin_name, plugin_version))
-        # TODO docelowo ma być wsparcie dla poniższeko komponentu i dolny pasek wtyczki
-        # self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
+        # panel wtyczki dokowany po lewej stronie (okno ze zdjęciem otwiera się po prawej);
+        # wersja wtyczki jest w nagłówku panelu (FirstWindowGeo360Dialog)
+        self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dlg)
+        self.dlg.hide()
 
         # eventy
 
@@ -321,10 +319,13 @@ class Geo360:
         self.iface.actionPan().trigger()
 
         if self.orbital_viewer is not None:
-            self.orbital_viewer.close()
+            viewer = self.orbital_viewer
+            viewer.close()  # closeEvent zeruje self.orbital_viewer
+            self.iface.removeDockWidget(viewer)
 
         if self.dlg is not None:
-            self.dlg.close()  
+            self.dlg.close()
+            self.iface.removeDockWidget(self.dlg)
 
         # ponowne załadowanie narzędzi
         for action in self.actions:
@@ -349,8 +350,9 @@ class Geo360:
         # Sprawdzenie dostępności biblioteki 'exifread'
         if not self.importExifread():
             return 
-        # wywołanie okna "PhotoViewer360" po wciśnięciu ikony aparatu
+        # wywołanie panelu "PhotoViewer360" po wciśnięciu ikony aparatu
         self.dlg.show()
+        self.dlg.raise_()
 
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
@@ -408,7 +410,7 @@ class Geo360:
             if good_layer:
                 self.map_tool = SelectTool(self.iface, parent=self, query_layer=self.layer)
                 self.iface.mapCanvas().setMapTool(self.map_tool)
-                self.dlg.hide()
+                # panel jest dokowany - zostaje otwarty obok mapy i okna ze zdjęciem
                 self.clickPointOnMapFeature()
             else:
                 MessageUtils.pushMessageBoxWarning(
@@ -864,8 +866,7 @@ class Geo360:
             except RuntimeError:
                 pass
 
-            # ukrycie okna PhotoViewer360
-            self.dlg.hide()
+            # panel jest dokowany - zostaje otwarty obok mapy i okna ze zdjęciem
             self.action_activate.setEnabled(True)
             self.clickPointOnMapFeature()
 
@@ -882,7 +883,6 @@ class Geo360:
             except RuntimeError:
                 pass
 
-            self.dlg.hide()
             self.clickPointOnMapFeature()
 
     def browseGpkg(self):
@@ -931,7 +931,6 @@ class Geo360:
         self.project.addMapLayer(vlayer)
 
         self.use_layer = vlayer.name()
-        self.dlg.hide()
         self.action_activate.setEnabled(True)
         self.clickPointOnMapFeature()
 
