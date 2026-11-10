@@ -27,6 +27,7 @@ QLabel#img_es_4 { background: transparent; padding: 0px; }
 QTabBar { font-weight: 700; }
 QTabBar::tab { padding: 6px 12px; margin-right: 3px; margin-top: 3px; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: 700; }
 QTabBar::tab:last { margin-right: 0px; }
+QTabWidget#tabWidget_2::pane { border: none; margin: 0px; padding: 0px; top: 0px; }
 QTabBar::tab:selected { margin-top: 0px; padding-bottom: 7px; margin-bottom: -1px; }
 QWidget#tab1, QWidget#tab2, QWidget#tab3 { background: transparent; }
 

@@ -546,6 +546,36 @@ Czy chcesz dopisać dane do starego pliku?</translation>
         <translation>Informacje</translation>
     </message>
     <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Photo information</source>
+        <translation>Informacje o zdjęciu</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Road number</source>
+        <translation>Numer drogi</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Street name</source>
+        <translation>Nazwa ulicy</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Section number</source>
+        <translation>Numer odcinka</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Chainage</source>
+        <translation>Kilometraż</translation>
+    </message>
+    <message>
+        <location filename="../modules/viewer_widget.py"/>
+        <source>Date</source>
+        <translation>Data</translation>
+    </message>
+    <message>
         <location filename="../gui/ui_orbitalDialog.py"/>
         <source>Panoramic photo preview</source>
         <translation>Podgląd zdjęcia panoramicznego</translation>

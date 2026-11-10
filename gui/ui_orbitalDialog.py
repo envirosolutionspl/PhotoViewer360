@@ -11,55 +11,22 @@ from .. import plugin_dir
 from ..utils import QtCompat, ThemeUtils, TranslationUtils
 
 from ..constants import IMAGES_DIRECTORY
-
-VIEWER_STYLE = """
-QLabel#lbl_viewer_title { font-size: 14px; font-weight: 700; }
-QLabel#lbl_viewer_subtitle { font-size: 11px; }
-QToolButton#btn_viewer_close { border: none; border-radius: 6px; padding: 3px; }
-QFrame#toolbar_frame QPushButton { border-radius: 6px; padding: 0px; }
-QPushButton:focus, QToolButton:focus { outline: none; }
-
-QDockWidget[theme="light"] QWidget#dockWidgetContents { background: #ffffff; }
-QDockWidget[theme="light"] QFrame#header_frame { background: #ffffff; border: none; border-bottom: 2px solid #4c6e4f; }
-QDockWidget[theme="light"] QLabel#lbl_viewer_title { color: #3b5a3e; }
-QDockWidget[theme="light"] QLabel#lbl_viewer_subtitle { color: #6b7572; }
-QDockWidget[theme="light"] QToolButton#btn_viewer_close:hover { background: #e8efe8; }
-QDockWidget[theme="light"] QFrame#viewer_frame { background: #1f2122; border: none; }
-QDockWidget[theme="light"] QFrame#toolbar_frame { background: #f6f8f6; border: none; border-top: 1px solid #d6ded6; }
-QDockWidget[theme="light"] QFrame#toolbar_frame QPushButton { background: #ffffff; border: 1px solid #b9c7ba; }
-QDockWidget[theme="light"] QFrame#toolbar_frame QPushButton:hover { background: #eef3ee; border-color: #4c6e4f; }
-QDockWidget[theme="light"] QFrame#toolbar_frame QPushButton:pressed { background: #dfe8df; }
-QDockWidget[theme="light"] QFrame[role="separator"] { background: #d6ded6; border: none; }
-
-QDockWidget[theme="dark"] QWidget#dockWidgetContents { background: #2b2d2e; }
-QDockWidget[theme="dark"] QFrame#header_frame { background: #2b2d2e; border: none; border-bottom: 2px solid #5b8260; }
-QDockWidget[theme="dark"] QLabel#lbl_viewer_title { color: #a9cfac; }
-QDockWidget[theme="dark"] QLabel#lbl_viewer_subtitle { color: #9aa4a0; }
-QDockWidget[theme="dark"] QToolButton#btn_viewer_close:hover { background: #2c3a2d; }
-QDockWidget[theme="dark"] QFrame#viewer_frame { background: #1f2122; border: none; }
-QDockWidget[theme="dark"] QFrame#toolbar_frame { background: #303334; border: none; border-top: 1px solid #44494a; }
-QDockWidget[theme="dark"] QFrame#toolbar_frame QPushButton { background: #262829; border: 1px solid #5a6162; }
-QDockWidget[theme="dark"] QFrame#toolbar_frame QPushButton:hover { background: #2c3a2d; border-color: #6f9c73; }
-QDockWidget[theme="dark"] QFrame#toolbar_frame QPushButton:pressed { background: #1f2a20; }
-QDockWidget[theme="dark"] QFrame[role="separator"] { background: #44494a; border: none; }
-"""
-
-# Kolor ikon przycisków zależny od motywu
-VIEWER_ICON_COLORS = {'light': '#3b5a3e', 'dark': '#cfe0d0'}
-VIEWER_CLOSE_ICONS = {'light': 'close.svg', 'dark': 'close_dark.svg'}
-VIEWER_BUTTON_SIZE = 34
-VIEWER_ICON_SIZE = 20
-
-# Przyciski paska narzędzi: grupy oddzielone separatorem -> (nazwa obiektu, plik ikony, podpowiedź)
-VIEWER_BUTTON_GROUPS = (
-    (("btn_look_up", "look_up.svg", "Look up"),
-     ("btn_look_down", "look_down.svg", "Look down")),
-    (("btn_turn_left", "turn_left.svg", "Turn left"),
-     ("btn_turn_right", "turn_right.svg", "Turn right")),
-    (("btn_zoom_in", "zoom_in.svg", "Zoom in"),
-     ("btn_zoom_out", "zoom_out.svg", "Zoom out")),
-    (("btn_screenshot", "camera.svg", "Save view as image"),
-     ("btn_fullscreen", "full_screen.svg", "Full screen")),
+from .constants import (
+    VIEWER_STYLE,
+    VIEWER_ICON_COLORS,
+    VIEWER_CLOSE_ICONS,
+    VIEWER_DEFAULT_SIZE,
+    VIEWER_OPEN_WIDTH_RATIO,
+    VIEWER_BUTTON_SIZE,
+    VIEWER_ICON_SIZE,
+    VIEWER_HEADER_MARGINS,
+    VIEWER_HEADER_SPACING,
+    VIEWER_TITLE_SPACING,
+    VIEWER_TOOLBAR_MARGINS,
+    VIEWER_TOOLBAR_SPACING,
+    VIEWER_SEPARATOR_SPACING,
+    VIEWER_SEPARATOR_INSET,
+    VIEWER_BUTTON_GROUPS,
 )
 
 
@@ -68,7 +35,7 @@ class UiOrbitalDialog(object):
 
     def setupUi(self, orbitalDialog):
         orbitalDialog.setObjectName("orbitalDialog")
-        orbitalDialog.resize(640, 480)
+        orbitalDialog.resize(*VIEWER_DEFAULT_SIZE)
         sizePolicy = QtWidgets.QSizePolicy(
             QtCompat.qsizepolicyExpanding(QtWidgets),
             QtCompat.qsizepolicyExpanding(QtWidgets),
@@ -100,10 +67,10 @@ class UiOrbitalDialog(object):
         self.header_frame = QtWidgets.QFrame(orbitalDialog)
         self.header_frame.setObjectName("header_frame")
         header_layout = QtWidgets.QHBoxLayout(self.header_frame)
-        header_layout.setContentsMargins(12, 6, 8, 6)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(*VIEWER_HEADER_MARGINS)
+        header_layout.setSpacing(VIEWER_HEADER_SPACING)
         title_layout = QtWidgets.QVBoxLayout()
-        title_layout.setSpacing(1)
+        title_layout.setSpacing(VIEWER_TITLE_SPACING)
         self.lbl_viewer_title = QtWidgets.QLabel(self.header_frame)
         self.lbl_viewer_title.setObjectName("lbl_viewer_title")
         self.lbl_viewer_subtitle = QtWidgets.QLabel(self.header_frame)
@@ -132,18 +99,18 @@ class UiOrbitalDialog(object):
         self.toolbar_frame.setObjectName("toolbar_frame")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.toolbar_frame)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.horizontalLayout.setContentsMargins(10, 8, 10, 8)
-        self.horizontalLayout.setSpacing(6)
+        self.horizontalLayout.setContentsMargins(*VIEWER_TOOLBAR_MARGINS)
+        self.horizontalLayout.setSpacing(VIEWER_TOOLBAR_SPACING)
         self.horizontalLayout.addStretch(1)
         self._viewer_buttons = []
         for group_index, group in enumerate(VIEWER_BUTTON_GROUPS):
             if group_index > 0:
                 separator = QtWidgets.QFrame(self.toolbar_frame)
                 separator.setProperty("role", "separator")
-                separator.setFixedSize(1, VIEWER_BUTTON_SIZE - 10)
-                self.horizontalLayout.addSpacing(4)
+                separator.setFixedSize(1, VIEWER_BUTTON_SIZE - VIEWER_SEPARATOR_INSET)
+                self.horizontalLayout.addSpacing(VIEWER_SEPARATOR_SPACING)
                 self.horizontalLayout.addWidget(separator)
-                self.horizontalLayout.addSpacing(4)
+                self.horizontalLayout.addSpacing(VIEWER_SEPARATOR_SPACING)
             for object_name, icon_file, _tooltip in group:
                 button = QtWidgets.QPushButton(self.toolbar_frame)
                 button.setObjectName(object_name)
@@ -212,10 +179,10 @@ class UiOrbitalDialog(object):
         )
 
     def fitViewerOnOpen(self):
-        """Przy pierwszym otwarciu okno ze zdjęciem zajmuje ok. 40% szerokości okna QGIS,
+        """Przy pierwszym otwarciu okno ze zdjęciem zajmuje część szerokości okna QGIS (VIEWER_OPEN_WIDTH_RATIO),
         żeby zdjęcie i wszystkie przyciski były od razu dobrze widoczne."""
         main_window = self.parentWidget()
         if self.isFloating() or not isinstance(main_window, QtWidgets.QMainWindow):
             return
-        width = max(self.minimumSizeHint().width(), int(main_window.width() * 0.4))
+        width = max(self.minimumSizeHint().width(), int(main_window.width() * VIEWER_OPEN_WIDTH_RATIO))
         main_window.resizeDocks([self], [width], QtCore.Qt.Orientation.Horizontal)
