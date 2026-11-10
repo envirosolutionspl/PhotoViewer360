@@ -38,8 +38,6 @@ IMAGES_DIRECTORY = "images"
 WHITE_HOTSPOT_OBJ_FILENAME = "hotspot_white.obj"
 BLACK_HOTSPOT_OBJ_FILENAME = "hotspot_black.obj"
 NOIMAGE_JPG_FILENAME = "no_image.jpg"
-DESC_BALOON_FILENAME = "desc_balloon.png"
-FONT_NAME = "Open Sans"
 
 # Szary kolor bazowy, który jest używany do rozpoznawania hotspotów
 # najlepiej w zakresie od 1 do maks 210

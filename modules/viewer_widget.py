@@ -80,7 +80,7 @@ from PIL import Image
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtGui import QPainter, QPixmap
 
-from .description_card import renderDescriptionCard, imageToGlBytes
+from .description_card import DescriptionCard
 
 # QtCompat: from qgis.PyQt import QtOpenGLWidgets
 QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
@@ -540,11 +540,12 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         """
         theme = 'dark' if ThemeUtils.isDarkTheme() else 'light'
         self.description_dpr = self.devicePixelRatioF()
-        image, self.description_collapse_rect = renderDescriptionCard(
+        card = DescriptionCard(
             self.description_rows, TranslationUtils.tr("Photo information"), theme,
             self.description_collapsed, self.description_dpr,
         )
-        self.new_image_description_data = imageToGlBytes(image)
+        image, self.description_collapse_rect = card.render()
+        self.new_image_description_data = DescriptionCard.toGlBytes(image)
         self.qimage_description_data = image
 
     def toggleDescriptionCard(self):
