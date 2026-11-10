@@ -3,7 +3,7 @@
 import math
 import os
 
-from ..utils import MessageUtils, QtCompat, VersionUtils, TranslationUtils
+from ..utils import MessageUtils, QtCompat, VersionUtils, TranslationUtils, ThemeUtils
 from .. import plugin_dir
 from ..constants import (
     WHITE_HOTSPOT_OBJ_FILENAME,
@@ -11,8 +11,6 @@ from ..constants import (
     NOIMAGE_JPG_FILENAME,
     HOTSPOT_BASE_TEST_COLOR,
     HOTSPOT_BASE_BRIGHT_COLOR,
-    DESC_BALOON_FILENAME,
-    FONT_NAME,
     IMAGES_DIRECTORY,
     LIBS_PATH,
     LIB_OPENGL_PATH,
@@ -78,10 +76,11 @@ from OpenGL.GLU import (
     gluErrorString,
 )
 
-from PIL import Image, ImageFont, ImageDraw
-from . import pil_image_compat
+from PIL import Image
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtGui import QPainter, QPixmap
+
+from .description_card import DescriptionCard
 
 # QtCompat: from qgis.PyQt import QtOpenGLWidgets
 QtOpenGLWidgets = QtCompat.importQtOpenGLWidgetsQOpenGLWidget()
@@ -121,6 +120,11 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.image_description_data = None
         self.new_image_description_data = None
         self.qimage_description_data = None
+        # karta z informacjami o zdjęciu: zwinięcie, przycisk zwijania, skala ekranu przy ostatnim rysowaniu
+        self.description_collapsed = False
+        self.description_rows = []
+        self.description_collapse_rect = None
+        self.description_dpr = None
         
         self.is_widget_loaded = False
         self.is_texture_loaded = False
@@ -348,12 +352,13 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             # aktualizacja danych o wymiarach viewport - przydaje się przy przerzucaniu okna między monitorami o różnym skalowaniu
             self.viewport = glGetIntegerv(GL_VIEWPORT)   
 
-            # Rysowanie dymka z informacjami
+            # Rysowanie karty z informacjami (wymiary w pikselach urządzenia)
+            card_width, card_height, card_data = self.image_description_data
             glColor3f(1, 1, 1) 
-            glRasterPos(0, 260)
+            glRasterPos(0, card_height)
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            glDrawPixels(300, 260, GL_RGBA, GL_UNSIGNED_BYTE, self.image_description_data)
+            glDrawPixels(card_width, card_height, GL_RGBA, GL_UNSIGNED_BYTE, card_data)
             glDisable(GL_BLEND)
 
             # finalizacja GL
@@ -516,54 +521,39 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.kilometraz = kilometraz
         self.nazwa_pliku = nazwa_pliku
 
-        try:
-            image = Image.open(os.path.join(plugin_dir, IMAGES_DIRECTORY, DESC_BALOON_FILENAME))
-        except FileNotFoundError:
-            MessageUtils.pushLogCritical(
-                TranslationUtils.tr("Path not found: /{img_dir}/{filename}").format(
-                    img_dir=IMAGES_DIRECTORY, filename=DESC_BALOON_FILENAME
-                )
-            )
-            return False
-        except Exception:
-            MessageUtils.pushLogCritical(
-                TranslationUtils.tr("Error loading photo /{img_dir}/{filename}").format(
-                    img_dir=IMAGES_DIRECTORY, filename=DESC_BALOON_FILENAME
-                )
-            )
-            return False
-        
-        try:
-            font_path = os.path.abspath(os.path.join(plugin_dir, os.pardir, os.pardir, os.pardir, "fonts", FONT_NAME))
-            font_regular = ImageFont.truetype(font_path, 15)
-            font_regular.set_variation_by_name(b'Condensed Regular')
-            font_bold = ImageFont.truetype(font_path, 15)
-            font_bold.set_variation_by_name(b'Bold')
-        except FileNotFoundError:
-            MessageUtils.pushLogCritical(TranslationUtils.tr("Font files not found."))
-            return False
-        except Exception:
-            MessageUtils.pushLogCritical(TranslationUtils.tr("Error loading font files."))
-            return False
-
-        # Generowanie opisu na dymku
-        draw = ImageDraw.Draw(image)
-        draw.text((10, 84), TranslationUtils.tr("Road number:"), fill=(0, 0, 0), font=font_bold)
-        draw.text((10, 100), nr_drogi, fill=(0, 0, 0), font=font_regular)
+        # Wiersze karty z informacjami o zdjęciu (bez nazwy ulicy - tylko numer drogi, jak dotychczas)
+        self.description_rows = [(TranslationUtils.tr("Road number"), nr_drogi)]
         if nazwa_ulicy != "NULL":
-            draw.text((10, 116), TranslationUtils.tr("Street name:"), fill=(0, 0, 0), font=font_bold)
-            draw.text((10, 132), nazwa_ulicy, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 148), TranslationUtils.tr("Section number:"), fill=(0, 0, 0), font=font_bold)
-            draw.text((10, 164), numer_odcinka, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 180), TranslationUtils.tr("Chainage:"), fill=(0, 0, 0), font=font_bold)
-            draw.text((10, 196), kilometraz, fill=(0, 0, 0), font=font_regular)
-            draw.text((10, 212), TranslationUtils.tr("Date:"), fill=(0, 0, 0), font=font_bold)
-            draw.text((10, 228), data_wykonania, fill=(0, 0, 0), font=font_regular)
-
-        self.new_image_description_data = image.tobytes("raw", "RGBA", 0, -1)
-        self.qimage_description_data = pil_image_compat.toqimage(image)
+            self.description_rows += [
+                (TranslationUtils.tr("Street name"), nazwa_ulicy),
+                (TranslationUtils.tr("Section number"), numer_odcinka),
+                (TranslationUtils.tr("Chainage"), kilometraz),
+                (TranslationUtils.tr("Date"), data_wykonania),
+            ]
+        self.buildDescriptionCard()
 
         return True
+
+    def buildDescriptionCard(self):
+        """
+        Rysuje kartę z informacjami o zdjęciu (motyw jasny/ciemny, zwinięta/rozwinięta, w skali ekranu)
+        """
+        theme = 'dark' if ThemeUtils.isDarkTheme() else 'light'
+        self.description_dpr = self.devicePixelRatioF()
+        card = DescriptionCard(
+            self.description_rows, TranslationUtils.tr("Photo information"), theme,
+            self.description_collapsed, self.description_dpr,
+        )
+        image, self.description_collapse_rect = card.render()
+        self.new_image_description_data = DescriptionCard.toGlBytes(image)
+        self.qimage_description_data = image
+
+    def toggleDescriptionCard(self):
+        """Zwija / rozwija kartę z informacjami o zdjęciu"""
+        self.description_collapsed = not self.description_collapsed
+        self.buildDescriptionCard()
+        self.image_description_data = self.new_image_description_data
+        self.update()
 
     def setHotSpots(self, coordinates):
         """
@@ -605,6 +595,10 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(self.fov, self.width() / self.height(), 0.1, 1000)
+        # okno przeniesione na monitor o innym skalowaniu - karta z informacjami rysowana od nowa, żeby była ostra
+        if self.description_dpr is not None and self.devicePixelRatioF() != self.description_dpr:
+            self.buildDescriptionCard()
+            self.image_description_data = self.new_image_description_data
 
     def updateRotationData(self, d_rotation, d_zoom, d_pitch):
         """
@@ -635,6 +629,13 @@ class ViewerWidget(QtOpenGLWidgets.QOpenGLWidget):
             self.setCursor(QtCompat.qtCursorShapeClosedHandCursor(QtCore))
 
     def mouseReleaseEvent(self, event):
+        # kliknięcie w przycisk zwijania karty z informacjami o zdjęciu
+        if (not self.moving and self.show_description and self.description_collapse_rect is not None
+                and self.description_collapse_rect.contains(QtCore.QPointF(event.pos()))):
+            self.toggleDescriptionCard()
+            self.setCursor(QtCompat.qtCursorShapeOpenHandCursor(QtCore))
+            return
+
         if not self.moving:
             
             # przeprowadzenie testu kliknięcia w hot spot

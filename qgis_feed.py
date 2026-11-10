@@ -1,6 +1,6 @@
 from qgis.core import (QgsNewsFeedParser, QgsSettings, QgsNewsFeedModel,
                        QgsMessageLog, QgsApplication)
-from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtCore import QUrl, QDir, QEvent
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QComboBox, QPushButton
 
@@ -8,8 +8,11 @@ import re
 import os
 import unicodedata
 
-from .constants import INDUSTRIES, FEED_URL
-from .utils import TranslationUtils
+from .constants import INDUSTRIES, FEED_URL, FOOTER_LOGOS, IMAGES_DIRECTORY, QSS_IMAGES_PREFIX
+from .utils import TranslationUtils, ThemeUtils
+
+# Prefiks używany w url(...) arkusza stylów w ui/qgis_feed.ui (strzałka listy).
+QDir.addSearchPath(QSS_IMAGES_PREFIX, os.path.join(os.path.dirname(__file__), IMAGES_DIRECTORY))
 
 
 class QgisFeed:
@@ -116,12 +119,43 @@ class QgisFeedDialog(QDialog):
         super(QgisFeedDialog, self).__init__(parent)
         self.ui_file_path = os.path.join(os.path.dirname(__file__), 'ui', 'qgis_feed.ui')
         uic.loadUi(self.ui_file_path, self)
+        self._theme = None
 
         self.combo_box = self.findChild(QComboBox, 'comboBox')
         self.push_button = self.findChild(QPushButton, 'pushButton')
         self.push_button.clicked.connect(self.onSaveClicked)
 
+        self._applyTheme()
         self.loadPreviousSelection()
+
+    # ------------------------------- Motyw -----------------------------------
+    def _applyTheme(self, force=False):
+        """Ustawia właściwość "theme" – kolory są zdefiniowane w arkuszu stylów ui/qgis_feed.ui."""
+        theme = 'dark' if ThemeUtils.isDarkTheme() else 'light'
+        if theme == self._theme and not force:
+            return
+        self._theme = theme
+        self.setProperty('theme', theme)
+        ThemeUtils.repolishAll(self)
+        self._setLogo()
+
+    def _setLogo(self, height=30):
+        """Logo w stopce: zielone na jasnym tle, białe na ciemnym (FOOTER_LOGOS w constants)."""
+        if self._theme is not None:
+            ThemeUtils.setLogo(self.lbl_logo, FOOTER_LOGOS[self._theme], height)
+
+    def showEvent(self, event):
+        self._applyTheme()
+        super().showEvent(event)
+        # dopiero po pokazaniu znana jest skala ekranu – inaczej logo jest rozpikselowane
+        self._setLogo()
+
+    def changeEvent(self, event):
+        # changeEvent przychodzi już w trakcie loadUi – wtedy _theme jeszcze nie istnieje
+        if (event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange)
+                and getattr(self, '_theme', None) is not None):
+            self._applyTheme()
+        super().changeEvent(event)
 
     def loadPreviousSelection(self):
         settings = QgsSettings()

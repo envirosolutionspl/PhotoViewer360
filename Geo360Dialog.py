@@ -38,7 +38,7 @@ from qgis.core import (
 )
 from qgis.gui import QgsRubberBand
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QEvent, QTimer
 from qgis.PyQt.QtWidgets import QDockWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor, QSurfaceFormat
 
@@ -180,6 +180,9 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
 
     def updateViewer(self):
         """ Funkcja odpowiadająca za załadowanie lub aktualizację okna Street View (okna ze zdjęciem) """
+
+        # nazwa zdjęcia w nagłówku okna
+        self.setViewerSubtitle(basename(self.current_image) if self.is_current_image_exists else "")
 
         azymut = self.selected_features.attribute(GPKP_COLUMNS_DICT['direction'])
 
@@ -434,6 +437,21 @@ class Geo360Dialog(QDockWidget, UiOrbitalDialog, ViewerAnimation):
         self.updateViewer()
 
         QgsMapUtils.zoomToFeature(self.canvas, self.layer, new_id)
+
+    def showEvent(self, event):
+        """Motyw (dopiero teraz znana jest skala ekranu - ostre ikony) i rozmiar okna przy pierwszym otwarciu."""
+        self.applyViewerTheme(force=True)
+        super().showEvent(event)
+        if not getattr(self, '_viewer_fitted', False):
+            self._viewer_fitted = True
+            QTimer.singleShot(0, self.fitViewerOnOpen)
+
+    def changeEvent(self, event):
+        # zmiana motywu QGIS w trakcie pracy; changeEvent przychodzi też w trakcie setupUi
+        if (event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange)
+                and getattr(self, '_viewer_theme', None) is not None):
+            self.applyViewerTheme()
+        super().changeEvent(event)
 
     def keyPressEvent(self, event):
         """Funkcja odpowiedzialna za wykrycie użycia przycisku ESC"""
