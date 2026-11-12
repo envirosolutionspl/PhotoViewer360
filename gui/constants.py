@@ -90,7 +90,7 @@ CARD_HEADER_PADDING = 14      # odstęp ikony i przycisku zwijania od boków kar
 CARD_ICON_SIZE = 36
 CARD_ICON_TEXT_GAP = 12       # odstęp tekstu od ikony
 CARD_TITLE_RECT = (9, 24)     # (y, wysokość) tytułu
-CARD_SUBTITLE_RECT = (33, 16) # (y, wysokość) podtytułu
+CARD_SUBTITLE_RECT = (33, 16)  # (y, wysokość) podtytułu
 CARD_ACCENT_HEIGHT = 2        # zielona linia pod nagłówkiem
 
 # Przycisk zwijania (okrąg ze strzałką)
