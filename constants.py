@@ -83,22 +83,13 @@ MSG_NO_CONNECTION = "No internet connection."
 # =============================
 
 FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
+INDUSTRIES_URL = 'https://qgisfeed.enviro-dev.pl/industries/'
+INDUSTRIES_TIMEOUT_MS = 3000
 
-INDUSTRIES = {
-    "999": "Not selected",
-    "e": "Energy / Renewable Energy",
-    "u": "Public Administration",
-    "td": "Transport/Infrastructure",
-    "pg": "Planning/Surveying/Geodesy",
-    "wk": "Water and Wastewater",
-    "s": "Environment",
-    "rl": "Agriculture/Forestry",
-    "tk": "Telecommunications",
-    "edu": "Education",
-    "i": "Other",
-    "it": "IT",
-    "n": "Real Estate"
-}
+# Klucze QgsSettings wspólne dla wszystkich wtyczek EnviroSolutions w profilu QGIS
+FEED_KEY_USER_ID = 'anonymous_user_id'
+FEED_KEY_INDUSTRY = 'selected_industry'
+FEED_APP_PROPERTY_DIALOG_HANDLED = 'envirosolutions_industry_dialog_handled'
 
 # Properties
 COLUMN_NAME = "sciezka_zdjecie"

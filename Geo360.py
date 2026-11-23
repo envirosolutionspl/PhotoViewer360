@@ -67,7 +67,8 @@ from .constants import (
 from collections import defaultdict
 from pathlib import Path
 from .tools import SelectTool
-from .qgis_feed import QgisFeedDialog
+from .qgis_feed import EnviroFeedManager
+from .qgis_feed_dialog import QgisFeedDialog
 import importlib.util
 
 from . import PLUGIN_NAME as plugin_name
@@ -96,25 +97,10 @@ class Geo360:
 
         self.exifread_path = os.path.join(plugin_dir, LIBS_PATH, LIB_EXIFREAD_PATH)
 
+        self.feed_manager = None
         if Qgis.QGIS_VERSION_INT >= QGIS_FEED_MIN_VERSION_INT:
-            from .qgis_feed import QgisFeed
-
-            self.selected_industry = self.settings.value(
-                "selected_industry", None
-            )
-            show_dialog = self.settings.value(
-                "showDialog", True, type=bool
-            )
-
-            if self.selected_industry is None and show_dialog:
-                self.showBranchSelectionDialog()
-
-            select_indust_session = self.settings.value(
-                "selected_industry"
-            )
-
-            self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
-            self.feed.initFeed()
+            self.feed_manager = EnviroFeedManager(iface, plugin_name, QgisFeedDialog)
+            self.feed_manager.start()
     
         # use all available cores and parallel rendering
         QgsApplication.setMaxThreads(thread_count)
@@ -310,6 +296,10 @@ class Geo360:
     def unload(self):
         """Załadowanie narzędzi PhotoViewer360"""
 
+        if self.feed_manager is not None:
+            self.feed_manager.unload()
+            self.feed_manager = None
+
         if self.translator is not None:
             QCoreApplication.removeTranslator(self.translator)
             self.translator = None
@@ -353,16 +343,6 @@ class Geo360:
         # wywołanie panelu "PhotoViewer360" po wciśnięciu ikony aparatu
         self.dlg.show()
         self.dlg.raise_()
-
-    def showBranchSelectionDialog(self):
-        self.qgisfeed_dialog = QgisFeedDialog()
-
-        if self.qgisfeed_dialog.exec() == QDialog.DialogCode.Accepted:
-            self.selected_branch = self.qgisfeed_dialog.combo_box.currentText()
-            
-            # Zapis w QGIS3.ini
-            self.settings.setValue("selected_industry", self.selected_branch)  
-            self.settings.setValue("showDialog", False) 
 
     def clickPointOnMapFeature(self):
         """Obsługa wybrania punktu na mapie"""
