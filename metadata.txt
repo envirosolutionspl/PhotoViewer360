@@ -19,6 +19,7 @@ repository= https://github.com/envirosolutionspl/PhotoViewer360
 
 changelog=
   Wersja 3.1.0
+   * Zautomatyzowanie procesu publikacji wtyczek w repozytorium QGIS
    * Zmiana działania qgisfeeda
 #  Wersja 3.0.0
 #    * Zmiana wyglądu wtyczki
