@@ -17,7 +17,7 @@ concurrency:
 env:
   PLUGIN: PhotoViewer360
   PLUGIN_DIR: "."
-  EXCLUDE: ".github .gitignore .gitattributes .flake8 .bandit .secrets.baseline test tests docs scripts"
+  EXCLUDE: ".github .gitignore .gitattributes test tests docs scripts"
 
 jobs:
   version:
